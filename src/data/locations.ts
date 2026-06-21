@@ -1,0 +1,87 @@
+export type Category =
+  | "Cafés"
+  | "Restaurants"
+  | "Things to Do"
+  | "Parks & Nature"
+  | "Nightlife"
+  | "Art & Culture"
+  | "Shopping"
+  | "Landmarks";
+
+export interface Location {
+  id: string;
+  name: string;
+  category: Category;
+  area: string;
+  lat: number;
+  lng: number;
+  priceUSD: number;
+  description: string;
+  durationMin: number;
+  mood: ("Relaxed" | "Adventurous" | "Romantic" | "Family" | "Productive")[];
+  with: ("Solo" | "Couple" | "Family" | "Friends")[];
+  bestHours: [number, number];
+  wifi?: boolean;
+  outlets?: boolean;
+  quiet?: boolean;
+  image: string;
+}
+
+const img = (q: string, sig: number) =>
+  `https://images.unsplash.com/photo-${q}?auto=format&fit=crop&w=800&q=70&sig=${sig}`;
+
+export const LOCATIONS: Location[] = [
+  { id: "citadel", name: "Erbil Citadel", category: "Landmarks", area: "City Center", lat: 36.1912, lng: 44.0093, priceUSD: 0, description: "UNESCO ancient fortress crowning the city.", durationMin: 90, mood: ["Adventurous", "Romantic"], with: ["Solo", "Couple", "Family", "Friends"], bestHours: [16, 19], image: img("1597212618440-9d4f99fc0067", 1) },
+  { id: "shams", name: "Shams Café", category: "Cafés", area: "Citadel Foot", lat: 36.1898, lng: 44.0091, priceUSD: 8, description: "Cozy atmosphere, great coffee at the foot of the citadel.", durationMin: 60, mood: ["Relaxed", "Productive"], with: ["Solo", "Couple", "Friends"], bestHours: [8, 22], wifi: true, outlets: true, quiet: true, image: img("1495474472287-4d71bcdd2085", 2) },
+  { id: "qaysari", name: "Qaysari Bazaar", category: "Shopping", area: "Old City", lat: 36.1907, lng: 44.0098, priceUSD: 15, description: "Historic covered market with spices, textiles, gold.", durationMin: 75, mood: ["Adventurous"], with: ["Solo", "Couple", "Family"], bestHours: [9, 13], image: img("1555529902-5261145633bf", 3) },
+  { id: "sami", name: "Sami Abdulrahman Park", category: "Parks & Nature", area: "Northwest", lat: 36.2086, lng: 43.9676, priceUSD: 0, description: "Vast green park with lakes — perfect for sunset walks.", durationMin: 90, mood: ["Relaxed", "Family"], with: ["Family", "Couple", "Friends"], bestHours: [16, 20], image: img("1500382017468-9049fed747ef", 4) },
+  { id: "empire", name: "Empire World", category: "Shopping", area: "Empire", lat: 36.2247, lng: 43.9938, priceUSD: 25, description: "Modern luxury mixed-use complex with retail and dining.", durationMin: 120, mood: ["Relaxed"], with: ["Couple", "Family"], bestHours: [12, 22], image: img("1519501025264-65ba15a82390", 5) },
+  { id: "ankawa", name: "Ankawa District", category: "Restaurants", area: "Ankawa", lat: 36.2378, lng: 43.9719, priceUSD: 30, description: "Christian quarter known for diverse cuisine & nightlife.", durationMin: 120, mood: ["Romantic"], with: ["Couple", "Friends"], bestHours: [18, 23], image: img("1414235077428-338989a2e8c0", 6) },
+  { id: "machko", name: "Machko Chaikhana", category: "Cafés", area: "Citadel", lat: 36.1905, lng: 44.0089, priceUSD: 4, description: "Iconic tea house with views of the citadel.", durationMin: 45, mood: ["Relaxed"], with: ["Solo", "Friends"], bestHours: [10, 20], wifi: false, image: img("1442512595331-e89e73853f31", 7) },
+  { id: "minare", name: "Mudhafaria Minaret", category: "Landmarks", area: "Minare Park", lat: 36.197, lng: 43.998, priceUSD: 0, description: "12th-century minaret in a tranquil park.", durationMin: 45, mood: ["Adventurous"], with: ["Solo", "Couple"], bestHours: [9, 18], image: img("1564507592333-c60657eea523", 8) },
+  { id: "civilization", name: "Civilization Museum", category: "Art & Culture", area: "City Center", lat: 36.189, lng: 44.012, priceUSD: 5, description: "Mesopotamian artifacts spanning millennia.", durationMin: 75, mood: ["Adventurous"], with: ["Solo", "Family"], bestHours: [10, 16], image: img("1565060169187-4719b3f6c9b7", 9) },
+  { id: "textile", name: "Kurdish Textile Museum", category: "Art & Culture", area: "Citadel", lat: 36.1913, lng: 44.0094, priceUSD: 3, description: "Beautiful collection of Kurdish weaving traditions.", durationMin: 60, mood: ["Relaxed"], with: ["Solo", "Couple"], bestHours: [10, 17], image: img("1582719478250-c89cae4dc85b", 10) },
+  { id: "family-mall", name: "Family Mall", category: "Shopping", area: "60M Road", lat: 36.193, lng: 43.952, priceUSD: 20, description: "Popular indoor mall — great escape from afternoon heat.", durationMin: 90, mood: ["Family", "Relaxed"], with: ["Family"], bestHours: [13, 17], image: img("1481437156560-3205f6a55735", 11) },
+  { id: "majidi", name: "Majidi Mall", category: "Shopping", area: "100M Road", lat: 36.203, lng: 43.98, priceUSD: 18, description: "Upscale mall with cinema and food court.", durationMin: 90, mood: ["Relaxed"], with: ["Family", "Couple"], bestHours: [13, 22], image: img("1519567241046-7f570eee3ce6", 12) },
+  { id: "iskan", name: "Iskan Café", category: "Cafés", area: "Iskan", lat: 36.205, lng: 43.99, priceUSD: 7, description: "Quiet remote-work haven with strong Wi-Fi.", durationMin: 120, mood: ["Productive"], with: ["Solo"], bestHours: [8, 20], wifi: true, outlets: true, quiet: true, image: img("1521017432531-fbd92d768814", 13) },
+  { id: "deutsche", name: "Deutscher Hof", category: "Restaurants", area: "Ankawa", lat: 36.238, lng: 43.97, priceUSD: 35, description: "German cuisine and craft brews in Ankawa.", durationMin: 90, mood: ["Romantic"], with: ["Couple", "Friends"], bestHours: [18, 23], image: img("1414235077428-338989a2e8c0", 14) },
+  { id: "abu-shahab", name: "Abu Shahab", category: "Restaurants", area: "Citadel", lat: 36.19, lng: 44.01, priceUSD: 12, description: "Legendary kebab and Kurdish classics.", durationMin: 75, mood: ["Family"], with: ["Family", "Friends"], bestHours: [12, 22], image: img("1555939594-58d7cb561ad1", 15) },
+  { id: "tarin", name: "Tarin Mountain Resort", category: "Things to Do", area: "Outskirts", lat: 36.36, lng: 44.18, priceUSD: 40, description: "Cable car ride and panoramic mountain views.", durationMin: 180, mood: ["Adventurous", "Family"], with: ["Family", "Couple"], bestHours: [10, 18], image: img("1464822759023-fed622ff2c3b", 16) },
+  { id: "shanidar", name: "Shanidar Park", category: "Parks & Nature", area: "City Center", lat: 36.195, lng: 44.001, priceUSD: 0, description: "Central park with fountains and cafés.", durationMin: 45, mood: ["Relaxed", "Family"], with: ["Family", "Couple"], bestHours: [17, 22], image: img("1500382017468-9049fed747ef", 17) },
+  { id: "korek", name: "Korek Mountain", category: "Things to Do", area: "Soran", lat: 36.65, lng: 44.4, priceUSD: 50, description: "Day trip to Kurdistan's premier mountain resort.", durationMin: 480, mood: ["Adventurous"], with: ["Family", "Friends", "Couple"], bestHours: [8, 18], image: img("1464822759023-fed622ff2c3b", 18) },
+  { id: "gali-ali", name: "Gali Ali Beg Waterfall", category: "Parks & Nature", area: "Soran", lat: 36.62, lng: 44.46, priceUSD: 10, description: "Iconic waterfall featured on the 5,000 dinar note.", durationMin: 120, mood: ["Adventurous"], with: ["Family", "Friends"], bestHours: [9, 17], image: img("1432405972618-c60b0225b8f9", 19) },
+  { id: "rasoul", name: "Rasoul Restaurant", category: "Restaurants", area: "Italian Village", lat: 36.22, lng: 43.98, priceUSD: 28, description: "Fine dining with terrace seating.", durationMin: 90, mood: ["Romantic"], with: ["Couple"], bestHours: [19, 23], image: img("1517248135467-4c7edcad34c4", 20) },
+  { id: "nuts", name: "Nuts Café", category: "Cafés", area: "English Village", lat: 36.227, lng: 43.99, priceUSD: 9, description: "Specialty roastery loved by digital nomads.", durationMin: 90, mood: ["Productive"], with: ["Solo"], bestHours: [8, 22], wifi: true, outlets: true, quiet: true, image: img("1453614512568-c4024d13c247", 21) },
+  { id: "divan", name: "Divan Erbil", category: "Restaurants", area: "Empire", lat: 36.225, lng: 43.995, priceUSD: 60, description: "Five-star hotel restaurant — luxury dining.", durationMin: 120, mood: ["Romantic"], with: ["Couple"], bestHours: [19, 23], image: img("1414235077428-338989a2e8c0", 22) },
+  { id: "rotana", name: "Rotana Erbil", category: "Landmarks", area: "Downtown", lat: 36.2, lng: 44.005, priceUSD: 0, description: "Iconic skyline tower and luxury hotel.", durationMin: 30, mood: ["Romantic"], with: ["Couple"], bestHours: [18, 23], image: img("1566073771259-6a8506099945", 23) },
+  { id: "azadi", name: "Azadi Park", category: "Parks & Nature", area: "City Center", lat: 36.188, lng: 44.005, priceUSD: 0, description: "Family-friendly park near the bazaar.", durationMin: 60, mood: ["Family"], with: ["Family"], bestHours: [16, 21], image: img("1500382017468-9049fed747ef", 24) },
+  { id: "english-village", name: "English Village", category: "Shopping", area: "Pirmam Road", lat: 36.226, lng: 43.992, priceUSD: 22, description: "Upscale residential & dining quarter.", durationMin: 90, mood: ["Relaxed"], with: ["Couple", "Family"], bestHours: [11, 22], image: img("1519501025264-65ba15a82390", 25) },
+  { id: "italian-village", name: "Italian Village", category: "Shopping", area: "Italian Village", lat: 36.218, lng: 43.985, priceUSD: 20, description: "Mediterranean-style enclave with cafés and shops.", durationMin: 90, mood: ["Romantic"], with: ["Couple"], bestHours: [11, 22], image: img("1519501025264-65ba15a82390", 26) },
+  { id: "100m", name: "100M Souq", category: "Shopping", area: "100M Road", lat: 36.205, lng: 43.98, priceUSD: 12, description: "Open-air bazaar with local crafts.", durationMin: 60, mood: ["Adventurous"], with: ["Solo", "Friends"], bestHours: [9, 14], image: img("1555529902-5261145633bf", 27) },
+  { id: "lalav", name: "Lalav Café", category: "Cafés", area: "Gulan Street", lat: 36.196, lng: 43.99, priceUSD: 6, description: "Hip café with Kurdish-inspired pastries.", durationMin: 60, mood: ["Relaxed"], with: ["Friends", "Solo"], bestHours: [9, 21], wifi: true, image: img("1495474472287-4d71bcdd2085", 28) },
+  { id: "salahaddin", name: "Mount Safeen Viewpoint", category: "Things to Do", area: "Shaqlawa", lat: 36.4, lng: 44.32, priceUSD: 15, description: "Mountain town with stunning vistas — 1hr drive.", durationMin: 240, mood: ["Adventurous"], with: ["Family", "Couple"], bestHours: [10, 18], image: img("1464822759023-fed622ff2c3b", 29) },
+  { id: "jalil", name: "Jalil Khayat Mosque", category: "Landmarks", area: "Gulan", lat: 36.193, lng: 43.997, priceUSD: 0, description: "Largest mosque in Erbil — striking architecture.", durationMin: 45, mood: ["Relaxed"], with: ["Solo", "Family"], bestHours: [9, 17], image: img("1564507592333-c60657eea523", 30) },
+  { id: "naza", name: "Naza Mall", category: "Shopping", area: "Iskan", lat: 36.21, lng: 43.985, priceUSD: 16, description: "Local mall with cinema and arcade.", durationMin: 90, mood: ["Family"], with: ["Family"], bestHours: [13, 22], image: img("1481437156560-3205f6a55735", 31) },
+  { id: "bakery-aram", name: "Aram Bakery", category: "Cafés", area: "Ankawa", lat: 36.237, lng: 43.972, priceUSD: 5, description: "Fresh Lebanese-style bakery & breakfast.", durationMin: 45, mood: ["Relaxed", "Family"], with: ["Family", "Couple"], bestHours: [7, 14], image: img("1509440159596-0249088772ff", 32) },
+  { id: "skyland", name: "Skyland Resort", category: "Things to Do", area: "Outskirts", lat: 36.25, lng: 44.05, priceUSD: 25, description: "Water park and family resort.", durationMin: 240, mood: ["Family", "Adventurous"], with: ["Family"], bestHours: [10, 18], image: img("1530549387789-4c1017266635", 33) },
+  { id: "saad-square", name: "Saad Square", category: "Landmarks", area: "City Center", lat: 36.191, lng: 44.009, priceUSD: 0, description: "Historic square with cultural events.", durationMin: 30, mood: ["Relaxed"], with: ["Solo", "Couple"], bestHours: [17, 22], image: img("1566073771259-6a8506099945", 34) },
+  { id: "abu-afan", name: "Abu Afan", category: "Restaurants", area: "Gulan", lat: 36.197, lng: 43.995, priceUSD: 10, description: "Beloved local kebab joint.", durationMin: 60, mood: ["Family"], with: ["Family", "Friends"], bestHours: [12, 23], image: img("1555939594-58d7cb561ad1", 35) },
+  { id: "byblos", name: "Byblos Lounge", category: "Nightlife", area: "Ankawa", lat: 36.239, lng: 43.972, priceUSD: 30, description: "Cocktails, shisha & live music.", durationMin: 120, mood: ["Romantic"], with: ["Couple", "Friends"], bestHours: [20, 24], image: img("1514933651103-005eec06c04b", 36) },
+  { id: "tcity", name: "T-City Café", category: "Cafés", area: "Empire", lat: 36.224, lng: 43.994, priceUSD: 8, description: "Modern café with co-working vibe.", durationMin: 120, mood: ["Productive"], with: ["Solo"], bestHours: [8, 22], wifi: true, outlets: true, quiet: true, image: img("1521017432531-fbd92d768814", 37) },
+  { id: "german-village", name: "German Village", category: "Shopping", area: "Pirmam Road", lat: 36.23, lng: 43.99, priceUSD: 22, description: "European-inspired luxury district.", durationMin: 90, mood: ["Relaxed"], with: ["Couple"], bestHours: [11, 22], image: img("1519501025264-65ba15a82390", 38) },
+  { id: "hawler-park", name: "Hawler Park", category: "Parks & Nature", area: "City Center", lat: 36.192, lng: 44.003, priceUSD: 0, description: "Compact green space with fountains.", durationMin: 45, mood: ["Relaxed", "Family"], with: ["Family"], bestHours: [17, 21], image: img("1500382017468-9049fed747ef", 39) },
+  { id: "iraq-museum", name: "Erbil Civilization Museum", category: "Art & Culture", area: "Downtown", lat: 36.189, lng: 44.013, priceUSD: 4, description: "Trace Mesopotamian history.", durationMin: 90, mood: ["Adventurous"], with: ["Solo", "Family"], bestHours: [10, 16], image: img("1565060169187-4719b3f6c9b7", 40) },
+  { id: "chavi-land", name: "Chavi Land", category: "Things to Do", area: "Northwest", lat: 36.22, lng: 43.96, priceUSD: 15, description: "Amusement park for families.", durationMin: 180, mood: ["Family"], with: ["Family"], bestHours: [16, 22], image: img("1530549387789-4c1017266635", 41) },
+  { id: "havre", name: "Havre Café", category: "Cafés", area: "Italian Village", lat: 36.219, lng: 43.984, priceUSD: 9, description: "Garden café with European feel.", durationMin: 75, mood: ["Romantic"], with: ["Couple"], bestHours: [10, 22], wifi: true, image: img("1453614512568-c4024d13c247", 42) },
+];
+
+export const CATEGORIES: { name: Category; emoji: string; count: number }[] = [
+  { name: "Cafés", emoji: "☕", count: LOCATIONS.filter(l => l.category === "Cafés").length },
+  { name: "Restaurants", emoji: "🍽️", count: LOCATIONS.filter(l => l.category === "Restaurants").length },
+  { name: "Things to Do", emoji: "🎈", count: LOCATIONS.filter(l => l.category === "Things to Do").length },
+  { name: "Landmarks", emoji: "🏛️", count: LOCATIONS.filter(l => l.category === "Landmarks").length },
+  { name: "Parks & Nature", emoji: "🌳", count: LOCATIONS.filter(l => l.category === "Parks & Nature").length },
+  { name: "Nightlife", emoji: "🌙", count: LOCATIONS.filter(l => l.category === "Nightlife").length },
+  { name: "Art & Culture", emoji: "🎨", count: LOCATIONS.filter(l => l.category === "Art & Culture").length },
+  { name: "Shopping", emoji: "🛍️", count: LOCATIONS.filter(l => l.category === "Shopping").length },
+];
