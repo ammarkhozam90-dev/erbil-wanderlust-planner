@@ -47,8 +47,8 @@ function Home() {
                 <div className="max-w-2xl">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-gold">Welcome to Kurdistan</p>
                   <h1 className="font-display text-5xl font-bold leading-[0.95] text-foreground lg:text-7xl">
-                    EXPLORE THE<br />
-                    <span className="text-gold">ERBIL</span> WITHIN
+                    EXPLORE ERBIL<br />
+                    <span className="text-gold">FROM</span> WITHIN
                   </h1>
                   <p className="mt-4 max-w-lg text-sm text-foreground/80 lg:text-base">
                     AI-powered personalized plans for residents, tourists, families, couples and remote workers.
