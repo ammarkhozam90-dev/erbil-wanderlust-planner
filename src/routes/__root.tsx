@@ -78,17 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ErbilGo — Your day. Your way." },
-      { name: "description", content: "AI-powered luxury day planner for Erbil, Kurdistan." },
       { name: "author", content: "ErbilGo" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "ErbilGo" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "ErbilGo — Your day. Your way." },
-      { name: "twitter:title", content: "ErbilGo — Your day. Your way." },
-      { property: "og:description", content: "AI-powered luxury day planner for Erbil, Kurdistan." },
-      { name: "twitter:description", content: "AI-powered luxury day planner for Erbil, Kurdistan." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3905538a-d66e-41da-a9bc-51e78bbdb574/id-preview-b27b655c--f5fbfd21-90af-4ce1-9a4e-904ad2cef078.lovable.app-1782052915459.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3905538a-d66e-41da-a9bc-51e78bbdb574/id-preview-b27b655c--f5fbfd21-90af-4ce1-9a4e-904ad2cef078.lovable.app-1782052915459.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
