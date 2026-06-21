@@ -6,7 +6,15 @@ import { Shield, LogOut, TrendingUp, MapPin, Users } from "lucide-react";
 import { LOCATIONS } from "@/data/locations";
 
 export const Route = createFileRoute("/admin/dashboard")({
-  head: () => ({ meta: [{ title: "Admin Dashboard — ErbilGo" }] }),
+  head: () => ({
+    meta: [
+      { title: "Admin Dashboard — ErbilGo" },
+      { name: "description", content: "Internal ErbilGo admin console for managing locations, exchange rates and merchant accounts across the platform." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/admin/dashboard" },
+    ],
+    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/admin/dashboard" }],
+  }),
   component: AdminPage,
 });
 

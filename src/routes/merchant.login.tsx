@@ -4,7 +4,16 @@ import { useState } from "react";
 import { Store, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/merchant/login")({
-  head: () => ({ meta: [{ title: "Merchant Portal — ErbilGo" }] }),
+  head: () => ({
+    meta: [
+      { title: "Merchant Portal Login — ErbilGo" },
+      { name: "description", content: "Sign in to the ErbilGo Merchant Portal to manage your venue listing, offers and bookings from travellers planning their day in Erbil." },
+      { property: "og:title", content: "Merchant Portal — ErbilGo" },
+      { property: "og:description", content: "Business sign-in for Erbil venues partnered with ErbilGo." },
+      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/merchant/login" },
+    ],
+    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/merchant/login" }],
+  }),
   component: MerchantLogin,
 });
 

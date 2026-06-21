@@ -10,11 +10,13 @@ import { Sparkles, Shuffle, ChevronRight, Users, Heart, Mountain, Laptop, Camera
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ErbilGo — Your day. Your way." },
+      { title: "ErbilGo — AI Day Planner for Erbil, Kurdistan" },
       { name: "description", content: "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers." },
       { property: "og:title", content: "ErbilGo — Plan your perfect day in Erbil" },
       { property: "og:description", content: "AI-driven luxury travel planner for the heart of Kurdistan." },
+      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/" },
     ],
+    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/" }],
   }),
   component: Home,
 });

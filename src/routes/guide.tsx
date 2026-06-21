@@ -5,9 +5,13 @@ import { Sun, Users, Shirt, Coffee, MapPin } from "lucide-react";
 export const Route = createFileRoute("/guide")({
   head: () => ({
     meta: [
-      { title: "Living in Erbil — ErbilGo Guide" },
-      { name: "description", content: "Climate, culture and dress-code guidance for visiting and living in Erbil." },
+      { title: "Living in Erbil — Climate, Culture & Customs | ErbilGo" },
+      { name: "description", content: "Practical guide to Erbil's climate, customs and dress codes for visitors, expats and residents settling into Kurdistan's capital." },
+      { property: "og:title", content: "Living in Erbil — ErbilGo Guide" },
+      { property: "og:description", content: "A practical primer on climate, customs and dress codes shaping daily life in Hewlêr." },
+      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/guide" },
     ],
+    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/guide" }],
   }),
   component: Guide,
 });
