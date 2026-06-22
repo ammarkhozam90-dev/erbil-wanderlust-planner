@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as GuideRouteImport } from './routes/guide'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MerchantLoginRouteImport } from './routes/merchant.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
@@ -17,6 +18,11 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 const GuideRoute = GuideRouteImport.update({
   id: '/guide',
   path: '/guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -38,12 +44,14 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/guide': typeof GuideRoute
+  '/profile': typeof ProfileRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/merchant/login': typeof MerchantLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/guide': typeof GuideRoute
+  '/profile': typeof ProfileRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/merchant/login': typeof MerchantLoginRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/guide': typeof GuideRoute
+  '/profile': typeof ProfileRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/merchant/login': typeof MerchantLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/guide' | '/admin/dashboard' | '/merchant/login'
+  fullPaths: '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/guide' | '/admin/dashboard' | '/merchant/login'
-  id: '__root__' | '/' | '/guide' | '/admin/dashboard' | '/merchant/login'
+  to: '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
+  id: '__root__' | '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuideRoute: typeof GuideRoute
+  ProfileRoute: typeof ProfileRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   MerchantLoginRoute: typeof MerchantLoginRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant/login': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuideRoute: GuideRoute,
+  ProfileRoute: ProfileRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   MerchantLoginRoute: MerchantLoginRoute,
 }
