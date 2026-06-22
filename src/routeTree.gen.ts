@@ -9,20 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as GuideRouteImport } from './routes/guide'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MerchantLoginRouteImport } from './routes/merchant.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 
-const GuideRoute = GuideRouteImport.update({
-  id: '/guide',
-  path: '/guide',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -65,10 +65,21 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
+  fullPaths:
+    | '/'
+    | '/guide'
+    | '/profile'
+    | '/admin/dashboard'
+    | '/merchant/login'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
-  id: '__root__' | '/' | '/guide' | '/profile' | '/admin/dashboard' | '/merchant/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/guide'
+    | '/profile'
+    | '/admin/dashboard'
+    | '/merchant/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -81,6 +92,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guide': {
       id: '/guide'
       path: '/guide'
@@ -93,13 +111,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant/login': {
