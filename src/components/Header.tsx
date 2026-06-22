@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { MapPin, Sun, User } from "lucide-react";
+import { MapPin, Sun } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { UserMenu } from "./UserMenu";
 
 export function Header() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -44,12 +45,7 @@ export function Header() {
             <span className="font-medium">28°C</span>
           </div>
           <LanguageSwitcher />
-          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-border bg-secondary">
-            <div className="grid h-full w-full place-items-center text-muted-foreground">
-              <User className="h-4 w-4" />
-            </div>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
-          </div>
+          <UserMenu />
         </div>
       </div>
     </header>

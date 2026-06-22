@@ -7,9 +7,21 @@ export type Companion = "Solo" | "Couple" | "Family" | "Friends";
 export type Budget = "$" | "$$" | "$$$";
 export type Duration = "Half" | "Full" | "Evening";
 export type Currency = "USD" | "IQD";
+export type TravelStyle = "Foodie" | "Remote Work Focus" | "Family Friendly" | "Nightlife" | "Cultural/Historical";
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  preferredLang: "English" | "Arabic" | "Kurdish";
+  travelStyles: TravelStyle[];
+  createdAt: string;
+  itinerariesGenerated: number;
+}
 
 interface PlanItem extends Location {
-  startTime: string; // "HH:MM"
+  startTime: string;
 }
 
 interface State {
@@ -18,12 +30,19 @@ interface State {
   budget: Budget;
   duration: Duration;
   currency: Currency;
-  exchangeRate: number; // 1 USD = N IQD
+  exchangeRate: number;
   plan: PlanItem[];
   isAdmin: boolean;
+  isAuthed: boolean;
+  user: UserProfile;
+  favorites: string[];
   setFilter: <K extends keyof Pick<State, "mood" | "companion" | "budget" | "duration" | "currency">>(k: K, v: State[K]) => void;
   setExchangeRate: (r: number) => void;
   setAdmin: (v: boolean) => void;
+  login: (name?: string) => void;
+  logout: () => void;
+  updateUser: (patch: Partial<UserProfile>) => void;
+  toggleFavorite: (id: string) => void;
   generatePlan: () => void;
   surpriseMe: () => void;
   clearPlan: () => void;
@@ -67,9 +86,31 @@ export const useStore = create<State>()(
       exchangeRate: 1500,
       plan: [],
       isAdmin: false,
+      isAuthed: false,
+      user: {
+        name: "Ammar Hassan",
+        email: "ammar@erbilgo.app",
+        phone: "+964 750 000 0000",
+        avatar: undefined,
+        preferredLang: "English",
+        travelStyles: ["Foodie", "Cultural/Historical"],
+        createdAt: new Date().toISOString(),
+        itinerariesGenerated: 0,
+      },
+      favorites: [],
       setFilter: (k, v) => set({ [k]: v } as any),
       setExchangeRate: (r) => set({ exchangeRate: r }),
       setAdmin: (v) => set({ isAdmin: v }),
+      login: (name) =>
+        set((s) => ({ isAuthed: true, user: { ...s.user, ...(name ? { name } : {}) } })),
+      logout: () => set({ isAuthed: false }),
+      updateUser: (patch) => set((s) => ({ user: { ...s.user, ...patch } })),
+      toggleFavorite: (id) =>
+        set((s) => ({
+          favorites: s.favorites.includes(id)
+            ? s.favorites.filter((x) => x !== id)
+            : [...s.favorites, id],
+        })),
       generatePlan: () => {
         const { mood, companion, budget, duration } = get();
         const maxPrice = budget === "$" ? 15 : budget === "$$" ? 35 : 100;
@@ -79,12 +120,14 @@ export const useStore = create<State>()(
             l.with.includes(companion) &&
             l.priceUSD <= maxPrice,
         );
-        set({ plan: buildItinerary(filtered, duration) });
+        const plan = buildItinerary(filtered, duration);
+        set((s) => ({ plan, user: { ...s.user, itinerariesGenerated: s.user.itinerariesGenerated + (plan.length ? 1 : 0) } }));
       },
       surpriseMe: () => {
         const { duration } = get();
         const shuffled = [...LOCATIONS].sort(() => Math.random() - 0.5).slice(0, 12);
-        set({ plan: buildItinerary(shuffled, duration) });
+        const plan = buildItinerary(shuffled, duration);
+        set((s) => ({ plan, user: { ...s.user, itinerariesGenerated: s.user.itinerariesGenerated + (plan.length ? 1 : 0) } }));
       },
       clearPlan: () => set({ plan: [] }),
     }),
