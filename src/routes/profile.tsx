@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Camera, User, Mail, Phone, Globe, DollarSign, Coins, Lock,
   Calendar, BarChart3, Heart, MapPin, Trash2,
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useStore, type TravelStyle } from "@/lib/store";
+import { useStore } from "@/lib/store";
+import { useAuth, type TravelStyle } from "@/lib/auth";
 import { LOCATIONS } from "@/data/locations";
 import { toast } from "sonner";
 
@@ -35,30 +36,42 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const isAuthed = useStore((s) => s.isAuthed);
-  const user = useStore((s) => s.user);
-  const updateUser = useStore((s) => s.updateUser);
+  const { session, profile, loading, updateProfile, toggleFavorite } = useAuth();
+  const navigate = useNavigate();
   const currency = useStore((s) => s.currency);
   const setFilter = useStore((s) => s.setFilter);
-  const favorites = useStore((s) => s.favorites);
-  const toggleFavorite = useStore((s) => s.toggleFavorite);
-  const login = useStore((s) => s.login);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
-    name: user.name, email: user.email, phone: user.phone, preferredLang: user.preferredLang,
+    name: "",
+    phone: "",
+    preferredLang: "English",
   });
 
-  if (!isAuthed) {
+  // Hydrate form from DB profile whenever it loads/updates
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        preferredLang: profile.preferred_lang ?? "English",
+      });
+    }
+  }, [profile?.full_name, profile?.phone, profile?.preferred_lang]);
+
+  if (!session && !loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="mx-auto max-w-md px-4 py-24 text-center">
           <h1 className="font-display text-4xl font-bold">Sign in to view your profile</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Access saved spots, travel preferences, and currency settings.
+            Access saved spots, travel preferences, and currency settings — synced across all your devices.
           </p>
-          <Button onClick={() => login()} className="mt-6 bg-gold text-background hover:bg-gold/90">
+          <Button
+            onClick={() => navigate({ to: "/auth" })}
+            className="mt-6 bg-gold text-background hover:bg-gold/90"
+          >
             Sign In / Sign Up
           </Button>
         </div>
@@ -66,31 +79,52 @@ function ProfilePage() {
     );
   }
 
-  const initial = (user.name?.[0] ?? "U").toUpperCase();
+  if (loading || !profile || !session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-md px-4 py-24 text-center text-sm text-muted-foreground">
+          Loading your profile…
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = profile.full_name?.trim() || session.user.email || "You";
+  const email = session.user.email ?? "";
+  const initial = (displayName[0] ?? "U").toUpperCase();
+  const favorites = profile.favorites ?? [];
   const savedLocations = LOCATIONS.filter((l) => favorites.includes(l.id));
-  const created = new Date(user.createdAt);
+  const created = new Date(profile.created_at);
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      updateUser({ avatar: reader.result as string });
-      toast.success("Profile photo updated");
+    reader.onload = async () => {
+      const res = await updateProfile({ avatar_url: reader.result as string });
+      if (res.error) toast.error(res.error);
+      else toast.success("Profile photo updated");
     };
     reader.readAsDataURL(f);
   }
 
-  function saveAccount() {
-    updateUser({ ...form });
-    toast.success("Account information saved");
+  async function saveAccount() {
+    const res = await updateProfile({
+      full_name: form.name,
+      phone: form.phone,
+      preferred_lang: form.preferredLang,
+    });
+    if (res.error) toast.error(res.error);
+    else toast.success("Account information saved");
   }
 
-  function toggleStyle(s: TravelStyle) {
-    const has = user.travelStyles.includes(s);
-    updateUser({
-      travelStyles: has ? user.travelStyles.filter((x) => x !== s) : [...user.travelStyles, s],
-    });
+  async function toggleStyle(s: TravelStyle) {
+    const list = profile!.travel_styles ?? [];
+    const has = list.includes(s);
+    const next = has ? list.filter((x) => x !== s) : [...list, s];
+    const res = await updateProfile({ travel_styles: next });
+    if (res.error) toast.error(res.error);
   }
 
   return (
@@ -101,8 +135,8 @@ function ProfilePage() {
         <section className="mb-10 flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
           <div className="group relative">
             <div className="relative h-32 w-32 overflow-hidden rounded-full border-2 border-gold/60 bg-gradient-to-br from-gold/20 to-primary/10 shadow-luxury">
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
               ) : (
                 <span className="grid h-full w-full place-items-center font-display text-5xl font-bold text-gold">
                   {initial}
@@ -123,8 +157,8 @@ function ProfilePage() {
           </div>
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Member</p>
-            <h1 className="mt-1 font-display text-4xl font-bold lg:text-5xl">{user.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
+            <h1 className="mt-1 font-display text-4xl font-bold lg:text-5xl">{displayName}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{email}</p>
           </div>
         </section>
 
@@ -139,7 +173,7 @@ function ProfilePage() {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </Field>
               <Field label="Email" icon={<Mail className="h-4 w-4" />}>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input type="email" value={email} disabled readOnly />
               </Field>
               <Field label="Phone Number" icon={<Phone className="h-4 w-4" />}>
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -147,7 +181,7 @@ function ProfilePage() {
               <Field label="Preferred Interface Language" icon={<Globe className="h-4 w-4" />}>
                 <Select
                   value={form.preferredLang}
-                  onValueChange={(v) => setForm({ ...form, preferredLang: v as any })}
+                  onValueChange={(v) => setForm({ ...form, preferredLang: v })}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -182,14 +216,14 @@ function ProfilePage() {
                 <BarChart3 className="mt-0.5 h-4 w-4 text-gold" />
                 <div>
                   <p className="font-medium">Itineraries generated</p>
-                  <p className="text-muted-foreground">{user.itinerariesGenerated}</p>
+                  <p className="text-muted-foreground">{profile.itineraries_generated}</p>
                 </div>
               </li>
               <li>
                 <Button
                   variant="outline"
                   className="w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
-                  onClick={() => toast.success("Password reset email sent")}
+                  onClick={() => toast.info("Password reset is coming soon")}
                 >
                   <Lock className="mr-2 h-4 w-4" /> Change password
                 </Button>
@@ -228,7 +262,7 @@ function ProfilePage() {
                 <p className="mb-3 text-sm font-semibold">Travel Style</p>
                 <div className="flex flex-wrap gap-2">
                   {STYLES.map((s) => {
-                    const active = user.travelStyles.includes(s);
+                    const active = (profile.travel_styles ?? []).includes(s);
                     return (
                       <button
                         key={s}
