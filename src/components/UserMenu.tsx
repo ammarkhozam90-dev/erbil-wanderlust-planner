@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { User, Settings, History, LogOut, LogIn } from "lucide-react";
 import {
   DropdownMenu,
@@ -8,27 +8,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 
 export function UserMenu() {
-  const isAuthed = useStore((s) => s.isAuthed);
-  const user = useStore((s) => s.user);
-  const login = useStore((s) => s.login);
-  const logout = useStore((s) => s.logout);
+  const { session, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  if (!isAuthed) {
+  if (!session) {
     return (
-      <button
-        onClick={() => login()}
+      <Link
+        to="/auth"
         className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-4 py-1.5 text-xs font-semibold tracking-wide text-gold transition-colors hover:bg-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <LogIn className="h-3.5 w-3.5" />
         <span>Sign In / Sign Up</span>
-      </button>
+      </Link>
     );
   }
 
-  const initial = (user.name?.trim()?.[0] ?? "U").toUpperCase();
+  const displayName = profile?.full_name?.trim() || session.user.email || "You";
+  const email = session.user.email ?? "";
+  const initial = (displayName[0] ?? "U").toUpperCase();
 
   return (
     <DropdownMenu>
@@ -36,8 +36,12 @@ export function UserMenu() {
         className="group relative h-9 w-9 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-br from-gold/20 to-primary/10 transition-all hover:ring-2 hover:ring-gold/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         aria-label="Open user menu"
       >
-        {user.avatar ? (
-          <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+        {profile?.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt={displayName}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <span className="grid h-full w-full place-items-center font-display text-base font-bold text-gold">
             {initial}
@@ -47,8 +51,8 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[14rem]">
         <DropdownMenuLabel className="flex flex-col">
-          <span className="font-semibold text-foreground">{user.name}</span>
-          <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+          <span className="font-semibold text-foreground">{displayName}</span>
+          <span className="text-xs font-normal text-muted-foreground">{email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
@@ -71,7 +75,10 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => logout()}
+          onSelect={async () => {
+            await signOut();
+            navigate({ to: "/" });
+          }}
           className="flex items-center gap-2 text-destructive focus:text-destructive"
         >
           <LogOut className="h-4 w-4" />
