@@ -209,11 +209,39 @@ function ProfilePage() {
             <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Member</p>
+            <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Member</p>
+              {isAdmin && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">
+                  <ShieldCheck className="h-3 w-3" /> Admin
+                </span>
+              )}
+              {isMerchant && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Merchant
+                </span>
+              )}
+            </div>
             <h1 className="mt-1 font-display text-4xl font-bold lg:text-5xl">{displayName}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{email}</p>
+
+            <div className="mt-4 max-w-md">
+              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span>Profile completion</span>
+                <span className="text-gold">{completionPct}%</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                <div className="h-full bg-gradient-to-r from-gold/80 to-gold transition-all" style={{ width: `${completionPct}%` }} />
+              </div>
+              {completionPct < 100 && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Complete your profile below for more personalized recommendations.
+                </p>
+              )}
+            </div>
           </div>
         </section>
+
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Account info */}
