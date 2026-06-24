@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera, User, Mail, Phone, Globe, DollarSign, Coins, Lock,
-  Calendar, BarChart3, Heart, MapPin, Trash2,
+  Calendar, BarChart3, Heart, MapPin, Trash2, Sparkles, ShieldCheck,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,26 @@ const STYLES: TravelStyle[] = [
   "Foodie", "Remote Work Focus", "Family Friendly", "Nightlife", "Cultural/Historical",
 ];
 
+const INTERESTS = [
+  "Food & Cafes", "Historical Sites", "Museums", "Nature", "Shopping",
+  "Nightlife", "Family Activities", "Arts & Culture", "Photography",
+  "Sports", "Remote Work Friendly Places",
+];
+
+const COMPANIONS = ["Solo", "Couple", "Friends", "Family"];
+const MOBILITY = ["High", "Moderate", "Low / Accessibility"];
+const BUDGET = ["Budget", "Mid-range", "Premium", "Luxury"];
+const DIETARY = ["Halal", "Vegetarian", "Vegan", "Gluten-free", "No restrictions"];
+const PACE = ["Early Bird", "Flexible", "Night Owl"];
+const SPEED = ["Fast Explorer", "Relaxed Explorer"];
+const ENV = ["Indoor", "Outdoor", "Mixed"];
+
+const ONBOARDING_FIELDS: Array<keyof import("@/lib/auth").Profile> = [
+  "phone", "age_range", "gender", "nationality",
+  "current_city", "travel_companion", "mobility_level", "budget_preference",
+];
+
+
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
@@ -36,7 +56,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { session, profile, loading, updateProfile, toggleFavorite } = useAuth();
+  const { session, profile, loading, isAdmin, isMerchant, updateProfile, toggleFavorite } = useAuth();
   const navigate = useNavigate();
   const currency = useStore((s) => s.currency);
   const setFilter = useStore((s) => s.setFilter);
@@ -97,6 +117,39 @@ function ProfilePage() {
   const savedLocations = LOCATIONS.filter((l) => favorites.includes(l.id));
   const created = new Date(profile.created_at);
 
+  // Completion: required (name, phone) + onboarding fields + interests + travel_styles
+  const completionPct = useMemo(() => {
+    const checks: boolean[] = [
+      !!profile.full_name?.trim(),
+      !!profile.phone?.trim(),
+      ...ONBOARDING_FIELDS.map((k) => {
+        const v = profile[k] as unknown;
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      }),
+      (profile.interests?.length ?? 0) > 0,
+      (profile.travel_styles?.length ?? 0) > 0,
+      (profile.dietary_preferences?.length ?? 0) > 0,
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [profile]);
+
+  async function toggleArrayField(field: "interests" | "dietary_preferences", value: string) {
+    const list = (profile![field] as string[]) ?? [];
+    const next = list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+    await updateProfile({ [field]: next } as Partial<import("@/lib/auth").Profile>);
+  }
+
+  async function setSingleField(field: keyof import("@/lib/auth").Profile, value: string) {
+    await updateProfile({ [field]: value } as Partial<import("@/lib/auth").Profile>);
+  }
+
+  async function setStylePref(key: string, value: string) {
+    const prefs = { ...(profile!.travel_style_prefs ?? {}), [key]: value };
+    await updateProfile({ travel_style_prefs: prefs });
+  }
+
+
+
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -156,11 +209,39 @@ function ProfilePage() {
             <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Member</p>
+            <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Member</p>
+              {isAdmin && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">
+                  <ShieldCheck className="h-3 w-3" /> Admin
+                </span>
+              )}
+              {isMerchant && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Merchant
+                </span>
+              )}
+            </div>
             <h1 className="mt-1 font-display text-4xl font-bold lg:text-5xl">{displayName}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{email}</p>
+
+            <div className="mt-4 max-w-md">
+              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span>Profile completion</span>
+                <span className="text-gold">{completionPct}%</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                <div className="h-full bg-gradient-to-r from-gold/80 to-gold transition-all" style={{ width: `${completionPct}%` }} />
+              </div>
+              {completionPct < 100 && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Complete your profile below for more personalized recommendations.
+                </p>
+              )}
+            </div>
           </div>
         </section>
+
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Account info */}
@@ -282,7 +363,110 @@ function ProfilePage() {
             </div>
           </section>
 
+          {/* Personalization / Onboarding */}
+          <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
+            <div className="mb-1 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-gold" />
+              <h2 className="font-display text-2xl font-bold">Personalization</h2>
+            </div>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Optional details that help us tailor itineraries and recommendations. All fields can be skipped.
+            </p>
+
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              <Field label="Current City" icon={<MapPin className="h-4 w-4" />}>
+                <Input
+                  value={profile.current_city ?? ""}
+                  onChange={(e) => setSingleField("current_city", e.target.value)}
+                  placeholder="e.g. Erbil"
+                />
+              </Field>
+              <Field label="Age Range" icon={<Calendar className="h-4 w-4" />}>
+                <Select value={profile.age_range ?? ""} onValueChange={(v) => setSingleField("age_range", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {["Under 18","18-24","25-34","35-44","45-54","55-64","65+"].map((a) =>
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Nationality" icon={<Globe className="h-4 w-4" />}>
+                <Input
+                  value={profile.nationality ?? ""}
+                  onChange={(e) => setSingleField("nationality", e.target.value)}
+                  placeholder="e.g. Iraqi"
+                />
+              </Field>
+              <Field label="Travel Companion" icon={<User className="h-4 w-4" />}>
+                <Select value={profile.travel_companion ?? ""} onValueChange={(v) => setSingleField("travel_companion", v)}>
+                  <SelectTrigger><SelectValue placeholder="Solo, Couple, Friends, Family" /></SelectTrigger>
+                  <SelectContent>{COMPANIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Mobility Level" icon={<User className="h-4 w-4" />}>
+                <Select value={profile.mobility_level ?? ""} onValueChange={(v) => setSingleField("mobility_level", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{MOBILITY.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Budget Preference" icon={<DollarSign className="h-4 w-4" />}>
+                <Select value={profile.budget_preference ?? ""} onValueChange={(v) => setSingleField("budget_preference", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{BUDGET.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="mt-8">
+              <p className="mb-3 text-sm font-semibold">Interests</p>
+              <div className="flex flex-wrap gap-2">
+                {INTERESTS.map((i) => {
+                  const active = (profile.interests ?? []).includes(i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleArrayField("interests", i)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-3 text-sm font-semibold">Dietary Preferences</p>
+              <div className="flex flex-wrap gap-2">
+                {DIETARY.map((d) => {
+                  const active = (profile.dietary_preferences ?? []).includes(d);
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => toggleArrayField("dietary_preferences", d)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
+              <StylePref label="Daily Rhythm" options={PACE} value={profile.travel_style_prefs?.pace ?? ""} onChange={(v) => setStylePref("pace", v)} />
+              <StylePref label="Exploration Speed" options={SPEED} value={profile.travel_style_prefs?.speed ?? ""} onChange={(v) => setStylePref("speed", v)} />
+              <StylePref label="Environment" options={ENV} value={profile.travel_style_prefs?.environment ?? ""} onChange={(v) => setStylePref("environment", v)} />
+            </div>
+          </section>
+
           {/* Saved hub */}
+
           <section id="history" className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
             <div className="mb-5 flex items-end justify-between">
               <div>
@@ -355,6 +539,32 @@ function Field({ label, icon, children }: { label: string; icon: React.ReactNode
         {label}
       </Label>
       {children}
+    </div>
+  );
+}
+
+function StylePref({
+  label, options, value, onChange,
+}: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => {
+          const active = value === o;
+          return (
+            <button
+              key={o}
+              onClick={() => onChange(active ? "" : o)}
+              className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-colors ${
+                active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
