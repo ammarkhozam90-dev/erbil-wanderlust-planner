@@ -56,7 +56,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { session, profile, loading, updateProfile, toggleFavorite } = useAuth();
+  const { session, profile, loading, isAdmin, isMerchant, updateProfile, toggleFavorite } = useAuth();
   const navigate = useNavigate();
   const currency = useStore((s) => s.currency);
   const setFilter = useStore((s) => s.setFilter);
