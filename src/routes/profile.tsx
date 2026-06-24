@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera, User, Mail, Phone, Globe, DollarSign, Coins, Lock,
-  Calendar, BarChart3, Heart, MapPin, Trash2,
+  Calendar, BarChart3, Heart, MapPin, Trash2, Sparkles, ShieldCheck,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,26 @@ import { toast } from "sonner";
 const STYLES: TravelStyle[] = [
   "Foodie", "Remote Work Focus", "Family Friendly", "Nightlife", "Cultural/Historical",
 ];
+
+const INTERESTS = [
+  "Food & Cafes", "Historical Sites", "Museums", "Nature", "Shopping",
+  "Nightlife", "Family Activities", "Arts & Culture", "Photography",
+  "Sports", "Remote Work Friendly Places",
+];
+
+const COMPANIONS = ["Solo", "Couple", "Friends", "Family"];
+const MOBILITY = ["High", "Moderate", "Low / Accessibility"];
+const BUDGET = ["Budget", "Mid-range", "Premium", "Luxury"];
+const DIETARY = ["Halal", "Vegetarian", "Vegan", "Gluten-free", "No restrictions"];
+const PACE = ["Early Bird", "Flexible", "Night Owl"];
+const SPEED = ["Fast Explorer", "Relaxed Explorer"];
+const ENV = ["Indoor", "Outdoor", "Mixed"];
+
+const ONBOARDING_FIELDS: Array<keyof import("@/lib/auth").Profile> = [
+  "phone", "age_range", "gender", "nationality",
+  "current_city", "travel_companion", "mobility_level", "budget_preference",
+];
+
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
