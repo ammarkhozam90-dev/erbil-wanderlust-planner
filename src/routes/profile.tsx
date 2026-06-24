@@ -542,3 +542,29 @@ function Field({ label, icon, children }: { label: string; icon: React.ReactNode
     </div>
   );
 }
+
+function StylePref({
+  label, options, value, onChange,
+}: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => {
+          const active = value === o;
+          return (
+            <button
+              key={o}
+              onClick={() => onChange(active ? "" : o)}
+              className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-colors ${
+                active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
