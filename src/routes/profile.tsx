@@ -363,7 +363,110 @@ function ProfilePage() {
             </div>
           </section>
 
+          {/* Personalization / Onboarding */}
+          <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
+            <div className="mb-1 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-gold" />
+              <h2 className="font-display text-2xl font-bold">Personalization</h2>
+            </div>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Optional details that help us tailor itineraries and recommendations. All fields can be skipped.
+            </p>
+
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              <Field label="Current City" icon={<MapPin className="h-4 w-4" />}>
+                <Input
+                  value={profile.current_city ?? ""}
+                  onChange={(e) => setSingleField("current_city", e.target.value)}
+                  placeholder="e.g. Erbil"
+                />
+              </Field>
+              <Field label="Age Range" icon={<Calendar className="h-4 w-4" />}>
+                <Select value={profile.age_range ?? ""} onValueChange={(v) => setSingleField("age_range", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {["Under 18","18-24","25-34","35-44","45-54","55-64","65+"].map((a) =>
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Nationality" icon={<Globe className="h-4 w-4" />}>
+                <Input
+                  value={profile.nationality ?? ""}
+                  onChange={(e) => setSingleField("nationality", e.target.value)}
+                  placeholder="e.g. Iraqi"
+                />
+              </Field>
+              <Field label="Travel Companion" icon={<User className="h-4 w-4" />}>
+                <Select value={profile.travel_companion ?? ""} onValueChange={(v) => setSingleField("travel_companion", v)}>
+                  <SelectTrigger><SelectValue placeholder="Solo, Couple, Friends, Family" /></SelectTrigger>
+                  <SelectContent>{COMPANIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Mobility Level" icon={<User className="h-4 w-4" />}>
+                <Select value={profile.mobility_level ?? ""} onValueChange={(v) => setSingleField("mobility_level", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{MOBILITY.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Budget Preference" icon={<DollarSign className="h-4 w-4" />}>
+                <Select value={profile.budget_preference ?? ""} onValueChange={(v) => setSingleField("budget_preference", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{BUDGET.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="mt-8">
+              <p className="mb-3 text-sm font-semibold">Interests</p>
+              <div className="flex flex-wrap gap-2">
+                {INTERESTS.map((i) => {
+                  const active = (profile.interests ?? []).includes(i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleArrayField("interests", i)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-3 text-sm font-semibold">Dietary Preferences</p>
+              <div className="flex flex-wrap gap-2">
+                {DIETARY.map((d) => {
+                  const active = (profile.dietary_preferences ?? []).includes(d);
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => toggleArrayField("dietary_preferences", d)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
+              <StylePref label="Daily Rhythm" options={PACE} value={profile.travel_style_prefs?.pace ?? ""} onChange={(v) => setStylePref("pace", v)} />
+              <StylePref label="Exploration Speed" options={SPEED} value={profile.travel_style_prefs?.speed ?? ""} onChange={(v) => setStylePref("speed", v)} />
+              <StylePref label="Environment" options={ENV} value={profile.travel_style_prefs?.environment ?? ""} onChange={(v) => setStylePref("environment", v)} />
+            </div>
+          </section>
+
           {/* Saved hub */}
+
           <section id="history" className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
             <div className="mb-5 flex items-end justify-between">
               <div>
