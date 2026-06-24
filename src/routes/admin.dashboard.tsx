@@ -82,9 +82,10 @@ function AdminPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Admin</p>
             <h1 className="font-display text-4xl font-bold">Control Center</h1>
           </div>
-          <button onClick={() => setAdmin(false)} className="flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:border-destructive hover:text-destructive">
+          <button onClick={() => { void signOut(); navigate({ to: "/" }); }} className="flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:border-destructive hover:text-destructive">
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
+
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
