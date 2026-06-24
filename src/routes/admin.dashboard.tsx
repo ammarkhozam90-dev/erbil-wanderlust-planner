@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { useStore } from "@/lib/store";
 import { useState } from "react";
 import { Shield, LogOut, TrendingUp, MapPin, Users } from "lucide-react";
 import { LOCATIONS } from "@/data/locations";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
@@ -18,54 +20,56 @@ export const Route = createFileRoute("/admin/dashboard")({
   component: AdminPage,
 });
 
-const ADMIN_EMAIL = "ammar.khozam90@gmail.com";
-const ADMIN_PASSWORD = "1122334455";
-
 function AdminPage() {
-  const { isAdmin, setAdmin, exchangeRate, setExchangeRate } = useStore();
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [err, setErr] = useState<string | null>(null);
+  const { exchangeRate, setExchangeRate } = useStore();
+  const { session, isAdmin, loading, signOut } = useAuth();
+  const navigate = useNavigate();
   const [rateInput, setRateInput] = useState(String(exchangeRate));
   const [saved, setSaved] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-md px-4 py-24 text-center text-sm text-muted-foreground">
+          Checking access…
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-md px-4 py-24 text-center">
+          <Shield className="mx-auto mb-4 h-10 w-10 text-gold" />
+          <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in with an administrator account to continue.</p>
+          <Button onClick={() => navigate({ to: "/auth" })} className="mt-6 bg-gold text-background hover:bg-gold/90">
+            Sign in
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-md place-items-center px-4">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (email.trim().toLowerCase() === ADMIN_EMAIL && pwd === ADMIN_PASSWORD) {
-                setAdmin(true);
-                setErr(null);
-              } else setErr("Invalid credentials.");
-            }}
-            className="w-full rounded-3xl border border-border bg-card/80 p-8 shadow-luxury"
-          >
-            <div className="mb-6 flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-gold text-gold-foreground">
-                <Shield className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold">Secure access</p>
-                <h1 className="font-display text-2xl font-bold">Admin Dashboard</h1>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm outline-none focus:border-primary" />
-              <input type="password" placeholder="Password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="w-full rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm outline-none focus:border-primary" />
-              <button className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:opacity-90">
-                Sign in
-              </button>
-              {err && <p className="text-center text-xs text-destructive">{err}</p>}
-            </div>
-          </form>
+        <div className="mx-auto max-w-md px-4 py-24 text-center">
+          <Shield className="mx-auto mb-4 h-10 w-10 text-destructive" />
+          <h1 className="font-display text-3xl font-bold">Access denied</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account does not have administrator privileges.
+          </p>
         </div>
       </div>
     );
   }
+
+
 
   const totalValue = LOCATIONS.reduce((s, l) => s + l.priceUSD, 0);
 
