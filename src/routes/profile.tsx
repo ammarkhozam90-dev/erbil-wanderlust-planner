@@ -134,19 +134,20 @@ function ProfilePage() {
   }, [profile]);
 
   async function toggleArrayField(field: "interests" | "dietary_preferences", value: string) {
-    const list = (profile[field] as string[]) ?? [];
+    const list = (profile![field] as string[]) ?? [];
     const next = list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
-    await updateProfile({ [field]: next } as Partial<typeof profile>);
+    await updateProfile({ [field]: next } as Partial<import("@/lib/auth").Profile>);
   }
 
-  async function setSingleField(field: keyof typeof profile, value: string) {
-    await updateProfile({ [field]: value } as Partial<typeof profile>);
+  async function setSingleField(field: keyof import("@/lib/auth").Profile, value: string) {
+    await updateProfile({ [field]: value } as Partial<import("@/lib/auth").Profile>);
   }
 
   async function setStylePref(key: string, value: string) {
-    const prefs = { ...(profile.travel_style_prefs ?? {}), [key]: value };
+    const prefs = { ...(profile!.travel_style_prefs ?? {}), [key]: value };
     await updateProfile({ travel_style_prefs: prefs });
   }
+
 
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
