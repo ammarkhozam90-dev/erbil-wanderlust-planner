@@ -117,6 +117,38 @@ function ProfilePage() {
   const savedLocations = LOCATIONS.filter((l) => favorites.includes(l.id));
   const created = new Date(profile.created_at);
 
+  // Completion: required (name, phone) + onboarding fields + interests + travel_styles
+  const completionPct = useMemo(() => {
+    const checks: boolean[] = [
+      !!profile.full_name?.trim(),
+      !!profile.phone?.trim(),
+      ...ONBOARDING_FIELDS.map((k) => {
+        const v = profile[k] as unknown;
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      }),
+      (profile.interests?.length ?? 0) > 0,
+      (profile.travel_styles?.length ?? 0) > 0,
+      (profile.dietary_preferences?.length ?? 0) > 0,
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [profile]);
+
+  async function toggleArrayField(field: "interests" | "dietary_preferences", value: string) {
+    const list = (profile[field] as string[]) ?? [];
+    const next = list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+    await updateProfile({ [field]: next } as Partial<typeof profile>);
+  }
+
+  async function setSingleField(field: keyof typeof profile, value: string) {
+    await updateProfile({ [field]: value } as Partial<typeof profile>);
+  }
+
+  async function setStylePref(key: string, value: string) {
+    const prefs = { ...(profile.travel_style_prefs ?? {}), [key]: value };
+    await updateProfile({ travel_style_prefs: prefs });
+  }
+
+
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
