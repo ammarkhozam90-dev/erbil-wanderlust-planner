@@ -18,9 +18,9 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Sign in or create your ErbilGo account to sync saved spots, preferences, and itineraries across all your devices." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Sign In — ErbilGo" },
-      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/auth" },
+      { property: "og:url", content: "https://erbilgo.app/auth" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/auth" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/auth" }],
   }),
   component: AuthPage,
 });

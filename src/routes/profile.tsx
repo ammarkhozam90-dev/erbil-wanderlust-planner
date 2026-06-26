@@ -47,10 +47,10 @@ export const Route = createFileRoute("/profile")({
       { name: "description", content: "Manage your ErbilGo profile, travel preferences, currency settings, and saved Erbil destinations." },
       { property: "og:title", content: "My Profile — ErbilGo" },
       { property: "og:description", content: "Personalize your ErbilGo experience: avatar, language, currency, travel styles and saved hubs." },
-      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/profile" },
+      { property: "og:url", content: "https://erbilgo.app/profile" },
       { name: "robots", content: "noindex, nofollow" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/profile" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/profile" }],
   }),
   component: ProfilePage,
 });

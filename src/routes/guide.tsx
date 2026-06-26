@@ -9,9 +9,9 @@ export const Route = createFileRoute("/guide")({
       { name: "description", content: "Practical guide to Erbil's climate, customs and dress codes for visitors, expats and residents settling into Kurdistan's capital." },
       { property: "og:title", content: "Living in Erbil — ErbilGo Guide" },
       { property: "og:description", content: "A practical primer on climate, customs and dress codes shaping daily life in Hewlêr." },
-      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/guide" },
+      { property: "og:url", content: "https://erbilgo.app/guide" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/guide" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/guide" }],
   }),
   component: Guide,
 });

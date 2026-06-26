@@ -11,6 +11,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { registerItineraryBump } from "@/lib/store";
+import type { Database } from "@/integrations/supabase/types";
 
 export type TravelStyle =
   | "Foodie"
@@ -19,31 +20,8 @@ export type TravelStyle =
   | "Nightlife"
   | "Cultural/Historical";
 
-export type AppRole = "admin" | "merchant" | "user";
-
-export interface Profile {
-  id: string;
-  full_name: string;
-  phone: string;
-  avatar_url: string | null;
-  preferred_lang: string;
-  travel_styles: string[];
-  favorites: string[];
-  itineraries_generated: number;
-  created_at: string;
-  updated_at: string;
-  age_range: string | null;
-  gender: string | null;
-  nationality: string | null;
-  current_city: string | null;
-  travel_companion: string | null;
-  mobility_level: string | null;
-  budget_preference: string | null;
-  dietary_preferences: string[];
-  interests: string[];
-  travel_style_prefs: Record<string, string>;
-  onboarding_complete: boolean;
-}
+export type AppRole = Database["public"]["Enums"]["app_role"];
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export interface SignUpExtras {
   fullName: string;
@@ -68,7 +46,7 @@ interface AuthState {
     extras: SignUpExtras,
   ) => Promise<{ error: string | null; needsConfirm: boolean }>;
   signOut: () => Promise<void>;
-  updateProfile: (patch: Partial<Profile>) => Promise<{ error: string | null }>;
+  updateProfile: (patch: Partial<Database["public"]["Tables"]["profiles"]["Update"]>) => Promise<{ error: string | null }>;
   toggleFavorite: (id: string) => Promise<void>;
   incrementItineraries: () => Promise<void>;
   refetchProfile: () => Promise<void>;
@@ -96,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[auth] fetch profile error", error);
       return null;
     }
-    return (data as Profile | null) ?? null;
+    return data;
   }, []);
 
   const fetchRoles = useCallback(async (userId: string): Promise<AppRole[]> => {
@@ -108,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[auth] fetch roles error", error);
       return [];
     }
-    return (data ?? []).map((r: { role: AppRole }) => r.role);
+    return (data ?? []).map((r) => r.role);
   }, []);
 
   useEffect(() => {
@@ -143,17 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     let cancelled = false;
     const load = async () => {
-      let p = await fetchProfile(userId);
-      if (!p) {
-        await supabase.from("profiles").insert({
-          id: userId,
-          full_name:
-            (session.user.user_metadata?.full_name as string | undefined) ??
-            session.user.email?.split("@")[0] ??
-            "",
-        });
-        p = await fetchProfile(userId);
-      }
+      const p = await fetchProfile(userId);
       const r = await fetchRoles(userId);
       if (!cancelled) {
         setProfile(p);
@@ -206,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refetchProfile]);
 
   const updateProfile = useCallback(
-    async (patch: Partial<Profile>): Promise<{ error: string | null }> => {
+    async (patch: Partial<Database["public"]["Tables"]["profiles"]["Update"]>): Promise<{ error: string | null }> => {
       if (!session?.user) return { error: "Not signed in" };
       const prev = profileRef.current;
       if (prev) setProfile({ ...prev, ...patch } as Profile);
@@ -273,20 +241,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
       if (error) return { error: error.message, needsConfirm: false };
-
-      // If session is present (auto-confirm on), patch profile right away
-      if (data.session && data.user) {
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: extras.fullName,
-            phone: extras.phone ?? "",
-            age_range: extras.ageRange ?? null,
-            gender: extras.gender ?? null,
-            nationality: extras.nationality ?? null,
-          })
-          .eq("id", data.user.id);
-      }
+      
+      // Profile creation is now handled by the database trigger `on_auth_user_created`
+      // which calls `handle_new_user_and_role`. This ensures data consistency.
+      
       return { error: null, needsConfirm: !data.session };
     },
     [],

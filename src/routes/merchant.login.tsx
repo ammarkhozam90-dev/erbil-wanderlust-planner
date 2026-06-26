@@ -10,9 +10,9 @@ export const Route = createFileRoute("/merchant/login")({
       { name: "description", content: "Sign in to the ErbilGo Merchant Portal to manage your venue listing, offers and bookings from travellers planning their day in Erbil." },
       { property: "og:title", content: "Merchant Portal — ErbilGo" },
       { property: "og:description", content: "Business sign-in for Erbil venues partnered with ErbilGo." },
-      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/merchant/login" },
+      { property: "og:url", content: "https://erbilgo.app/merchant/login" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/merchant/login" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/merchant/login" }],
   }),
   component: MerchantLogin,
 });

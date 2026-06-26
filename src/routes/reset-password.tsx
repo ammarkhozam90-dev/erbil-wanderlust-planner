@@ -16,7 +16,7 @@ export const Route = createFileRoute("/reset-password")({
       { name: "description", content: "Set a new password for your ErbilGo account." },
       { name: "robots", content: "noindex, nofollow" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/reset-password" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/reset-password" }],
   }),
   component: ResetPasswordPage,
 });

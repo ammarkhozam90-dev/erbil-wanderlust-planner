@@ -14,9 +14,9 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers." },
       { property: "og:title", content: "ErbilGo — Plan your perfect day in Erbil" },
       { property: "og:description", content: "AI-driven luxury travel planner for the heart of Kurdistan." },
-      { property: "og:url", content: "https://erbil-wanderlust-planner.lovable.app/" },
+      { property: "og:url", content: "https://erbilgo.app/" },
     ],
-    links: [{ rel: "canonical", href: "https://erbil-wanderlust-planner.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/" }],
   }),
   component: Home,
 });
