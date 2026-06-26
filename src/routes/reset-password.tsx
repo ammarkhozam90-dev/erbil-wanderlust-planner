@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Loader2, Check, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, Check, X, ArrowLeft, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ function ResetPasswordPage() {
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -32,17 +33,34 @@ function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Supabase processes the recovery token in the URL hash on load and
-    // emits a PASSWORD_RECOVERY event; either way a session must exist before
-    // we can call updateUser().
+    // Timeout to check if session is actually verified
+    const timer = setTimeout(() => {
+      if (!ready) {
+        setError("The reset link has expired or is invalid. Please request a new one.");
+      }
+    }, 5000);
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) setReady(true);
+      if (event === "PASSWORD_RECOVERY" || session) {
+        setReady(true);
+        setError(null);
+        clearTimeout(timer);
+      }
     });
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      if (data.session) {
+        setReady(true);
+        setError(null);
+        clearTimeout(timer);
+      }
     });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, [ready]);
 
   const check = validatePassword(pwd);
   const match = pwd.length > 0 && pwd === confirm;
@@ -78,48 +96,65 @@ function ResetPasswordPage() {
           Choose a strong password you don't use anywhere else.
         </p>
 
-        <form onSubmit={submit} className="mt-8 w-full rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
-          {!ready && (
-            <p className="mb-4 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted-foreground">
-              Waiting for the reset link to be verified… If nothing happens, request a new link from the sign-in page.
-            </p>
+        <div className="mt-8 w-full rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+          {error ? (
+            <div className="text-center space-y-4 py-4">
+              <div className="flex justify-center">
+                <AlertCircle className="h-12 w-12 text-destructive" />
+              </div>
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/auth">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sign In
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              {!ready && (
+                <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                  <span>Verifying reset link…</span>
+                </div>
+              )}
+              <div className="mb-4">
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">New password</Label>
+                <PwdInput value={pwd} onChange={setPwd} show={show} setShow={setShow} disabled={!ready} />
+                <ul className="mt-2 grid gap-1 text-[11px]">
+                  {PASSWORD_RULES.map((r) => {
+                    const ok = r.test(pwd);
+                    return (
+                      <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
+                        {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {r.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="mb-6">
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirm password</Label>
+                <PwdInput value={confirm} onChange={setConfirm} show={show2} setShow={setShow2} disabled={!ready} />
+                {confirm.length > 0 && (
+                  <p className={`mt-1 text-[11px] ${match ? "text-emerald-500" : "text-destructive"}`}>
+                    {match ? "Passwords match" : "Passwords do not match"}
+                  </p>
+                )}
+              </div>
+              <Button type="submit" disabled={busy || !ready} className="w-full bg-gold text-background hover:bg-gold/90">
+                {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating…</>) : "Update password"}
+              </Button>
+            </form>
           )}
-          <div className="mb-4">
-            <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">New password</Label>
-            <PwdInput value={pwd} onChange={setPwd} show={show} setShow={setShow} />
-            <ul className="mt-2 grid gap-1 text-[11px]">
-              {PASSWORD_RULES.map((r) => {
-                const ok = r.test(pwd);
-                return (
-                  <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
-                    {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                    {r.label}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <div className="mb-6">
-            <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirm password</Label>
-            <PwdInput value={confirm} onChange={setConfirm} show={show2} setShow={setShow2} />
-            {confirm.length > 0 && (
-              <p className={`mt-1 text-[11px] ${match ? "text-emerald-500" : "text-destructive"}`}>
-                {match ? "Passwords match" : "Passwords do not match"}
-              </p>
-            )}
-          </div>
-          <Button type="submit" disabled={busy || !ready} className="w-full bg-gold text-background hover:bg-gold/90">
-            {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating…</>) : "Update password"}
-          </Button>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
 
 function PwdInput({
-  value, onChange, show, setShow,
-}: { value: string; onChange: (v: string) => void; show: boolean; setShow: (b: boolean) => void }) {
+  value, onChange, show, setShow, disabled,
+}: { value: string; onChange: (v: string) => void; show: boolean; setShow: (b: boolean) => void; disabled?: boolean }) {
   return (
     <div className="relative">
       <Input
@@ -129,6 +164,7 @@ function PwdInput({
         onChange={(e) => onChange(e.target.value)}
         autoComplete="new-password"
         className="pr-10"
+        disabled={disabled}
       />
       <button
         type="button"
@@ -136,6 +172,7 @@ function PwdInput({
         className="absolute inset-y-0 right-2 grid place-items-center text-muted-foreground hover:text-foreground"
         aria-label={show ? "Hide password" : "Show password"}
         tabIndex={-1}
+        disabled={disabled}
       >
         {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>

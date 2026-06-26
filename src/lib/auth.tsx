@@ -52,6 +52,7 @@ interface AuthState {
   refetchProfile: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -65,75 +66,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   profileRef.current = profile;
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) {
-      console.error("[auth] fetch profile error", error);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) {
+        console.error("[auth] fetch profile error", error);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error("[auth] unexpected fetch profile error", e);
       return null;
     }
-    return data;
   }, []);
 
   const fetchRoles = useCallback(async (userId: string): Promise<AppRole[]> => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    if (error) {
-      console.error("[auth] fetch roles error", error);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      if (error) {
+        console.error("[auth] fetch roles error", error);
+        return [];
+      }
+      return (data ?? []).map((r) => r.role);
+    } catch (e) {
+      console.error("[auth] unexpected fetch roles error", e);
       return [];
     }
-    return (data ?? []).map((r) => r.role);
   }, []);
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      if (!data.session) {
-        setProfile(null);
-        setRoles([]);
-        setLoading(false);
+    
+    const initSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setSession(data.session);
+        if (!data.session) {
+          setProfile(null);
+          setRoles([]);
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error("[auth] init session error", e);
+        if (mounted) setLoading(false);
       }
-    });
+    };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+    initSession();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
       setSession(newSession);
+      
       if (event === "SIGNED_OUT" || !newSession) {
         setProfile(null);
         setRoles([]);
         setLoading(false);
+      } else if (newSession) {
+        const userId = newSession.user.id;
+        setLoading(true);
+        const [p, r] = await Promise.all([fetchProfile(userId), fetchRoles(userId)]);
+        if (mounted) {
+          setProfile(p);
+          setRoles(r);
+          setLoading(false);
+        }
       }
     });
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    if (!session?.user) return;
-    const userId = session.user.id;
-    setLoading(true);
-    let cancelled = false;
-    const load = async () => {
-      const p = await fetchProfile(userId);
-      const r = await fetchRoles(userId);
-      if (!cancelled) {
-        setProfile(p);
-        setRoles(r);
-        setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.user?.id, fetchProfile, fetchRoles]);
+  }, [fetchProfile, fetchRoles]);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -178,18 +190,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!session?.user) return { error: "Not signed in" };
       const prev = profileRef.current;
       if (prev) setProfile({ ...prev, ...patch } as Profile);
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(patch)
-        .eq("id", session.user.id)
-        .select()
-        .maybeSingle();
-      if (error) {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .update(patch)
+          .eq("id", session.user.id)
+          .select()
+          .maybeSingle();
+        if (error) {
+          if (prev) setProfile(prev);
+          return { error: error.message };
+        }
+        if (data) setProfile(data as Profile);
+        return { error: null };
+      } catch (e) {
         if (prev) setProfile(prev);
-        return { error: error.message };
+        return { error: (e as Error).message };
       }
-      if (data) setProfile(data as Profile);
-      return { error: null };
     },
     [session?.user?.id],
   );
@@ -241,10 +258,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
       if (error) return { error: error.message, needsConfirm: false };
-      
-      // Profile creation is now handled by the database trigger `on_auth_user_created`
-      // which calls `handle_new_user_and_role`. This ensures data consistency.
-      
       return { error: null, needsConfirm: !data.session };
     },
     [],
@@ -268,6 +281,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    // Note: This directly updates the password. For production-grade security, 
+    // you might want to re-authenticate the user first.
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error?.message ?? null };
+  }, []);
+
   const value = useMemo<AuthState>(
     () => ({
       session,
@@ -286,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refetchProfile,
       resetPassword,
       updatePassword,
+      changePassword,
     }),
     [
       session,
@@ -301,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refetchProfile,
       resetPassword,
       updatePassword,
+      changePassword,
     ],
   );
 

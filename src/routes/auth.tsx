@@ -31,13 +31,15 @@ const AGE_RANGES = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65
 const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 
 function AuthPage() {
-  const { session, signIn, signUp, resetPassword } = useAuth();
+  const { session, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
 
   useEffect(() => {
-    if (session) navigate({ to: "/profile" });
-  }, [session, navigate]);
+    if (session && !authLoading) {
+      navigate({ to: "/profile" });
+    }
+  }, [session, navigate, authLoading]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,7 +103,7 @@ function SignInForm({
       return;
     }
     toast.success("Welcome back");
-    navigate({ to: "/profile" });
+    // Navigation handled by AuthPage useEffect
   }
 
   return (
@@ -182,9 +184,10 @@ function SignUpForm({
     }
     if (res.needsConfirm) {
       toast.success("Check your email to confirm your account");
+      navigate({ to: "/auth", search: { mode: "confirm-email" } }); // Redirect to a dedicated confirmation page
     } else {
       toast.success("Welcome to ErbilGo");
-      navigate({ to: "/profile" });
+      navigate({ to: "/profile" }); // Redirect to profile page after auto-login
     }
   }
 
