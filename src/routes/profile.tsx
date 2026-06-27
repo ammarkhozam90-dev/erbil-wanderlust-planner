@@ -104,34 +104,21 @@ function ProfilePage() {
     }
   }, [profile]);
 
-  // Prevent infinite loading and handle missing profile
-  if (!loading && session && !profile) {
-    console.warn("[profile] session exists but no profile found. Redirecting to onboarding...");
+  // 1. If we are loading, show a spinner
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="mx-auto max-w-md px-4 py-24 text-center">
-          <div className="mb-6 flex justify-center">
-            <div className="rounded-full bg-gold/10 p-4">
-              <Sparkles className="h-10 w-10 text-gold" />
-            </div>
-          </div>
-          <h1 className="font-display text-3xl font-bold">Welcome to ErbilGo!</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            We couldn't find your profile. Let's get you set up so you can start planning your perfect Erbil trip.
-          </p>
-          <Button
-            onClick={() => navigate({ to: "/auth" })} // Or a dedicated onboarding route if exists
-            className="mt-6 bg-gold text-background hover:bg-gold/90"
-          >
-            Complete My Profile
-          </Button>
+        <div className="mx-auto max-w-md px-4 py-24 text-center flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          <p className="text-sm text-muted-foreground">Loading your profile…</p>
         </div>
       </div>
     );
   }
 
-  if (!session && !loading) {
+  // 2. If loading is done but no session, redirect to auth
+  if (!session) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -151,27 +138,50 @@ function ProfilePage() {
     );
   }
 
-  if (loading) {
+  // 3. If session exists but no profile, handle onboarding/missing row
+  if (!profile) {
+    console.warn("[profile] session exists but no profile row found in public.profiles");
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="mx-auto max-w-md px-4 py-24 text-center flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-gold" />
-          <p className="text-sm text-muted-foreground">Loading your profile…</p>
+        <div className="mx-auto max-w-md px-4 py-24 text-center">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-gold/10 p-4">
+              <Sparkles className="h-10 w-10 text-gold" />
+            </div>
+          </div>
+          <h1 className="font-display text-3xl font-bold">Welcome to ErbilGo!</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            We're setting up your experience. If this persists, please try signing out and back in.
+          </p>
+          <div className="mt-8 flex flex-col gap-3">
+            <Button
+              onClick={() => navigate({ to: "/auth" })}
+              className="bg-gold text-background hover:bg-gold/90"
+            >
+              Go to Onboarding
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await signOut();
+                navigate({ to: "/" });
+              }}
+              className="text-muted-foreground"
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
-
-  // Final safety check
-  if (!profile || !session) return null;
 
   const displayName = profile.full_name?.trim() || session.user.email || "You";
   const email = session.user.email ?? "";
   const initial = (displayName[0] ?? "U").toUpperCase();
   const favorites = profile.favorites ?? [];
   const savedLocations = LOCATIONS.filter((l) => favorites.includes(l.id));
-  const created = new Date(profile.created_at);
 
   const completionPct = useMemo(() => {
     const checks: boolean[] = [

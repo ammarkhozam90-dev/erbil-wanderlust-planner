@@ -57,13 +57,19 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+const FETCH_TIMEOUT_MS = 10000; // 10 seconds timeout for profile/roles fetch
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const profileRef = useRef<Profile | null>(null);
   profileRef.current = profile;
+  
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     console.log(`[auth] fetching profile for ${userId}...`);
@@ -102,88 +108,126 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loadUserData = useCallback(async (userId: string, mounted: { current: boolean }) => {
+    console.log(`[auth] loading user data for ${userId}...`);
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.warn(`[auth] data fetch timed out after ${FETCH_TIMEOUT_MS}ms`);
+        resolve(null);
+      }, FETCH_TIMEOUT_MS);
+    });
+
+    try {
+      // Race the actual fetch against the timeout
+      const result = await Promise.race([
+        Promise.all([fetchProfile(userId), fetchRoles(userId)]),
+        timeoutPromise
+      ]);
+
+      if (!mounted.current) return;
+
+      if (result && Array.isArray(result)) {
+        const [p, r] = result;
+        setProfile(p);
+        setRoles(r);
+        console.log("[auth] user data loaded successfully");
+      } else {
+        console.warn("[auth] user data loading failed or timed out");
+      }
+    } catch (e) {
+      console.error("[auth] loadUserData unexpected error:", e);
+    } finally {
+      if (mounted.current) {
+        setLoading(false);
+      }
+    }
+  }, [fetchProfile, fetchRoles]);
+
   const refetchProfile = useCallback(async () => {
-    if (!session?.user) return;
-    const p = await fetchProfile(session.user.id);
+    if (!sessionRef.current?.user) return;
+    const p = await fetchProfile(sessionRef.current.user.id);
     if (p) setProfile(p);
-  }, [session?.user?.id, fetchProfile]);
+  }, [fetchProfile]);
 
   useEffect(() => {
-    let mounted = true;
+    const mounted = { current: true };
     
     const initSession = async () => {
       console.log("[auth] initializing session...");
       setLoading(true);
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        if (!mounted) return;
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!mounted.current) return;
         
+        console.log(`[auth] initial getSession result: ${initialSession ? "session found" : "no session"}`);
         setSession(initialSession);
+        
         if (initialSession) {
-          console.log("[auth] active session found, fetching data...");
-          const userId = initialSession.user.id;
-          const [p, r] = await Promise.all([fetchProfile(userId), fetchRoles(userId)]);
-          if (mounted) {
-            setProfile(p);
-            setRoles(r);
-            console.log("[auth] data loaded successfully");
-          }
+          await loadUserData(initialSession.user.id, mounted);
         } else {
-          console.log("[auth] no active session found");
           setProfile(null);
           setRoles([]);
+          setLoading(false);
         }
       } catch (e) {
         console.error("[auth] init session failed:", e);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-          console.log("[auth] initialization complete, loading=false");
-        }
+        if (mounted.current) setLoading(false);
       }
     };
 
     initSession();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (!mounted) return;
-      console.log(`[auth] state change event: ${event}`);
+      if (!mounted.current) return;
+      console.log(`[auth] onAuthStateChange event: ${event}`);
       
+      const prevSession = sessionRef.current;
       setSession(newSession);
       
-      if (event === "SIGNED_OUT" || !newSession) {
+      if (!newSession) {
+        console.log("[auth] session is null, clearing user data");
         setProfile(null);
         setRoles([]);
         setLoading(false);
-      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-        const userId = newSession.user.id;
-        setLoading(true);
-        try {
-          const [p, r] = await Promise.all([fetchProfile(userId), fetchRoles(userId)]);
-          if (mounted) {
-            setProfile(p);
-            setRoles(r);
-          }
-        } catch (e) {
-          console.error(`[auth] failed to load data after ${event}:`, e);
-        } finally {
-          if (mounted) setLoading(false);
+        return;
+      }
+
+      // Handle specific events
+      if (event === "SIGNED_IN") {
+        // Only trigger full load if we didn't already have this session or it's a fresh sign in
+        if (!prevSession || prevSession.user.id !== newSession.user.id) {
+          await loadUserData(newSession.user.id, mounted);
+        } else {
+          console.log("[auth] SIGNED_IN event for existing session, skipping full reload");
+          setLoading(false);
         }
+      } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        console.log(`[auth] ${event} event received, ensuring data is present`);
+        if (!profileRef.current) {
+          await loadUserData(newSession.user.id, mounted);
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
       }
     });
 
     return () => {
-      mounted = false;
+      mounted.current = false;
       sub.subscription.unsubscribe();
     };
-  }, [fetchProfile, fetchRoles]);
+  }, [loadUserData]);
 
   // Real-time profile sync
   useEffect(() => {
     if (!session?.user) return;
     const userId = session.user.id;
     const channel = supabase
-      .channel(`profile:${userId}`)
+      .channel(`profile-sync:${userId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
@@ -215,17 +259,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(
     async (patch: Partial<Database["public"]["Tables"]["profiles"]["Update"]>): Promise<{ error: string | null }> => {
-      if (!session?.user) return { error: "Not signed in" };
-      console.log("[auth] updating profile...");
+      if (!sessionRef.current?.user) return { error: "Not signed in" };
+      console.log("[auth] updateProfile called");
       const prev = profileRef.current;
-      // Optimistic update
       if (prev) setProfile({ ...prev, ...patch } as Profile);
       
       try {
         const { data, error } = await supabase
           .from("profiles")
           .update(patch)
-          .eq("id", session.user.id)
+          .eq("id", sessionRef.current.user.id)
           .select()
           .maybeSingle();
         if (error) {
@@ -239,7 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: (e as Error).message };
       }
     },
-    [session?.user?.id],
+    [],
   );
 
   const toggleFavorite = useCallback(
@@ -268,7 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [incrementItineraries]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    console.log("[auth] signing in...");
+    console.log("[auth] signIn called");
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -282,7 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (email: string, password: string, extras: SignUpExtras) => {
-      console.log("[auth] signing up...");
+      console.log("[auth] signUp called");
       setLoading(true);
       try {
         const { data, error } = await supabase.auth.signUp({
@@ -311,23 +354,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    console.log("[auth] signing out...");
+    console.group("[auth] signOut trace");
+    console.trace("[auth] signOut triggered from:");
+    console.groupEnd();
+    
     setLoading(true);
     try {
       await supabase.auth.signOut();
+      console.log("[auth] Supabase signOut successful");
     } catch (e) {
-      console.error("[auth] sign out error:", e);
+      console.error("[auth] Supabase signOut error:", e);
     } finally {
       setProfile(null);
       setRoles([]);
       setSession(null);
       setLoading(false);
-      console.log("[auth] sign out complete");
+      console.log("[auth] signOut cleanup complete");
     }
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-    console.log("[auth] requesting password reset...");
+    console.log("[auth] resetPassword called");
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -339,12 +386,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePassword = useCallback(async (newPassword: string) => {
-    console.log("[auth] updating password...");
+    console.log("[auth] updatePassword called");
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
-      return { error: error?.message ?? null };
+      if (error) throw error;
+      
+      console.log("[auth] updatePassword success, refreshing session...");
+      // Manually refresh session to ensure everything is in sync
+      const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+      setSession(refreshedSession);
+      
+      return { error: null };
     } catch (e) {
+      console.error("[auth] updatePassword failed:", e);
       return { error: (e as Error).message };
     } finally {
       setLoading(false);
@@ -352,35 +407,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    console.log("[auth] changing password with re-authentication...");
-    if (!session?.user?.email) return { error: "No user session" };
+    console.log("[auth] changePassword called (with re-auth)");
+    const currentEmail = sessionRef.current?.user?.email;
+    if (!currentEmail) return { error: "No user session" };
     
     setLoading(true);
     try {
       // 1. Re-authenticate
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: session.user.email,
+        email: currentEmail,
         password: currentPassword,
       });
       
       if (signInError) {
-        console.error("[auth] re-authentication failed:", signInError.message);
+        console.error("[auth] re-auth failed:", signInError.message);
         return { error: "Incorrect current password" };
       }
       
       // 2. Update password
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      if (updateError) return { error: updateError.message };
+      if (updateError) throw updateError;
       
-      console.log("[auth] password changed successfully");
+      console.log("[auth] changePassword success");
       return { error: null };
     } catch (e) {
-      console.error("[auth] change password unexpected error:", e);
+      console.error("[auth] changePassword failed:", e);
       return { error: (e as Error).message };
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.email]);
+  }, []);
 
   const value = useMemo<AuthState>(
     () => ({

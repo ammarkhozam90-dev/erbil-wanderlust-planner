@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Eye, EyeOff, Loader2, Check, X, ArrowLeft, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/reset-password")({
 });
 
 function ResetPasswordPage() {
-  const { updatePassword } = useAuth();
+  const { updatePassword, session: authSession } = useAuth();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,36 +31,61 @@ function ResetPasswordPage() {
   const [show, setShow] = useState(false);
   const [show2, setShow2] = useState(false);
   const [busy, setBusy] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Timeout to check if session is actually verified
-    const timer = setTimeout(() => {
+    console.log("[reset-password] checking for recovery session...");
+    
+    // 1. Set a safety timeout
+    timerRef.current = setTimeout(() => {
       if (!ready) {
+        console.warn("[reset-password] verification timed out");
         setError("The reset link has expired or is invalid. Please request a new one.");
       }
-    }, 5000);
+    }, 8000);
 
+    // 2. If AuthProvider already has a session, we're likely ready
+    if (authSession) {
+      console.log("[reset-password] session found in AuthProvider");
+      setReady(true);
+      setError(null);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    }
+
+    // 3. Independent check just in case AuthProvider is still loading
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        if (session) {
+          console.log("[reset-password] session found via manual check");
+          setReady(true);
+          setError(null);
+          if (timerRef.current) clearTimeout(timerRef.current);
+        }
+      } catch (e) {
+        console.error("[reset-password] session check error:", e);
+      }
+    };
+
+    checkSession();
+
+    // 4. Listen for auth state changes specifically for recovery
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`[reset-password] onAuthStateChange: ${event}`);
       if (event === "PASSWORD_RECOVERY" || session) {
         setReady(true);
         setError(null);
-        clearTimeout(timer);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setReady(true);
-        setError(null);
-        clearTimeout(timer);
+        if (timerRef.current) clearTimeout(timerRef.current);
       }
     });
 
     return () => {
       sub.subscription.unsubscribe();
-      clearTimeout(timer);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [ready]);
+  }, [authSession, ready]);
 
   const check = validatePassword(pwd);
   const match = pwd.length > 0 && pwd === confirm;
@@ -76,14 +101,20 @@ function ResetPasswordPage() {
       return;
     }
     setBusy(true);
+    console.log("[reset-password] submitting new password...");
     const res = await updatePassword(pwd);
     setBusy(false);
+    
     if (res.error) {
       toast.error(res.error);
       return;
     }
+    
     toast.success("Password updated — you're all set");
-    navigate({ to: "/profile" });
+    // Small delay to let AuthProvider sync
+    setTimeout(() => {
+      navigate({ to: "/profile" });
+    }, 500);
   }
 
   return (
