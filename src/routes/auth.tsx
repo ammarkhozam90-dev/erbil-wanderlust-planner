@@ -35,11 +35,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
 
-  useEffect(() => {
-    if (session && !authLoading) {
-      navigate({ to: "/profile" });
-    }
-  }, [session, navigate, authLoading]);
+  // Removed global useEffect redirect to allow form-specific navigation
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,7 +99,8 @@ function SignInForm({
       return;
     }
     toast.success("Welcome back");
-    // Navigation handled by AuthPage useEffect
+    // Redirect to home page after successful login
+    navigate({ to: "/" });
   }
 
   return (
@@ -184,10 +181,11 @@ function SignUpForm({
     }
     if (res.needsConfirm) {
       toast.success("Check your email to confirm your account");
-      navigate({ to: "/auth", search: { mode: "confirm-email" } }); // Redirect to a dedicated confirmation page
+      navigate({ to: "/auth", search: { mode: "confirm-email" } }); 
     } else {
       toast.success("Welcome to ErbilGo");
-      navigate({ to: "/profile" }); // Redirect to profile page after auto-login
+      // Redirect to profile page after successful signup
+      navigate({ to: "/profile" }); 
     }
   }
 
