@@ -110,11 +110,12 @@ function ResetPasswordPage() {
       return;
     }
     
-    toast.success("Password updated — you're all set");
-    // Small delay to let AuthProvider sync
+    toast.success("Password updated — you will be redirected to sign in");
+    // The updatePassword function already calls signOut()
+    // Small delay to let AuthProvider sync, then redirect to sign in
     setTimeout(() => {
-      navigate({ to: "/profile" });
-    }, 500);
+      navigate({ to: "/auth" });
+    }, 1500);
   }
 
   return (

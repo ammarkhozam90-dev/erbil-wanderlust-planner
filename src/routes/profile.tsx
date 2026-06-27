@@ -260,9 +260,14 @@ function ProfilePage() {
     if (res.error) {
       toast.error(res.error);
     } else {
-      toast.success("Password updated successfully");
+      toast.success("Password updated successfully. Signing out...");
       setShowPwd(false);
       setPwdForm({ current: "", new: "", confirm: "" });
+      // The changePassword function already calls signOut()
+      // We just need to redirect the user to the auth page
+      setTimeout(() => {
+        navigate({ to: "/auth" });
+      }, 1500);
     }
   }
 
@@ -351,7 +356,7 @@ function ProfilePage() {
               </Field>
               <Field label="Age Range" icon={<Calendar className="h-4 w-4" />}>
                 <Select value={form.ageRange} onValueChange={(v) => setForm({ ...form, ageRange: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select age range" /></SelectTrigger>
                   <SelectContent>
                     {["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"].map((a) => (
                       <SelectItem key={a} value={a}>{a}</SelectItem>
@@ -359,129 +364,129 @@ function ProfilePage() {
                   </SelectContent>
                 </Select>
               </Field>
+              <Field label="Gender" icon={<User className="h-4 w-4" />}>
+                <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {["Female", "Male", "Non-binary", "Prefer not to say"].map((g) => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Current City" icon={<MapPin className="h-4 w-4" />}>
                 <Input value={form.currentCity} onChange={(e) => setForm({ ...form, currentCity: e.target.value })} />
               </Field>
+              <Field label="Preferred Language" icon={<Languages className="h-4 w-4" />}>
+                <Select value={form.preferredLang} onValueChange={(v) => setForm({ ...form, preferredLang: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+                  <SelectContent>
+                    {["English", "Kurdish", "Arabic", "Turkish", "Farsi"].map((l) => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
-            <div className="mt-6 flex justify-end">
+            <div className="mt-8 flex justify-end">
               <Button onClick={saveAccount} className="bg-gold text-background hover:bg-gold/90">
-                Save changes
+                Save Changes
               </Button>
+            </div>
+
+            <div className="mt-12 border-t border-border pt-10">
+              <h3 className="mb-5 flex items-center gap-2 font-display text-xl font-bold">
+                <Lock className="h-5 w-5 text-gold" /> Security & Privacy
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border bg-background/40 p-4 transition-colors hover:border-gold/30">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-gold/10 p-2 text-gold"><KeyRound className="h-4 w-4" /></div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider">Password</p>
+                      <p className="text-[11px] text-muted-foreground">Change your account password</p>
+                    </div>
+                    <Dialog open={showPwd} onOpenChange={setShowPwd}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">Update</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Update Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your current password to set a new one. You will be signed out after a successful update.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={onUpdatePassword} className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Current Password</Label>
+                            <PwdInput value={pwdForm.current} onChange={(v) => setPwdForm({ ...pwdForm, current: v })} show={pwdShow1} setShow={setPwdShow1} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>New Password</Label>
+                            <PwdInput value={pwdForm.new} onChange={(v) => setPwdForm({ ...pwdForm, new: v })} show={pwdShow2} setShow={setPwdShow2} autoComplete="new-password" />
+                            <ul className="mt-2 grid gap-1 text-[10px]">
+                              {PASSWORD_RULES.map((r) => {
+                                const ok = r.test(pwdForm.new);
+                                return (
+                                  <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
+                                    {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                    {r.label}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Confirm New Password</Label>
+                            <PwdInput value={pwdForm.confirm} onChange={(v) => setPwdForm({ ...pwdForm, confirm: v })} show={pwdShow3} setShow={setPwdShow3} autoComplete="new-password" />
+                            {pwdForm.confirm.length > 0 && (
+                              <p className={`mt-1 text-[10px] ${pwdMatch ? "text-emerald-500" : "text-destructive"}`}>
+                                {pwdMatch ? "Passwords match" : "Passwords do not match"}
+                              </p>
+                            )}
+                          </div>
+                          <DialogFooter className="mt-6">
+                            <Button type="submit" disabled={pwdBusy || !pwdValid.ok || !pwdMatch} className="w-full bg-gold text-background hover:bg-gold/90">
+                              {pwdBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                              Update Password
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-background/40 p-4 transition-colors hover:border-gold/30">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-gold/10 p-2 text-gold"><Monitor className="h-4 w-4" /></div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider">Sessions</p>
+                      <p className="text-[11px] text-muted-foreground">Manage active devices</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">View</Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* Security & Settings */}
-          <div className="space-y-8">
+          {/* Preferences sidebar */}
+          <aside className="space-y-8">
             <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
-              <h2 className="mb-5 flex items-center gap-2 font-display text-2xl font-bold">
-                <Lock className="h-5 w-5 text-gold" /> Security
+              <h2 className="mb-5 flex items-center gap-2 font-display text-xl font-bold">
+                <Languages className="h-5 w-5 text-gold" /> Localization
               </h2>
               <div className="space-y-4">
-                <Dialog open={showPwd} onOpenChange={setShowPwd}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold">
-                      <KeyRound className="mr-2 h-4 w-4" /> Change password
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Update Password</DialogTitle>
-                      <DialogDescription>
-                        Enter your current password and a new strong password.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={onUpdatePassword} className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label>Current Password</Label>
-                        <PasswordInput
-                          value={pwdForm.current}
-                          onChange={(v) => setPwdForm({ ...pwdForm, current: v })}
-                          show={pwdShow1}
-                          setShow={setPwdShow1}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>New Password</Label>
-                        <PasswordInput
-                          value={pwdForm.new}
-                          onChange={(v) => setPwdForm({ ...pwdForm, new: v })}
-                          show={pwdShow2}
-                          setShow={setPwdShow2}
-                        />
-                        <ul className="mt-2 grid gap-1 text-[11px]">
-                          {PASSWORD_RULES.map((r) => {
-                            const ok = r.test(pwdForm.new);
-                            return (
-                              <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
-                                {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                                {r.label}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Confirm New Password</Label>
-                        <PasswordInput
-                          value={pwdForm.confirm}
-                          onChange={(v) => setPwdForm({ ...pwdForm, confirm: v })}
-                          show={pwdShow3}
-                          setShow={setPwdShow3}
-                        />
-                        {pwdForm.confirm.length > 0 && (
-                          <p className={`mt-1 text-[11px] ${pwdMatch ? "text-emerald-500" : "text-destructive"}`}>
-                            {pwdMatch ? "Passwords match" : "Passwords do not match"}
-                          </p>
-                        )}
-                      </div>
-                      <DialogFooter>
-                        <Button type="submit" disabled={!pwdValid.ok || !pwdMatch || pwdBusy} className="w-full bg-gold text-background">
-                          {pwdBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                          Update Password
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-
-                <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-accent" onClick={() => toast.info("Email update coming soon")}>
-                  <Mail className="mr-2 h-4 w-4" /> Change email
-                </Button>
-
-                <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-accent" onClick={() => toast.info("Active sessions management coming soon")}>
-                  <Monitor className="mr-2 h-4 w-4" /> Active sessions
-                </Button>
-
-                <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => toast.error("Account deletion requires admin approval")}>
-                  <UserMinus className="mr-2 h-4 w-4" /> Delete account
-                </Button>
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
-              <h2 className="mb-5 flex items-center gap-2 font-display text-2xl font-bold">
-                <Palette className="h-5 w-5 text-gold" /> Preferences
-              </h2>
-              <div className="space-y-6">
-                <Field label="Language" icon={<Languages className="h-4 w-4" />}>
-                  <Select value={form.preferredLang} onValueChange={(v) => { setForm({ ...form, preferredLang: v }); saveAccount(); }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="English">English</SelectItem>
-                      <SelectItem value="Arabic">Arabic</SelectItem>
-                      <SelectItem value="Kurdish">Kurdish</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field label="Currency" icon={<CreditCard className="h-4 w-4" />}>
-                  <div className="flex rounded-lg border border-border bg-background p-1">
-                    {(["USD", "IQD"] as const).map((c) => (
+                <Field label="Currency">
+                  <div className="flex flex-wrap gap-2">
+                    {["USD", "IQD", "EUR"].map((c) => (
                       <button
                         key={c}
-                        onClick={() => { setFilter("currency", c); toast.success(`Currency set to ${c}`); }}
-                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-semibold transition-colors ${
-                          currency === c ? "bg-gold text-background" : "text-muted-foreground hover:text-foreground"
+                        onClick={() => useStore.getState().setCurrency(c as any)}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+                          currency === c ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
                         }`}
                       >
                         {c}
@@ -489,219 +494,238 @@ function ProfilePage() {
                     ))}
                   </div>
                 </Field>
+                <Field label="App Language">
+                  <Select value={form.preferredLang} onValueChange={(v) => setSingleField("preferred_lang", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["English", "Kurdish", "Arabic", "Turkish", "Farsi"].map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </section>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-gold" />
-                    <span className="text-sm font-medium">Notifications</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase tracking-wider" onClick={() => toast.info("Coming soon")}>Manage</Button>
+            <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+              <h2 className="mb-5 flex items-center gap-2 font-display text-xl font-bold">
+                <Sparkles className="h-5 w-5 text-gold" /> Quick Stats
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-border bg-background/40 p-3 text-center">
+                  <Heart className="mx-auto mb-1 h-5 w-5 text-gold" />
+                  <p className="font-display text-xl font-bold">{favorites.length}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Saved</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-background/40 p-3 text-center">
+                  <BarChart3 className="mx-auto mb-1 h-5 w-5 text-gold" />
+                  <p className="font-display text-xl font-bold">{profile.itineraries_generated ?? 0}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Plans</p>
                 </div>
               </div>
             </section>
-          </div>
 
-          {/* Travel Preferences */}
-          <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
-            <h2 className="mb-1 font-display text-2xl font-bold flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-gold" /> Travel Preferences
-            </h2>
-            <p className="mb-8 text-sm text-muted-foreground">
-              Personalize your Erbil experience. These preferences guide our AI in building your perfect day.
-            </p>
+            <section className="rounded-3xl border border-destructive/20 bg-destructive/5 p-6 shadow-luxury">
+              <h2 className="mb-2 flex items-center gap-2 font-display text-lg font-bold text-destructive">
+                <UserMinus className="h-5 w-5" /> Danger Zone
+              </h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Once you delete your account, there is no going back. Please be certain.
+              </p>
+              <Button variant="destructive" size="sm" className="w-full">
+                Delete Account
+              </Button>
+            </section>
+          </aside>
+        </div>
 
-            <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-6">
-                <StylePref
-                  label="Budget Level"
-                  options={BUDGET}
-                  value={profile.budget_preference ?? ""}
-                  onChange={(v) => setSingleField("budget_preference", v)}
-                />
-                <StylePref
-                  label="Mobility Level"
-                  options={MOBILITY}
-                  value={profile.mobility_level ?? ""}
-                  onChange={(v) => setSingleField("mobility_level", v)}
-                />
-                <StylePref
-                  label="Typical Companion"
-                  options={COMPANIONS}
-                  value={profile.travel_companion ?? ""}
-                  onChange={(v) => setSingleField("travel_companion", v)}
-                />
+        {/* Preferences Section */}
+        <section className="mt-8 rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+          <h2 className="mb-8 flex items-center gap-2 font-display text-2xl font-bold">
+            <Palette className="h-5 w-5 text-gold" /> Travel Style & Interests
+          </h2>
+
+          <div className="space-y-10">
+            <div>
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Primary Travel Styles</h3>
+              <div className="flex flex-wrap gap-3">
+                {STYLES.map((s) => {
+                  const active = (profile.travel_styles ?? []).includes(s);
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => toggleStyle(s)}
+                      className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                        active
+                          ? "border-gold bg-gold/10 text-gold shadow-luxury"
+                          : "border-border bg-background/40 hover:border-gold/40"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Travel Styles</p>
-                  <div className="flex flex-wrap gap-2">
-                    {STYLES.map((s) => {
-                      const active = profile.travel_styles?.includes(s);
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => toggleStyle(s)}
-                          className={`rounded-full border px-4 py-2 text-xs font-medium transition-all ${
-                            active ? "border-gold bg-gold text-background" : "border-border bg-background text-muted-foreground hover:border-gold/40"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Interests</p>
-                  <div className="flex flex-wrap gap-2">
-                    {INTERESTS.map((i) => {
-                      const active = profile.interests?.includes(i);
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => toggleArrayField("interests", i)}
-                          className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
-                            active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                          }`}
-                        >
-                          {i}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="grid gap-10 md:grid-cols-2">
+              <div>
+                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Interests</h3>
+                <div className="flex flex-wrap gap-2">
+                  {INTERESTS.map((i) => {
+                    const active = (profile.interests ?? []).includes(i);
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => toggleArrayField("interests", i)}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
+                          active ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dietary Preferences</p>
-                  <div className="flex flex-wrap gap-2">
-                    {DIETARY.map((d) => {
-                      const active = profile.dietary_preferences?.includes(d);
-                      return (
-                        <button
-                          key={d}
-                          onClick={() => toggleArrayField("dietary_preferences", d)}
-                          className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
-                            active ? "border-emerald-500 bg-emerald-500/10 text-emerald-600" : "border-border bg-background text-muted-foreground hover:border-emerald-500/40"
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  <StylePref label="Pace" options={PACE} value={stylePrefs.pace ?? ""} onChange={(v) => setStylePref("pace", v)} />
-                  <StylePref label="Speed" options={SPEED} value={stylePrefs.speed ?? ""} onChange={(v) => setStylePref("speed", v)} />
-                  <StylePref label="Environment" options={ENV} value={stylePrefs.env ?? ""} onChange={(v) => setStylePref("env", v)} />
+              <div>
+                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dietary Preferences</h3>
+                <div className="flex flex-wrap gap-2">
+                  {DIETARY.map((d) => {
+                    const active = (profile.dietary_preferences ?? []).includes(d);
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => toggleArrayField("dietary_preferences", d)}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
+                          active ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          </section>
 
-          {/* Favorites */}
-          <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-3">
-            <h2 className="mb-6 flex items-center gap-2 font-display text-2xl font-bold">
-              <Heart className="h-6 w-6 text-destructive" /> Saved Hubs
+            <div className="grid gap-8 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-4">
+              <PreferenceSelect
+                label="Travel Companion"
+                value={profile.travel_companion ?? ""}
+                options={COMPANIONS}
+                onChange={(v) => setSingleField("travel_companion", v)}
+              />
+              <PreferenceSelect
+                label="Mobility Level"
+                value={profile.mobility_level ?? ""}
+                options={MOBILITY}
+                onChange={(v) => setSingleField("mobility_level", v)}
+              />
+              <PreferenceSelect
+                label="Budget Preference"
+                value={profile.budget_preference ?? ""}
+                options={BUDGET}
+                onChange={(v) => setSingleField("budget_preference", v)}
+              />
+              <PreferenceSelect
+                label="Travel Pace"
+                value={stylePrefs.pace || ""}
+                options={PACE}
+                onChange={(v) => setStylePref("pace", v)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Saved Hubs */}
+        <section id="saved" className="mt-8 rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-display text-2xl font-bold">
+              <Heart className="h-5 w-5 text-gold" /> Saved Hubs
             </h2>
-            {savedLocations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="mb-4 grid h-16 w-16 place-items-center rounded-full bg-muted">
-                  <Heart className="h-8 w-8 text-muted-foreground" />
+            <Link to="/" className="text-xs font-semibold uppercase tracking-wider text-gold hover:underline">
+              Explore More →
+            </Link>
+          </div>
+
+          {savedLocations.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {savedLocations.map((loc) => (
+                <div key={loc.id} className="group relative overflow-hidden rounded-2xl border border-border bg-background/40 p-3 transition-all hover:border-gold/40">
+                  <div className="aspect-[4/3] overflow-hidden rounded-xl">
+                    <img src={loc.image} alt={loc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="font-display font-bold">{loc.name}</h4>
+                    <p className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">{loc.category} • {loc.area}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleFavorite(loc.id)}
+                    className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full bg-background/80 text-gold shadow-luxury backdrop-blur-sm transition-transform hover:scale-110"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <Link
+                    to="/"
+                    search={{ hub: loc.id }}
+                    onClick={() => setFilter(loc.id)}
+                    className="absolute inset-0 z-0"
+                  />
                 </div>
-                <p className="text-sm text-muted-foreground">You haven't saved any hubs yet.</p>
-                <Link to="/" className="mt-4 text-xs font-semibold uppercase tracking-wider text-gold hover:underline">
-                  Explore hubs →
-                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-gold/10 text-gold">
+                <Heart className="h-6 w-6" />
               </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {savedLocations.map((l) => (
-                  <article key={l.id} className="group overflow-hidden rounded-2xl border border-border bg-background transition-all hover:shadow-lg">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={l.image}
-                        alt={l.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <button
-                        onClick={() => toggleFavorite(l.id)}
-                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-background/80 text-destructive backdrop-blur transition-colors hover:bg-background"
-                        aria-label="Remove from saved"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gold">{l.category}</p>
-                      <h3 className="mt-1 font-display text-lg font-semibold">{l.name}</h3>
-                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {l.area}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+              <p className="text-sm text-muted-foreground">You haven't saved any locations yet.</p>
+              <Button asChild variant="outline" size="sm" className="mt-4">
+                <Link to="/">Start Exploring</Link>
+              </Button>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div>
-      <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <span className="text-gold">{icon}</span>
-        {label}
+    <div className="space-y-1.5">
+      <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {icon} {label}
       </Label>
       {children}
     </div>
   );
 }
 
-function StylePref({
-  label, options, value, onChange,
-}: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+function PreferenceSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
-    <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((o) => {
-          const active = value === o;
-          return (
-            <button
-              key={o}
-              onClick={() => onChange(active ? "" : o)}
-              className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-colors ${
-                active ? "border-gold bg-gold/10 text-gold" : "border-border bg-background text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {o}
-            </button>
-          );
-        })}
-      </div>
+    <div className="space-y-2">
+      <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
+        <SelectContent>
+          {options.map((o) => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
 
-function PasswordInput({
-  value, onChange, show, setShow, autoComplete, disabled,
+function PwdInput({
+  value, onChange, show, setShow, autoComplete,
 }: {
   value: string;
   onChange: (v: string) => void;
   show: boolean;
   setShow: (b: boolean) => void;
   autoComplete?: string;
-  disabled?: boolean;
 }) {
   return (
     <div className="relative">
@@ -712,7 +736,6 @@ function PasswordInput({
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         className="pr-10"
-        disabled={disabled}
       />
       <button
         type="button"
@@ -720,7 +743,6 @@ function PasswordInput({
         className="absolute inset-y-0 right-2 grid place-items-center text-muted-foreground hover:text-foreground"
         aria-label={show ? "Hide password" : "Show password"}
         tabIndex={-1}
-        disabled={disabled}
       >
         {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>

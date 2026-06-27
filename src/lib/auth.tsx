@@ -111,7 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUserData = useCallback(async (userId: string, mounted: { current: boolean }) => {
     console.log(`[auth] loading user data for ${userId}...`);
     
-    // Create a timeout promise
     const timeoutPromise = new Promise<null>((resolve) => {
       setTimeout(() => {
         console.warn(`[auth] data fetch timed out after ${FETCH_TIMEOUT_MS}ms`);
@@ -120,7 +119,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      // Race the actual fetch against the timeout
       const result = await Promise.race([
         Promise.all([fetchProfile(userId), fetchRoles(userId)]),
         timeoutPromise
@@ -150,6 +148,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const p = await fetchProfile(sessionRef.current.user.id);
     if (p) setProfile(p);
   }, [fetchProfile]);
+
+  const signOut = useCallback(async () => {
+    console.group("[auth] signOut trace");
+    console.trace("[auth] signOut triggered from:");
+    console.groupEnd();
+    
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      console.log("[auth] Supabase signOut successful");
+    } catch (e) {
+      console.error("[auth] Supabase signOut error:", e);
+    } finally {
+      setProfile(null);
+      setRoles([]);
+      setSession(null);
+      setLoading(false);
+      console.log("[auth] signOut cleanup complete");
+    }
+  }, []);
 
   useEffect(() => {
     const mounted = { current: true };
@@ -195,9 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Handle specific events
       if (event === "SIGNED_IN") {
-        // Only trigger full load if we didn't already have this session or it's a fresh sign in
         if (!prevSession || prevSession.user.id !== newSession.user.id) {
           await loadUserData(newSession.user.id, mounted);
         } else {
@@ -222,7 +238,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadUserData]);
 
-  // Real-time profile sync
   useEffect(() => {
     if (!session?.user) return;
     const userId = session.user.id;
@@ -243,7 +258,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user?.id]);
 
-  // Focus refetch
   useEffect(() => {
     const onFocus = () => refetchProfile();
     const onVisibility = () => {
@@ -353,26 +367,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const signOut = useCallback(async () => {
-    console.group("[auth] signOut trace");
-    console.trace("[auth] signOut triggered from:");
-    console.groupEnd();
-    
-    setLoading(true);
-    try {
-      await supabase.auth.signOut();
-      console.log("[auth] Supabase signOut successful");
-    } catch (e) {
-      console.error("[auth] Supabase signOut error:", e);
-    } finally {
-      setProfile(null);
-      setRoles([]);
-      setSession(null);
-      setLoading(false);
-      console.log("[auth] signOut cleanup complete");
-    }
-  }, []);
-
   const resetPassword = useCallback(async (email: string) => {
     console.log("[auth] resetPassword called");
     try {
@@ -392,10 +386,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       
-      console.log("[auth] updatePassword success, refreshing session...");
-      // Manually refresh session to ensure everything is in sync
-      const { data: { session: refreshedSession } } = await supabase.auth.getSession();
-      setSession(refreshedSession);
+      console.log("[auth] updatePassword success, logging out for security...");
+      await signOut();
       
       return { error: null };
     } catch (e) {
@@ -404,7 +396,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [signOut]);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     console.log("[auth] changePassword called (with re-auth)");
@@ -413,7 +405,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     setLoading(true);
     try {
-      // 1. Re-authenticate
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: currentEmail,
         password: currentPassword,
@@ -424,11 +415,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: "Incorrect current password" };
       }
       
-      // 2. Update password
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
       
-      console.log("[auth] changePassword success");
+      console.log("[auth] changePassword success, logging out...");
+      await signOut();
+      
       return { error: null };
     } catch (e) {
       console.error("[auth] changePassword failed:", e);
@@ -436,9 +428,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [signOut]);
 
-  const value = useMemo<AuthState>(
+  const value = useMemo(
     () => ({
       session,
       user: session?.user ?? null,
