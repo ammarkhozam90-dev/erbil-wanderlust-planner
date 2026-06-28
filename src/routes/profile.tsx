@@ -65,7 +65,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { session, profile, loading, isAdmin, isMerchant, updateProfile, toggleFavorite, changePassword, signOut } = useAuth();
+  const { session, profile, loading, isAdmin, isMerchant, updateProfile, toggleFavorite, changePassword, signOut, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const currency = useStore((s) => s.currency);
   const setFilter = useStore((s) => s.setFilter);
@@ -88,6 +88,10 @@ function ProfilePage() {
   const [pwdShow1, setPwdShow1] = useState(false);
   const [pwdShow2, setPwdShow2] = useState(false);
   const [pwdShow3, setPwdShow3] = useState(false);
+
+  // Delete Account State
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // Hydrate form from DB profile whenever it loads/updates
   useEffect(() => {
@@ -263,11 +267,22 @@ function ProfilePage() {
       toast.success("Password updated successfully. Signing out...");
       setShowPwd(false);
       setPwdForm({ current: "", new: "", confirm: "" });
-      // The changePassword function already calls signOut()
-      // We just need to redirect the user to the auth page
       setTimeout(() => {
         navigate({ to: "/auth" });
       }, 1500);
+    }
+  }
+
+  async function onDeleteAccount() {
+    setDeleteBusy(true);
+    const res = await deleteAccount();
+    setDeleteBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+    } else {
+      toast.success("Account deleted successfully");
+      setShowDelete(false);
+      navigate({ to: "/" });
     }
   }
 
@@ -326,11 +341,6 @@ function ProfilePage() {
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
                 <div className="h-full bg-gradient-to-r from-gold/80 to-gold transition-all" style={{ width: `${completionPct}%` }} />
               </div>
-              {completionPct < 100 && (
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Complete your profile below for more personalized recommendations.
-                </p>
-              )}
             </div>
           </div>
         </section>
@@ -532,9 +542,29 @@ function ProfilePage() {
               <p className="mb-4 text-xs text-muted-foreground">
                 Once you delete your account, there is no going back. Please be certain.
               </p>
-              <Button variant="destructive" size="sm" className="w-full">
-                Delete Account
-              </Button>
+              <Dialog open={showDelete} onOpenChange={setShowDelete}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="w-full">
+                    Delete Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Are you absolutely sure?</DialogTitle>
+                    <DialogDescription>
+                      This action cannot be undone. This will permanently delete your account
+                      and remove your data from our servers.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="mt-4 flex gap-2">
+                    <Button variant="outline" onClick={() => setShowDelete(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={onDeleteAccount} disabled={deleteBusy}>
+                      {deleteBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Yes, Delete My Account
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </section>
           </aside>
         </div>

@@ -53,6 +53,7 @@ interface AuthState {
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: string | null }>;
+  deleteAccount: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -430,6 +431,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [signOut]);
 
+  const deleteAccount = useCallback(async () => {
+    console.log("[auth] deleteAccount called");
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc("delete_user_account");
+      if (error) throw error;
+      
+      console.log("[auth] account deletion successful, clearing state...");
+      await signOut();
+      return { error: null };
+    } catch (e) {
+      console.error("[auth] deleteAccount failed:", e);
+      return { error: (e as Error).message };
+    } finally {
+      setLoading(false);
+    }
+  }, [signOut]);
+
   const value = useMemo(
     () => ({
       session,
@@ -449,6 +468,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword,
       updatePassword,
       changePassword,
+      deleteAccount,
     }),
     [
       session,
@@ -465,6 +485,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword,
       updatePassword,
       changePassword,
+      deleteAccount,
     ],
   );
 
@@ -473,18 +494,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
 }
 
 export const PASSWORD_RULES = [
-  { id: "len", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { id: "upper", label: "One uppercase letter (A–Z)", test: (p: string) => /[A-Z]/.test(p) },
-  { id: "lower", label: "One lowercase letter (a–z)", test: (p: string) => /[a-z]/.test(p) },
-  { id: "num", label: "One number (0–9)", test: (p: string) => /[0-9]/.test(p) },
-] as const;
+  { id: "len", label: "At least 8 characters", test: (s: string) => s.length >= 8 },
+  { id: "upper", label: "One uppercase letter", test: (s: string) => /[A-Z]/.test(s) },
+  { id: "lower", label: "One lowercase letter", test: (s: string) => /[a-z]/.test(s) },
+  { id: "num", label: "One number", test: (s: string) => /[0-9]/.test(s) },
+];
 
-export function validatePassword(p: string): { ok: boolean; failed: string[] } {
-  const failed = PASSWORD_RULES.filter((r) => !r.test(p)).map((r) => r.label);
+export function validatePassword(s: string) {
+  const failed = PASSWORD_RULES.filter((r) => !r.test(s));
   return { ok: failed.length === 0, failed };
 }
