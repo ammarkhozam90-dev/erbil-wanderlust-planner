@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-// تعريف محلي للنوع لتجنب مشاكل TypeScript مع قاعدة البيانات
 interface Merchant {
   id: string;
   name: string | null;
@@ -31,7 +30,8 @@ function AdminMerchants() {
 
   const mq = useQuery({
     queryKey: ['admin-merchants'],
-    enabled: !!user,
+    // تأكدنا هنا أن الاستعلام لا يبدأ إلا إذا كان المستخدم أدمن بالفعل
+    enabled: !!user && isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('merchants')
@@ -39,16 +39,16 @@ function AdminMerchants() {
         .order('submitted_at', { ascending: false });
       
       if (error) throw error;
-      // نضمن تحويل البيانات للنوع المحلي
       return (data ?? []) as Merchant[];
     },
   });
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  // إضافة حالة انتظار التأكد من الصلاحيات
+  if (loading) return <div className="p-8 text-muted-foreground">Checking authentication...</div>;
   if (!user) return <div className="p-8">Please sign in.</div>;
   
-  // إذا استمرت مشكلة عدم ظهور الصفحة، تأكد من أن الـ hook يرجع true
-  if (!isAdmin) return <div className="p-8 text-destructive">Admin access required.</div>;
+  // إذا لم تكن أدمن، سيظهر هذا الخطأ
+  if (!isAdmin) return <div className="p-8 text-destructive font-bold">Admin access required.</div>;
 
   async function approve(id: string) {
     const { error } = await supabase.from('merchants')
@@ -81,7 +81,8 @@ function AdminMerchants() {
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-yellow-600">Pending Review ({pending.length})</h2>
-        {pending.length === 0 && <p className="text-sm text-muted-foreground italic">No pending submissions found.</p>}
+        {mq.isLoading && <p>Loading applications...</p>}
+        {!mq.isLoading && pending.length === 0 && <p className="text-sm text-muted-foreground italic">No pending submissions found.</p>}
         <div className="grid gap-4">
           {pending.map((m) => <MerchantRow key={m.id} m={m} onApprove={approve} onReject={reject} />)}
         </div>
