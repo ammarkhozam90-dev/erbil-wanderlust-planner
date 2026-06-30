@@ -7,15 +7,15 @@ import { LOCATIONS } from "@/data/locations";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/admin/dashboard")({
+export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Admin Dashboard — ErbilGo" },
       { name: "description", content: "Internal ErbilGo admin console for managing locations, exchange rates and merchant accounts across the platform." },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:url", content: "https://erbilgo.app/admin/dashboard" },
+      { property: "og:url", content: "https://erbilgo.app/admin" },
     ],
-    links: [{ rel: "canonical", href: "https://erbilgo.app/admin/dashboard" }],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/admin" }],
   }),
   component: AdminPage,
 });
@@ -44,7 +44,7 @@ function AdminPage() {
         <Header />
         <div className="mx-auto max-w-md px-4 py-24 text-center">
           <Shield className="mx-auto mb-4 h-10 w-10 text-gold" />
-          <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+          <h1 className="font-display text-3xl font-bold">Admin Console</h1>
           <p className="mt-2 text-sm text-muted-foreground">Sign in with an administrator account to continue.</p>
           <Button onClick={() => navigate({ to: "/auth" })} className="mt-6 bg-gold text-background hover:bg-gold/90">
             Sign in
@@ -69,8 +69,6 @@ function AdminPage() {
     );
   }
 
-
-
   const totalValue = LOCATIONS.reduce((s, l) => s + l.priceUSD, 0);
 
   return (
@@ -85,7 +83,6 @@ function AdminPage() {
           <button onClick={() => { void signOut(); navigate({ to: "/" }); }} className="flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:border-destructive hover:text-destructive">
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
-
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
