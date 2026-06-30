@@ -14,7 +14,6 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as GuideRouteImport } from './routes/guide'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MerchantLoginRouteImport } from './routes/merchant.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -42,11 +41,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MerchantLoginRoute = MerchantLoginRouteImport.update({
-  id: '/merchant/login',
-  path: '/merchant/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -60,7 +54,6 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/dashboard': typeof AdminDashboardRoute
-  '/merchant/login': typeof MerchantLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +62,6 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/dashboard': typeof AdminDashboardRoute
-  '/merchant/login': typeof MerchantLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +71,6 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/dashboard': typeof AdminDashboardRoute
-  '/merchant/login': typeof MerchantLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,7 +81,6 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/admin/dashboard'
-    | '/merchant/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,7 +89,6 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/admin/dashboard'
-    | '/merchant/login'
   id:
     | '__root__'
     | '/'
@@ -108,7 +97,6 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/admin/dashboard'
-    | '/merchant/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,7 +106,6 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
-  MerchantLoginRoute: typeof MerchantLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,13 +145,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/merchant/login': {
-      id: '/merchant/login'
-      path: '/merchant/login'
-      fullPath: '/merchant/login'
-      preLoaderRoute: typeof MerchantLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/dashboard': {
       id: '/admin/dashboard'
       path: '/admin/dashboard'
@@ -182,7 +162,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   AdminDashboardRoute: AdminDashboardRoute,
-  MerchantLoginRoute: MerchantLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
