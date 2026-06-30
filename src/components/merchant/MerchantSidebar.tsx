@@ -63,7 +63,8 @@ export function MerchantSidebar() {
                 <SidebarMenuButton
                   onClick={async () => {
                     await supabase.auth.signOut();
-                    window.location.href = '/merchant/auth';
+                    // التعديل هنا: التوجيه للصفحة الرئيسية لفرض ظهور الهيدر
+                    window.location.href = '/';
                   }}
                 >
                   <LogOut className="h-4 w-4" />
