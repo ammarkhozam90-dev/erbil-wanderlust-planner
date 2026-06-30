@@ -63,30 +63,39 @@ export const Route = createFileRoute("/category/$slug")({
   },
   component: CategoryPage,
   pendingComponent: () => (
-    <div className="container mx-auto space-y-4 p-4">
-      <Skeleton className="h-8 w-64" />
-      <Skeleton className="h-24 w-full" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-72 w-full" />
-        ))}
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto w-full max-w-[1600px] container space-y-4 p-4 md:p-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 w-full" />
+          ))}
+        </div>
       </div>
     </div>
   ),
   errorComponent: ({ error }) => (
-    <div className="container mx-auto p-6">
-      <EmptyState message={error.message} />
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto w-full max-w-[1600px] container p-6">
+        <EmptyState message={error.message} />
+      </div>
     </div>
   ),
   notFoundComponent: () => (
-    <div className="container mx-auto p-6">
-      <EmptyState message="Category not found." />
-      <div className="mt-4 flex flex-wrap gap-2">
-        {CATEGORIES.map((c) => (
-          <a key={c.slug} href={`/category/${c.slug}`} className="text-sm underline">
-            {c.title}
-          </a>
-        ))}
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto w-full max-w-[1600px] container p-6">
+        <EmptyState message="Category not found." />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <a key={c.slug} href={`/category/${c.slug}`} className="text-sm underline">
+              {c.title}
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   ),
@@ -129,36 +138,45 @@ function CategoryPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
-      <CategoryHeader title={cat.title} description={cat.description} count={data.total} />
-      <CategoryFiltersBar value={filters} onChange={update} />
+    <div className="min-h-screen bg-background">
+      {/* ظهور الهيدر هنا ليبقى ثابتاً في أعلى الصفحة */}
+      <Header />
+      
+      <div className="mx-auto w-full max-w-[1600px] container space-y-6 p-4 md:p-6">
+        <CategoryHeader title={cat.title} description={cat.description} count={data.total} />
+        <CategoryFiltersBar value={filters} onChange={update} />
 
-      {visible.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((b) => (
-              <BusinessCard key={b.id} business={b} />
-            ))}
-          </div>
-
-          {data.hasMore && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => update({ page: filters.page + 1 })}
-              >
-                Load more
-              </Button>
+        {visible.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((b) => (
+                <BusinessCard key={b.id} business={b} />
+              ))}
             </div>
-          )}
 
-          <p className="text-center text-xs text-muted-foreground">
-            Showing {visible.length} of {data.total} · page size {PAGE_SIZE}
-          </p>
-        </>
-      )}
+            {data.hasMore && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => update({ page: filters.page + 1 })}
+                >
+                  Load more
+                </Button>
+              </div>
+            )}
+
+            <p className="text-center text-xs text-muted-foreground">
+              Showing {visible.length} of {data.total} · page size {PAGE_SIZE}
+            </p>
+          </>
+        )}
+      </div>
+      
+      <footer className="border-t border-border mt-12 py-8 text-center text-xs text-muted-foreground">
+        <p><span className="font-display text-base text-primary">Erbil</span><span className="font-display text-base text-gold">Go</span> · Your day, your way. © 2026</p>
+      </footer>
     </div>
   );
 }
