@@ -9,34 +9,53 @@ export function useAuth() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // تحديث الجلسة والمستخدم
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    // دالة التحقق الأساسية
+    async function initAuth() {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await checkAdminStatus(session.user.id);
+      } else {
+        setIsAdmin(false);
+      }
+      setLoading(false);
+    }
+
+    initAuth();
+
+    // الاستماع لتغييرات الجلسة
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) checkAdminStatus(s.user.id);
+      if (s?.user) {
+        await checkAdminStatus(s.user.id);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) checkAdminStatus(data.session.user.id);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // دالة للتحقق من صلاحية الأدمن
   async function checkAdminStatus(userId: string) {
-    // تم تعديل الاستعلام ليطابق اسم العمود app_role والقيمة admin كما هو موضح في قاعدة بياناتك
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_roles')
       .select('app_role')
       .eq('user_id', userId)
       .eq('app_role', 'admin')
       .maybeSingle();
 
-    setIsAdmin(!!data);
+    if (error) {
+      console.error("Auth Error:", error);
+      setIsAdmin(false);
+    } else {
+      setIsAdmin(!!data);
+    }
   }
 
   return { session, user, loading, isAdmin };
