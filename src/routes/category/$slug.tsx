@@ -10,6 +10,7 @@ import { CategoryFiltersBar } from "@/components/category/CategoryFilters";
 import { BusinessCard } from "@/components/category/BusinessCard";
 import { EmptyState } from "@/components/category/EmptyState";
 import { getCategoryBySlug, CATEGORIES } from "@/lib/categories";
+import { Header } from "@/components/Header";
 import {
   categoryBusinessesQuery,
   PAGE_SIZE,
