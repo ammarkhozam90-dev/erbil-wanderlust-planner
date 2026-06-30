@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import heroImg from "@/assets/hero-citadel.jpg";
 import { Header } from "@/components/Header";
 import { ControlBar } from "@/components/ControlBar";
@@ -34,6 +34,32 @@ function Home() {
   const { generatePlan, surpriseMe } = useStore();
   const featured = LOCATIONS.filter((l) => l.category === "Landmarks" || l.category === "Restaurants").slice(0, 6);
 
+  // دالة مساعدة لتحويل أسماء التصنيفات البرمجية إلى روابط الـ Slug المطلوبة في الـ README
+  const getSlugFromName = (name: string) => {
+    switch (name.toLowerCase()) {
+      case "cafés":
+      case "cafes":
+        return "cafes";
+      case "restaurants":
+        return "restaurants";
+      case "things to do":
+        return "things-to-do";
+      case "landmarks":
+        return "landmarks";
+      case "parks & nature":
+      case "parks":
+        return "parks";
+      case "nightlife":
+        return "nightlife";
+      case "art & culture":
+        return "art-culture";
+      case "shopping":
+        return "shopping";
+      default:
+        return name.toLowerCase().replace(/\s+/g, "-");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -65,7 +91,7 @@ function Home() {
                   <button onClick={surpriseMe} className="flex items-center gap-2 rounded-xl border border-foreground/30 bg-background/30 px-5 py-3 text-sm font-semibold backdrop-blur transition hover:border-gold hover:text-gold">
                     <Shuffle className="h-4 w-4" /> Surprise Me
                   </button>
-                </div>
+                </                div>
               </div>
             </div>
           </section>
@@ -78,8 +104,15 @@ function Home() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {CATEGORIES.map((c) => {
                 const sample = LOCATIONS.find((l) => l.category === c.name);
+                const currentSlug = getSlugFromName(c.name);
+
                 return (
-                  <div key={c.name} className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury">
+                  <Link 
+                    key={c.name} 
+                    to="/category/$slug" 
+                    params={{ slug: currentSlug }}
+                    className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury block"
+                  >
                     <img src={sample?.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-3">
@@ -87,7 +120,7 @@ function Home() {
                       <p className="text-[11px] text-muted-foreground">{c.count} places</p>
                     </div>
                     <span className="absolute right-2 top-2 rounded-full bg-background/70 px-2 py-0.5 text-[10px] backdrop-blur">{c.emoji}</span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
