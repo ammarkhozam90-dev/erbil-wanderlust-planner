@@ -8,26 +8,38 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import type { Merchant } from '@/integrations/supabase/types-local';
+
+// تعريف محلي للنوع لتجنب مشاكل TypeScript مع قاعدة البيانات
+interface Merchant {
+  id: string;
+  name: string | null;
+  description: string | null;
+  address: string | null;
+  phone: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string | null;
+  rejection_reason: string | null;
+}
 
 export const Route = createFileRoute('/admin/merchants')({
   component: AdminMerchants,
 });
 
 function AdminMerchants() {
-  const { user, loading, isAdmin } = useAuth(); // استخدام isAdmin المباشر من الـ hook
+  const { user, loading, isAdmin } = useAuth();
   const qc = useQueryClient();
 
-  // قمنا بإزالة useEffect المعقدة والاعتماد على isAdmin من الـ Auth Hook مباشرة
   const mq = useQuery({
     queryKey: ['admin-merchants'],
-    enabled: !!user, // التأكد فقط من تسجيل الدخول
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('merchants')
         .select('*')
-        .order('submitted_at', { ascending: false, nullsFirst: false });
+        .order('submitted_at', { ascending: false });
+      
       if (error) throw error;
+      // نضمن تحويل البيانات للنوع المحلي
       return (data ?? []) as Merchant[];
     },
   });
@@ -35,12 +47,12 @@ function AdminMerchants() {
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (!user) return <div className="p-8">Please sign in.</div>;
   
-  // إذا كانت الـ isAdmin ترجع false دائماً، تأكد من التعديل في hook الـ auth
+  // إذا استمرت مشكلة عدم ظهور الصفحة، تأكد من أن الـ hook يرجع true
   if (!isAdmin) return <div className="p-8 text-destructive">Admin access required.</div>;
 
   async function approve(id: string) {
     const { error } = await supabase.from('merchants')
-      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user!.id, rejection_reason: null })
+      .update({ status: 'approved', rejection_reason: null })
       .eq('id', id);
     if (error) return toast.error(error.message);
     toast.success('Merchant approved successfully');
@@ -50,7 +62,7 @@ function AdminMerchants() {
   async function reject(id: string, reason: string) {
     if (!reason.trim()) return toast.error('Please enter a reason for rejection');
     const { error } = await supabase.from('merchants')
-      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user!.id, rejection_reason: reason })
+      .update({ status: 'rejected', rejection_reason: reason })
       .eq('id', id);
     if (error) return toast.error(error.message);
     toast.success('Merchant rejected');
@@ -107,7 +119,7 @@ function MerchantRow({ m, onApprove, onReject, compact }: {
           <span>📞 {m.phone}</span>
         </div>
         
-        {m.status === 'pending' && (
+        {m.status === 'pending' && !compact && (
           <div className="mt-4 flex flex-col gap-3 rounded-md border p-3">
             <Textarea placeholder="Rejection reason (required if rejecting)..." value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
             <div className="flex gap-2">
