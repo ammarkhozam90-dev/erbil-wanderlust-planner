@@ -13,13 +13,13 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      checkAdminStatus(s?.user?.id);
+      if (s?.user) checkAdminStatus(s.user.id);
     });
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      checkAdminStatus(data.session?.user?.id);
+      if (data.session?.user) checkAdminStatus(data.session.user.id);
       setLoading(false);
     });
 
@@ -27,19 +27,13 @@ export function useAuth() {
   }, []);
 
   // دالة للتحقق من صلاحية الأدمن
-  async function checkAdminStatus(userId?: string) {
-    if (!userId) {
-      setIsAdmin(false);
-      return;
-    }
-    
-    // يمكنك تعديل هذا الاستعلام حسب اسم الجدول في قاعدة بياناتك
-    // هنا نفترض أن لديك جدول اسمه user_roles يحتوي على user_id و role
+  async function checkAdminStatus(userId: string) {
+    // تم تعديل الاستعلام ليطابق اسم العمود app_role والقيمة admin كما هو موضح في قاعدة بياناتك
     const { data } = await supabase
       .from('user_roles')
-      .select('role')
+      .select('app_role')
       .eq('user_id', userId)
-      .eq('role', 'admin')
+      .eq('app_role', 'admin')
       .maybeSingle();
 
     setIsAdmin(!!data);
