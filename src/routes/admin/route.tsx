@@ -26,19 +26,13 @@ function AdminLayout() {
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <SidebarProvider>
-      {/* 
-        إزالة الهيدر المكرر (الذي كان بداخل الكود) والاعتماد على الهيدر الموجود 
-        في __root.tsx الخاص بتطبيقك. 
-        أضفنا mt-16 (أو حسب ارتفاع الهيدر لديك) لضمان عدم تغطية المحتوى.
-      */}
-      <div className="flex min-h-screen w-full bg-background pt-0">
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex w-full">
+        {/* السيدبار يظهر بجانب المحتوى */}
         <AdminSidebar />
+        
         <div className="flex flex-1 flex-col">
-          {/* 
-            تم إبقاء SidebarTrigger فقط ليتحكم بالقائمة الجانبية للأدمن، 
-            وتم إزالة الروابط المكررة التي كانت تحاكي الهيدر الأصلي.
-          */}
+          {/* هذا الهيدر يظهر فقط في الموبايل لفتح السيدبار */}
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur md:hidden">
             <SidebarTrigger />
             <span className="text-sm font-semibold">Admin Panel</span>
