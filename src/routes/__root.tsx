@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/language";
 import { AuthProvider } from "../lib/auth";
-import { Toaster } from "../components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -119,17 +119,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LanguageProvider>
-          
-          {/* الهيدر الذي سيظهر في كل صفحات الموقع */}
-          <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-background border-b flex items-center px-6 shadow-sm">
-            <Link to="/" className="font-display text-xl font-bold">ErbilGo</Link>
-          </header>
-
-          {/* محتوى الصفحات */}
-          <main className="pt-16 min-h-screen">
-            <Outlet />
-          </main>
-          
+          {/* هنا قمنا بإزالة الهيدر المضاف يدوياً ليعود الموقع لهيدره الأصلي تلقائياً */}
+          <Outlet />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
