@@ -108,6 +108,28 @@ function ProfilePage() {
     }
   }, [profile]);
 
+  // IMPORTANT: this hook must run on every render, in the same order, no
+  // matter what — so it lives BEFORE the conditional early returns below.
+  // It used to be declared after them, which violates React's Rules of
+  // Hooks and crashed the page (caught by the root ErrorComponent) during
+  // the loading -> session-no-profile -> profile-ready transition right
+  // after signup.
+  const completionPct = useMemo(() => {
+    if (!profile) return 0;
+    const checks: boolean[] = [
+      !!profile.full_name?.trim(),
+      !!profile.phone?.trim(),
+      ...ONBOARDING_FIELDS.map((k) => {
+        const v = profile[k] as unknown;
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      }),
+      (profile.interests?.length ?? 0) > 0,
+      (profile.travel_styles?.length ?? 0) > 0,
+      (profile.dietary_preferences?.length ?? 0) > 0,
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [profile]);
+
   // 1. If we are loading, show a spinner
   if (loading) {
     return (
@@ -186,21 +208,6 @@ function ProfilePage() {
   const initial = (displayName[0] ?? "U").toUpperCase();
   const favorites = profile.favorites ?? [];
   const savedLocations = LOCATIONS.filter((l) => favorites.includes(l.id));
-
-  const completionPct = useMemo(() => {
-    const checks: boolean[] = [
-      !!profile.full_name?.trim(),
-      !!profile.phone?.trim(),
-      ...ONBOARDING_FIELDS.map((k) => {
-        const v = profile[k] as unknown;
-        return Array.isArray(v) ? v.length > 0 : !!v;
-      }),
-      (profile.interests?.length ?? 0) > 0,
-      (profile.travel_styles?.length ?? 0) > 0,
-      (profile.dietary_preferences?.length ?? 0) > 0,
-    ];
-    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [profile]);
 
   async function toggleArrayField(field: "interests" | "dietary_preferences", value: string) {
     const list = (profile![field] as string[]) ?? [];
