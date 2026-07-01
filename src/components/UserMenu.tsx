@@ -62,7 +62,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to="/profile" hash="settings" className="flex items-center gap-2">
+          <Link to="/settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4 text-gold" />
             <span>Settings</span>
           </Link>
