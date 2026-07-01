@@ -101,8 +101,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, extras: SignUpExtras) => {
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: extras.fullName } } });
-    return { error: error?.message ?? null, needsConfirm: !!data.user && !data.session };
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: extras.fullName,
+          phone: extras.phone ?? null,
+          age_range: extras.ageRange ?? null,
+          gender: extras.gender ?? null,
+          nationality: extras.nationality ?? null,
+        },
+      },
+    });
+    if (error) return { error: error.message, needsConfirm: false };
+
+    // Safety net: explicitly write the extra fields onto the profiles row too,
+    // in case the DB trigger that auto-creates the row only maps full_name.
+    if (data.user) {
+      await supabase
+        .from("profiles")
+        .update({
+          phone: extras.phone ?? null,
+          nationality: extras.nationality ?? null,
+          age_range: extras.ageRange ?? null,
+          gender: extras.gender ?? null,
+        })
+        .eq("id", data.user.id);
+    }
+
+    return { error: null, needsConfirm: !!data.user && !data.session };
   };
 
   const updateProfile = async (patch: any) => {
