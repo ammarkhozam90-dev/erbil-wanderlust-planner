@@ -16,10 +16,23 @@ export type TravelStyle = "Foodie" | "Remote Work Focus" | "Family Friendly" | "
 export type AppRole = Database["public"]["Enums"]["app_role"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export const PASSWORD_RULES = "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, and a number.";
-export const validatePassword = (password: string): boolean => {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-  return regex.test(password);
+// PASSWORD_RULES must be an array of rule objects (used with .map() in auth.tsx
+// to render the live checklist under the password field).
+export const PASSWORD_RULES: { id: string; label: string; test: (v: string) => boolean }[] = [
+  { id: "length", label: "At least 8 characters", test: (v) => v.length >= 8 },
+  { id: "upper", label: "One uppercase letter", test: (v) => /[A-Z]/.test(v) },
+  { id: "lower", label: "One lowercase letter", test: (v) => /[a-z]/.test(v) },
+  { id: "number", label: "One number", test: (v) => /\d/.test(v) },
+];
+
+export const PASSWORD_ERROR_MESSAGE =
+  "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, and a number.";
+
+// validatePassword returns an object with .ok so it can be used directly as
+// `const pwd = validatePassword(form.password); ... pwd.ok` in auth.tsx.
+export const validatePassword = (password: string): { ok: boolean; message: string | null } => {
+  const ok = PASSWORD_RULES.every((rule) => rule.test(password));
+  return { ok, message: ok ? null : PASSWORD_ERROR_MESSAGE };
 };
 
 export interface SignUpExtras {
@@ -82,11 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadUserData]);
 
   const signOut = async () => { await supabase.auth.signOut(); };
-  const signIn = async (email: string, password: string) => { 
+  const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
-  
+
   const signUp = async (email: string, password: string, extras: SignUpExtras) => {
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: extras.fullName } } });
     return { error: error?.message ?? null, needsConfirm: !!data.user && !data.session };
@@ -111,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     profile,
     roles,
-    isAdmin: roles.includes("admin") || true, // التجاوز الإداري مفعل هنا
+    isAdmin: roles.includes("admin"), // تم إزالة "|| true" لأنها كانت تمنح صلاحيات أدمن لكل مستخدم
     isMerchant: roles.includes("merchant"),
     loading,
     signIn, signUp, signOut, updateProfile, toggleFavorite, incrementItineraries,
