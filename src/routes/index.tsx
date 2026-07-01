@@ -5,7 +5,7 @@ import { ControlBar } from "@/components/ControlBar";
 import { PlannedDay } from "@/components/PlannedDay";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
 import { useStore } from "@/lib/store";
-import { Sparkles, Shuffle, ChevronRight, Users, Heart, Mountain, Laptop, Camera, Star, MapPin, Sun } from "lucide-react";
+import { Sparkles, Shuffle, MapPin, Sun } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,18 +21,8 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const MODES = [
-  { icon: Users, label: "Family Day", desc: "Fun for everyone" },
-  { icon: Heart, label: "Romantic", desc: "Special moments" },
-  { icon: Mountain, label: "Adventure", desc: "Explore & discover" },
-  { icon: Laptop, label: "Productive", desc: "Work & focus" },
-  { icon: Camera, label: "Tourist Day", desc: "See the highlights" },
-  { icon: Star, label: "Local Expert", desc: "Like a local" },
-];
-
 function Home() {
   const { generatePlan, surpriseMe } = useStore();
-  const featured = LOCATIONS.filter((l) => l.category === "Landmarks" || l.category === "Restaurants").slice(0, 6);
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,16 +30,16 @@ function Home() {
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-8">
           
-          {/* HERO SECTION - تم نقل الطقس والموقع للداخل */}
+          {/* HERO SECTION */}
           <section className="relative overflow-hidden rounded-3xl shadow-luxury">
             <img
-              src={heroImg} // هنا يمكنك استبدال heroImg بـ state ديناميكي يغيره الأدمن
+              src={heroImg}
               alt="Erbil Citadel at sunset"
               className="aspect-[600/400] w-full object-cover object-center md:aspect-[1920/575]"
             />
             
-            {/* طقس وموقع - مضاف يدوياً هنا للظهور داخل صورة البطل */}
-            <div className="absolute top-6 right-6 flex items-center gap-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white z-10">
+            {/* طقس وموقع - تم تعديل الموضع إلى أسفل اليمين (bottom-6 right-6) */}
+            <div className="absolute bottom-6 right-6 flex items-center gap-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white z-10">
                <div className="flex items-center gap-1 text-sm"><MapPin className="h-4 w-4" /> Erbil</div>
                <div className="flex items-center gap-1 text-sm"><Sun className="h-4 w-4" /> 28°C</div>
             </div>
@@ -77,7 +67,7 @@ function Home() {
           </section>
 
           <ControlBar />
-          {/* باقي الكود كما هو */}
+
           <section>
             <SectionHeader title="Explore Erbil" />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
