@@ -117,17 +117,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) return { error: error.message, needsConfirm: false };
 
     // Safety net: explicitly write the extra fields onto the profiles row too,
-    // in case the DB trigger that auto-creates the row only maps full_name.
-    if (data.user) {
-      await supabase
-        .from("profiles")
-        .update({
-          phone: extras.phone ?? null,
-          nationality: extras.nationality ?? null,
-          age_range: extras.ageRange ?? null,
-          gender: extras.gender ?? null,
-        })
-        .eq("id", data.user.id);
+    // in case the DB trigger only maps full_name. Wrapped in try/catch so that
+    // if this fails (e.g. no active session yet because email confirmation is
+    // required, and RLS blocks the update), it NEVER breaks the signup flow
+    // or blocks navigation to /profile.
+    if (data.user && data.session) {
+      try {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            phone: extras.phone ?? null,
+            nationality: extras.nationality ?? null,
+            age_range: extras.ageRange ?? null,
+            gender: extras.gender ?? null,
+          })
+          .eq("id", data.user.id);
+        if (profileError) {
+          console.warn("[signUp] could not back-fill profile fields:", profileError.message);
+        }
+      } catch (err) {
+        console.warn("[signUp] profile back-fill threw:", err);
+      }
     }
 
     return { error: null, needsConfirm: !!data.user && !data.session };
