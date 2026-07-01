@@ -30,6 +30,23 @@ type Mode = "signin" | "signup" | "forgot";
 const AGE_RANGES = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
 const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 
+// ---- Defensive fallback ----
+// PASSWORD_RULES is expected to be an array of { id, label, test(value) => boolean }.
+// If lib/auth ever exports something else (e.g. a plain string), this fallback
+// prevents the whole signup form from crashing with ".map is not a function".
+type PasswordRule = { id: string; label: string; test: (v: string) => boolean };
+
+const DEFAULT_PASSWORD_RULES: PasswordRule[] = [
+  { id: "length", label: "At least 8 characters", test: (v) => v.length >= 8 },
+  { id: "upper", label: "One uppercase letter", test: (v) => /[A-Z]/.test(v) },
+  { id: "lower", label: "One lowercase letter", test: (v) => /[a-z]/.test(v) },
+  { id: "number", label: "One number", test: (v) => /[0-9]/.test(v) },
+];
+
+const SAFE_PASSWORD_RULES: PasswordRule[] = Array.isArray(PASSWORD_RULES)
+  ? (PASSWORD_RULES as PasswordRule[])
+  : DEFAULT_PASSWORD_RULES;
+
 function AuthPage() {
   const { session, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -181,11 +198,11 @@ function SignUpForm({
     }
     if (res.needsConfirm) {
       toast.success("Check your email to confirm your account");
-      navigate({ to: "/auth", search: { mode: "confirm-email" } }); 
+      navigate({ to: "/auth", search: { mode: "confirm-email" } });
     } else {
       toast.success("Welcome to ErbilGo");
       // Redirect to profile page after successful signup
-      navigate({ to: "/profile" }); 
+      navigate({ to: "/profile" });
     }
   }
 
@@ -216,7 +233,7 @@ function SignUpForm({
           <Row label="Password">
             <PasswordInput value={form.password} onChange={(v) => set("password", v)} show={show} setShow={setShow} autoComplete="new-password" />
             <ul className="mt-2 grid gap-1 text-[11px]">
-              {PASSWORD_RULES.map((r) => {
+              {SAFE_PASSWORD_RULES.map((r) => {
                 const ok = r.test(form.password);
                 return (
                   <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
