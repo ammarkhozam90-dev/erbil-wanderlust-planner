@@ -8,7 +8,10 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Upload, Minus, Plus } from 'lucide-react';
+import { Loader2, Upload, Minus, Plus, Bold } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { CATEGORIES } from '@/data/locations';
 import heroImg from '@/assets/hero-citadel.jpg';
@@ -19,7 +22,7 @@ export const Route = createFileRoute('/admin/site-content')({ component: SiteCon
 
 type FontFamily = 'display' | 'sans';
 
-interface Run { text: string; color: string; fontSize: number; }
+interface Run { text: string; color: string; fontSize: number; font?: FontFamily; bold?: boolean; lineBreak?: boolean; }
 interface TextBlock { runs: Run[]; font: FontFamily; x: number; y: number; scale: number; }
 interface ButtonBlock { label: string; x: number; y: number; style: 'primary' | 'secondary'; }
 
@@ -41,6 +44,15 @@ type Selection =
   | null;
 
 const DRAG_THRESHOLD = 4; // px of movement before a pointerdown counts as a drag, not a click
+
+// Converts a "reference" px size (designed at a 1920px-wide hero) into a
+// responsive clamp() so text scales down proportionally on narrow screens
+// instead of overflowing / wrapping mid-word on mobile.
+function fluidSize(px: number) {
+  const vw = (px / 19.2).toFixed(2); // 1920px hero width == 100vw reference
+  const min = Math.max(12, Math.round(px * 0.32));
+  return `clamp(${min}px, ${vw}vw, ${px}px)`;
+}
 
 function SiteContentPage() {
   return (
@@ -196,16 +208,27 @@ function HeroEditor() {
   function commitEdit(key: TextKey) {
     setLayout((prev) => {
       if (!prev) return prev;
-      const words = draftText.split(/\s+/).filter(Boolean);
       const oldRuns = prev[key].runs;
       const defaultStyle = oldRuns[oldRuns.length - 1] ?? { color: '#F5F0E6', fontSize: 20 };
-      const runs: Run[] = words.length
-        ? words.map((w, i) => ({
+      const lines = draftText.split('\n');
+      const runs: Run[] = [];
+      let flatIndex = 0;
+      lines.forEach((line, li) => {
+        const words = line.split(/\s+/).filter(Boolean);
+        words.forEach((w, wi) => {
+          const old = oldRuns[flatIndex];
+          runs.push({
             text: w,
-            color: oldRuns[i]?.color ?? defaultStyle.color,
-            fontSize: oldRuns[i]?.fontSize ?? defaultStyle.fontSize,
-          }))
-        : [{ text: '', color: defaultStyle.color, fontSize: defaultStyle.fontSize }];
+            color: old?.color ?? defaultStyle.color,
+            fontSize: old?.fontSize ?? defaultStyle.fontSize,
+            font: old?.font,
+            bold: old?.bold,
+            lineBreak: li > 0 && wi === 0,
+          });
+          flatIndex++;
+        });
+      });
+      if (!runs.length) runs.push({ text: '', color: defaultStyle.color, fontSize: defaultStyle.fontSize });
       return { ...prev, [key]: { ...prev[key], runs } };
     });
     setEditingKey(null);
@@ -315,31 +338,40 @@ function HeroEditor() {
                 style={{ left: `${block.x}%`, top: `${block.y}%`, maxWidth: '80%' }}
               >
                 {isEditing ? (
-                  <textarea
-                    autoFocus
-                    value={draftText}
-                    onChange={(e) => setDraftText(e.target.value)}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(key); }
-                      if (e.key === 'Escape') { setEditingKey(null); }
-                    }}
-                    onBlur={() => commitEdit(key)}
-                    className="min-w-[220px] rounded-md border-2 border-gold bg-black/80 p-2 text-white outline-none"
-                    style={{ fontSize: `${(block.runs[0]?.fontSize ?? 16) * block.scale}px` }}
-                    rows={2}
-                  />
+                  <div className="flex flex-col items-start gap-1">
+                    <textarea
+                      autoFocus
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setEditingKey(null);
+                      }}
+                      className="min-w-[220px] rounded-md border-2 border-gold bg-black/80 p-2 text-white outline-none"
+                      style={{ fontSize: `${(block.runs[0]?.fontSize ?? 16) * block.scale * 0.6}px` }}
+                      rows={3}
+                    />
+                    <Button size="sm" onPointerDown={(e) => e.stopPropagation()} onClick={() => commitEdit(key)} className="bg-gold text-background hover:bg-gold/90">
+                      Done
+                    </Button>
+                  </div>
                 ) : (
                   block.runs.map((r, i) => (
-                    <span
-                      key={i}
-                      data-run-index={i}
-                      className={`mr-2 inline-block font-bold ${block.font === 'display' ? 'font-display' : 'font-sans'} ${
-                        selection?.kind === 'run' && selection.key === key && selection.index === i ? 'ring-2 ring-gold' : ''
-                      }`}
-                      style={{ color: r.color, fontSize: `${r.fontSize * block.scale}px` }}
-                    >
-                      {r.text}
+                    <span key={i}>
+                      {r.lineBreak && <br />}
+                      <span
+                        data-run-index={i}
+                        className={`mr-2 inline-block ${(r.font ?? block.font) === 'display' ? 'font-display' : 'font-sans'} ${
+                          selection?.kind === 'run' && selection.key === key && selection.index === i ? 'ring-2 ring-gold' : ''
+                        }`}
+                        style={{
+                          color: r.color,
+                          fontSize: fluidSize(r.fontSize * block.scale),
+                          fontWeight: (r.bold ?? key === 'headline') ? 700 : 400,
+                        }}
+                      >
+                        {r.text}
+                      </span>
                     </span>
                   ))
                 )}
@@ -393,6 +425,24 @@ function HeroEditor() {
               onChange={(e) => updateRun(selection.key, selection.index, { color: e.target.value })}
               className="h-8 w-10 cursor-pointer rounded border border-input"
             />
+            <Select
+              value={runSelection.font ?? layout[selection.key].font}
+              onValueChange={(v: FontFamily) => updateRun(selection.key, selection.index, { font: v })}
+            >
+              <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="display">Serif</SelectItem>
+                <SelectItem value="sans">Sans-serif</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant={(runSelection.bold ?? selection.key === 'headline') ? 'default' : 'outline'}
+              className="h-8 w-8 p-0"
+              onClick={() => updateRun(selection.key, selection.index, { bold: !(runSelection.bold ?? selection.key === 'headline') })}
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </Button>
             <div className="flex items-center gap-1">
               <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateRun(selection.key, selection.index, { fontSize: Math.max(8, runSelection.fontSize - 2) })}>
                 <Minus className="h-3.5 w-3.5" />
