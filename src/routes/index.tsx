@@ -10,6 +10,14 @@ import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Shuffle, MapPin, Sun } from "lucide-react";
 
+// Same responsive scaling used in the admin editor — keeps text from
+// overflowing / wrapping mid-word on narrow (mobile) screens.
+function fluidSize(px: number) {
+  const vw = (px / 19.2).toFixed(2);
+  const min = Math.max(12, Math.round(px * 0.32));
+  return `clamp(${min}px, ${vw}vw, ${px}px)`;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -101,7 +109,10 @@ function Home() {
               style={{ left: `${layout.eyebrow.x}%`, top: `${layout.eyebrow.y}%` }}
             >
               {layout.eyebrow.runs.map((r: any, i: number) => (
-                <span key={i} style={{ color: r.color, fontSize: `${r.fontSize * layout.eyebrow.scale}px` }}>{r.text}</span>
+                <span key={i}>
+                  {r.lineBreak && <br />}
+                  <span style={{ color: r.color, fontSize: fluidSize(r.fontSize * layout.eyebrow.scale) }}>{r.text}</span>
+                </span>
               ))}
             </div>
 
@@ -111,12 +122,14 @@ function Home() {
               style={{ left: `${layout.headline.x}%`, top: `${layout.headline.y}%`, maxWidth: "80%" }}
             >
               {layout.headline.runs.map((w: any, i: number) => (
-                <span
-                  key={i}
-                  className={`mr-2 inline-block font-bold ${layout.headline.font === "display" ? "font-display" : "font-sans"}`}
-                  style={{ color: w.color, fontSize: `${w.fontSize * layout.headline.scale}px` }}
-                >
-                  {w.text}
+                <span key={i}>
+                  {w.lineBreak && <br />}
+                  <span
+                    className={`mr-2 inline-block ${(w.font ?? layout.headline.font) === "display" ? "font-display" : "font-sans"}`}
+                    style={{ color: w.color, fontSize: fluidSize(w.fontSize * layout.headline.scale), fontWeight: (w.bold ?? true) ? 700 : 400 }}
+                  >
+                    {w.text}
+                  </span>
                 </span>
               ))}
             </div>
@@ -127,7 +140,10 @@ function Home() {
               style={{ left: `${layout.subheadline.x}%`, top: `${layout.subheadline.y}%`, maxWidth: "42%" }}
             >
               {layout.subheadline.runs.map((r: any, i: number) => (
-                <span key={i} style={{ color: r.color, fontSize: `${r.fontSize * layout.subheadline.scale}px` }}>{r.text}</span>
+                <span key={i}>
+                  {r.lineBreak && <br />}
+                  <span style={{ color: r.color, fontSize: fluidSize(r.fontSize * layout.subheadline.scale) }}>{r.text}</span>
+                </span>
               ))}
             </div>
 
