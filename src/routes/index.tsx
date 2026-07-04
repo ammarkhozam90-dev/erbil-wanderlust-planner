@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 // it smoothly on narrow screens instead of a fixed px value overflowing.
 function fluidSize(px: number) {
   const vw = (px / 19.2).toFixed(2);
-  const min = Math.max(12, Math.round(px * 0.4));
+  const min = Math.max(9, Math.round(px * 0.55));
   return `clamp(${min}px, ${vw}vw, ${px}px)`;
 }
 
@@ -71,6 +71,16 @@ function Home() {
     },
   });
 
+  const weather = useQuery({
+    queryKey: ["erbil-weather"],
+    queryFn: async () => {
+      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=36.19&longitude=44.01&current_weather=true");
+      const json = await res.json();
+      return json.current_weather as { temperature: number } | undefined;
+    },
+    staleTime: 1000 * 60 * 15, // refresh at most every 15 minutes
+  });
+
   const layout: any = hero.data?.layout || DEFAULT_LAYOUT;
   const alignClass = layout.align === "center" ? "items-center text-center" : layout.align === "right" ? "items-end text-right" : "items-start text-left";
   const justifyClass = layout.align === "center" ? "justify-center" : layout.align === "right" ? "justify-end" : "justify-start";
@@ -81,13 +91,16 @@ function Home() {
   }
 
   function renderRuns(runs: any[]) {
-    return runs.map((r, i) => (
-      <span key={i}>
-        {r.lineBreak && <br />}
-        {i > 0 && !r.lineBreak && " "}
-        <span style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}>{r.text}</span>
+    return (
+      <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        {runs.map((r, i) => (
+          <span key={i} className="contents">
+            {r.lineBreak && <span className="basis-full" />}
+            <span style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}>{r.text}</span>
+          </span>
+        ))}
       </span>
-    ));
+    );
   }
 
   return (
@@ -105,10 +118,13 @@ function Home() {
             />
             <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-            {/* طقس وموقع */}
-            <div className="absolute bottom-6 right-6 z-10 hidden items-center gap-4 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-white backdrop-blur-md sm:flex">
+            {/* طقس وموقع — نقلت للزاوية اليمينية العلوية، ودرجة الحرارة حقيقية لحظيًا */}
+            <div className="absolute right-6 top-6 z-10 hidden items-center gap-4 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-white backdrop-blur-md sm:flex">
                <div className="flex items-center gap-1 text-sm"><MapPin className="h-4 w-4" /> Erbil</div>
-               <div className="flex items-center gap-1 text-sm"><Sun className="h-4 w-4" /> 28°C</div>
+               <div className="flex items-center gap-1 text-sm">
+                 <Sun className="h-4 w-4" />
+                 {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
+               </div>
             </div>
 
             <div className={`absolute inset-0 flex flex-col justify-center gap-2 p-6 lg:p-10 ${alignClass}`}>
