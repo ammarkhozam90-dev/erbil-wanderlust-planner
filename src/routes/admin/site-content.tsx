@@ -206,14 +206,14 @@ function HeroEditor() {
     }
     return (
       <div className={extraClass} onDoubleClick={() => startEdit(key)}>
-        <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="inline-flex flex-wrap items-baseline">
           {block.runs.map((r, i) => (
             <span key={i} className="contents">
               {r.lineBreak && <span className="basis-full" />}
               <span
                 onClick={(e) => { e.stopPropagation(); setSelection({ kind: 'run', key, index: i }); }}
                 className={`inline-block cursor-pointer ${selection?.key === key && selection.index === i ? 'ring-2 ring-gold' : ''}`}
-                style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}
+                style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400, marginRight: '0.3em' }}
               >
                 {r.text}
               </span>
