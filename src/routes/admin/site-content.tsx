@@ -44,7 +44,7 @@ type Selection = { kind: 'run'; key: TextKey; index: number } | null;
 // screens instead of letting a fixed px value overflow / force a wrap.
 function fluidSize(px: number) {
   const vw = (px / 19.2).toFixed(2); // 1920px reference width == 100vw
-  const min = Math.max(12, Math.round(px * 0.4));
+  const min = Math.max(9, Math.round(px * 0.55));
   return `clamp(${min}px, ${vw}vw, ${px}px)`;
 }
 
@@ -206,19 +206,20 @@ function HeroEditor() {
     }
     return (
       <div className={extraClass} onDoubleClick={() => startEdit(key)}>
-        {block.runs.map((r, i) => (
-          <span key={i}>
-            {r.lineBreak && <br />}
-            {i > 0 && !r.lineBreak && ' '}
-            <span
-              onClick={(e) => { e.stopPropagation(); setSelection({ kind: 'run', key, index: i }); }}
-              className={`inline-block cursor-pointer ${selection?.key === key && selection.index === i ? 'ring-2 ring-gold' : ''}`}
-              style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}
-            >
-              {r.text}
+        <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {block.runs.map((r, i) => (
+            <span key={i} className="contents">
+              {r.lineBreak && <span className="basis-full" />}
+              <span
+                onClick={(e) => { e.stopPropagation(); setSelection({ kind: 'run', key, index: i }); }}
+                className={`inline-block cursor-pointer ${selection?.key === key && selection.index === i ? 'ring-2 ring-gold' : ''}`}
+                style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}
+              >
+                {r.text}
+              </span>
             </span>
-          </span>
-        ))}
+          ))}
+        </span>
       </div>
     );
   }
