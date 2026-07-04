@@ -92,11 +92,11 @@ function Home() {
 
   function renderRuns(runs: any[]) {
     return (
-      <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className="inline-flex flex-wrap items-baseline">
         {runs.map((r, i) => (
           <span key={i} className="contents">
             {r.lineBreak && <span className="basis-full" />}
-            <span style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400 }}>{r.text}</span>
+            <span style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400, marginRight: "0.3em" }}>{r.text}</span>
           </span>
         ))}
       </span>
@@ -118,11 +118,11 @@ function Home() {
             />
             <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-            {/* طقس وموقع — نقلت للزاوية اليمينية العلوية، ودرجة الحرارة حقيقية لحظيًا */}
-            <div className="absolute right-6 top-6 z-10 hidden items-center gap-4 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-white backdrop-blur-md sm:flex">
-               <div className="flex items-center gap-1 text-sm"><MapPin className="h-4 w-4" /> Erbil</div>
-               <div className="flex items-center gap-1 text-sm">
-                 <Sun className="h-4 w-4" />
+            {/* طقس وموقع — ظاهر على كل الشاشات، أصغر شوي عالموبايل */}
+            <div className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-white backdrop-blur-md sm:right-6 sm:top-6 sm:gap-4 sm:px-4 sm:py-2">
+               <div className="flex items-center gap-1 text-xs sm:text-sm"><MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Erbil</div>
+               <div className="flex items-center gap-1 text-xs sm:text-sm">
+                 <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                  {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
                </div>
             </div>
