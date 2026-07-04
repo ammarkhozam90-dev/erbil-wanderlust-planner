@@ -43,6 +43,27 @@ export function Header() {
           <UserMenu />
         </div>
       </div>
+
+      {/* صف روابط إضافي يظهر بس على الموبايل بالوضع العمودي (تحت عرض md) —
+          هيك الروابط (وأهمها Merchants) ما بتختفي أبدًا، حتى إذا الشاشة ضيقة.
+          على أي عرض أوسع (تاب، لابتوب، أو موبايل بالعرض) هاد الصف بيختفي
+          والصف الأصلي جوا الهيدر فوق بيشتغل عادي. */}
+      <nav className="flex items-center justify-center gap-6 overflow-x-auto border-t border-border/40 px-4 py-2 md:hidden">
+        {navItems.map((n) => {
+          const active = pathname === n.to || (n.to !== "/" && pathname.startsWith(n.to));
+          return (
+            <Link
+              key={n.to}
+              to={n.to}
+              className={`whitespace-nowrap text-xs font-medium transition-colors ${
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {n.label}
+            </Link>
+          );
+        })}
+      </nav>
     </header>
   );
 }
