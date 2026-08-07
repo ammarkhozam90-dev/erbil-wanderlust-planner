@@ -28,18 +28,20 @@ import { toast } from "sonner";
 
 const STYLES: TravelStyle[] = [
   "Foodie", "Remote Work Focus", "Family Friendly", "Nightlife", "Cultural/Historical",
+  "Adventure & Outdoors", "Budget Traveler", "Luxury", "Solo Explorer", "Photography",
 ];
 
 const INTERESTS = [
   "Food & Cafes", "Historical Sites", "Museums", "Nature", "Shopping",
   "Nightlife", "Family Activities", "Arts & Culture", "Photography",
   "Sports", "Remote Work Friendly Places",
+  "Coffee & Tea Culture", "Live Music & Events", "Hiking", "Spa & Wellness",
 ];
 
 const COMPANIONS = ["Solo", "Couple", "Friends", "Family"];
 const MOBILITY = ["High", "Moderate", "Low / Accessibility"];
 const BUDGET = ["Budget", "Mid-range", "Premium", "Luxury"];
-const DIETARY = ["Halal", "Vegetarian", "Vegan", "Gluten-free", "No restrictions"];
+const DIETARY = ["Halal", "Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free", "No restrictions"];
 const PACE = ["Early Bird", "Flexible", "Night Owl"];
 const SPEED = ["Fast Explorer", "Relaxed Explorer"];
 const ENV = ["Indoor", "Outdoor", "Mixed"];
