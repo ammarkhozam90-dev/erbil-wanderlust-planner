@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { MerchantSidebar } from '@/components/merchant/MerchantSidebar';
+import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/use-auth';
 
 export const Route = createFileRoute('/merchant/_authenticated')({
@@ -24,8 +25,14 @@ function MerchantLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
+        {/* السيدبار بدون أي هيدر فوقه لتفادي التراكب */}
         <MerchantSidebar />
         <div className="flex flex-1 flex-col">
+          {/* الهيدر الرئيسي للموقع — جوا عمود المحتوى بس، فبيضل ثابت
+              بكل صفحات لوحة التاجر بدون ما يتراكب فوق القائمة الجانبية */}
+          <Header />
+
+          {/* هيدر ثانوي صغير خاص بلوحة التاجر (زر فتح/طي القائمة) */}
           <header className="flex h-14 items-center gap-3 border-b px-4">
             <SidebarTrigger />
             <h1 className="font-display text-lg font-semibold">
