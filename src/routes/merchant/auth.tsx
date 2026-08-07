@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,10 +21,27 @@ export const Route = createFileRoute('/merchant/auth')({
 
 function MerchantAuth() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
+
+  // If a session already exists (user opened this page while already signed
+  // in), skip the form entirely and go straight to the dashboard.
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate({ to: '/merchant/dashboard' });
+    }
+  }, [authLoading, user, navigate]);
+
+  if (authLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
