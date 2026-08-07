@@ -12,7 +12,9 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type TravelStyle = "Foodie" | "Remote Work Focus" | "Family Friendly" | "Nightlife" | "Cultural/Historical";
+export type TravelStyle =
+  | "Foodie" | "Remote Work Focus" | "Family Friendly" | "Nightlife" | "Cultural/Historical"
+  | "Adventure & Outdoors" | "Budget Traveler" | "Luxury" | "Solo Explorer" | "Photography";
 export type AppRole = Database["public"]["Enums"]["app_role"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -146,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (patch: any) => {
     const { error } = await supabase.from("profiles").update(patch).eq("id", session?.user?.id ?? "");
+    if (!error) {
+      setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+    }
     return { error: error?.message ?? null };
   };
 
