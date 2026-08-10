@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyMerchant } from '@/components/merchant/use-my-merchant';
+import { useMerchantContext } from '@/components/merchant/merchant-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/merchant/_authenticated/submit')({
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/merchant/_authenticated/submit')({
 
 function Submit() {
   const { user } = useAuth();
-  const qc = useQueryClient();
+  const { refetch } = useMerchantContext();
   const navigate = useNavigate();
   const { data: m } = useMyMerchant(user?.id);
   const [submitting, setSubmitting] = useState(false);
@@ -43,8 +43,31 @@ function Submit() {
     setSubmitting(false);
     if (error) return toast.error(error.message);
     toast.success('Submitted for review!');
-    qc.invalidateQueries({ queryKey: ['my-merchant', user?.id] });
+    refetch();
     navigate({ to: '/merchant/dashboard' });
+  }
+
+  // A listing that's already approved and hasn't been edited since (the DB
+  // trigger flips this back to 'pending' the moment real content changes)
+  // has nothing left to "submit" — show its live status instead of the
+  // checklist + button every time.
+  if (m.status === 'approved') {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h2 className="font-display text-2xl font-bold">Submit for Review</h2>
+        <Card className="border-green-600/30 bg-green-600/5">
+          <CardContent className="flex items-center gap-3 py-6">
+            <Rocket className="h-6 w-6 text-green-600" />
+            <div>
+              <p className="font-semibold">Your listing is live</p>
+              <p className="text-sm text-muted-foreground">
+                Editing your business details, photos, hours, or tags will automatically send it back for review.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -79,8 +102,8 @@ function Submit() {
         </CardContent>
       </Card>
 
-      <Button size="lg" className="w-full" disabled={!ready || submitting} onClick={submit}>
-        {submitting ? 'Submitting…' : 'Submit for review'}
+      <Button size="lg" className="w-full" disabled={!ready || submitting || m.status === 'pending'} onClick={submit}>
+        {submitting ? 'Submitting…' : m.status === 'pending' ? 'Already submitted' : 'Submit for review'}
       </Button>
       {!ready && <p className="text-center text-xs text-muted-foreground">Complete all items above to submit.</p>}
     </div>
