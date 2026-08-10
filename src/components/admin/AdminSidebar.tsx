@@ -1,4 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
   Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette,
@@ -26,6 +27,22 @@ const items = [
 
 export function AdminSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Live count of merchant listings actually waiting on the admin — shown
+  // as a red badge so nothing pending gets forgotten under other work.
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['admin-pending-merchant-count'],
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('merchants')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -38,7 +55,12 @@ export function AdminSidebar() {
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="flex-1">{item.title}</span>
+                      {item.url === '/admin/approvals' && pendingCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
+                          {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
