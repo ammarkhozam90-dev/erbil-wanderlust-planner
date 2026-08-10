@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "./NotificationBell";
 
 export function Header() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -39,6 +40,7 @@ export function Header() {
         
         <div className="ml-auto flex items-center gap-3">
           {/* تمت إزالة حاوية الطقس والموقع من هنا */}
+          <NotificationBell />
           <LanguageSwitcher />
           <UserMenu />
         </div>
