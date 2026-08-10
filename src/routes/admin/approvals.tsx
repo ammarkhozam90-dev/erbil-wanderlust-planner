@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { logActivity } from '@/components/admin/log-activity';
+import { Eye } from 'lucide-react';
 import type { Merchant } from '@/integrations/supabase/types-local';
 
 export const Route = createFileRoute('/admin/approvals')({ component: Approvals });
@@ -104,14 +105,16 @@ function ReviewCard({
 }) {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
+  const [showProfile, setShowProfile] = useState(false);
+  const needsData = !compact || showProfile;
   const photos = useQuery({
     queryKey: ['admin-review-photos', m.id],
-    enabled: !compact,
+    enabled: needsData,
     queryFn: async () => (await supabase.from('merchant_photos').select('*').eq('merchant_id', m.id).order('sort_order')).data ?? [],
   });
   const hours = useQuery({
     queryKey: ['admin-review-hours', m.id],
-    enabled: !compact,
+    enabled: needsData,
     queryFn: async () => (await supabase.from('merchant_hours').select('*').eq('merchant_id', m.id).order('day_of_week')).data ?? [],
   });
   const color = m.status === 'approved' ? 'bg-green-500/10 text-green-700'
@@ -122,7 +125,77 @@ function ReviewCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
-          <span>{m.name || '(untitled)'} <span className="ml-2 text-xs font-normal capitalize text-muted-foreground">{m.category}</span></span>
+          <Dialog open={showProfile} onOpenChange={setShowProfile}>
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-2 text-left hover:underline">
+                <span>{m.name || '(untitled)'} <span className="ml-2 text-xs font-normal capitalize text-muted-foreground">{m.category}</span></span>
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{m.name || '(untitled)'}</DialogTitle>
+              </DialogHeader>
+
+              {m.cover_url && (
+                <img src={m.cover_url} alt="cover" className="h-48 w-full rounded-lg object-cover" />
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <h3 className="mb-1 font-semibold">Basic info</h3>
+                  <p className="text-muted-foreground">{m.description || '—'}</p>
+                  <p className="mt-2 text-xs">{m.address}, {m.city}</p>
+                  <p className="text-xs">{m.phone} · {m.email}</p>
+                  <p className="text-xs text-muted-foreground">{m.website}</p>
+                  <p className="mt-2 text-xs">
+                    {[m.instagram, m.facebook, m.tiktok, m.whatsapp].filter(Boolean).join(' · ') || 'No social links'}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="mb-1 font-semibold">AI Planning</h3>
+                  <p className="text-xs">Mood: {m.mood_tags?.join(', ') || '—'}</p>
+                  <p className="text-xs">Best time: {m.best_visit_time?.join(', ') || '—'}</p>
+                  <p className="text-xs">Duration: {m.avg_duration_minutes ?? '—'} min · Price: {m.price_level ?? '—'}</p>
+                  <p className="text-xs">Suitability: {m.suitability?.join(', ') || '—'}</p>
+                  <p className="text-xs">Transport: {m.transportation?.join(', ') || '—'}</p>
+                  <p className="text-xs">Features: {m.features?.join(', ') || '—'}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2 font-semibold">Photos ({(photos.data?.length ?? 0) + (m.logo_url ? 1 : 0) + (m.cover_url ? 1 : 0)})</h3>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {m.logo_url && (
+                    <a href={m.logo_url} target="_blank" rel="noreferrer">
+                      <img src={m.logo_url} alt="logo" className="aspect-square w-full rounded-lg object-cover transition hover:opacity-80" />
+                    </a>
+                  )}
+                  {m.cover_url && (
+                    <a href={m.cover_url} target="_blank" rel="noreferrer">
+                      <img src={m.cover_url} alt="cover" className="aspect-square w-full rounded-lg object-cover transition hover:opacity-80" />
+                    </a>
+                  )}
+                  {photos.data?.map((p: any) => (
+                    <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
+                      <img src={p.url} alt="" className="aspect-square w-full rounded-lg object-cover transition hover:opacity-80" />
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Click any photo to open it full-size in a new tab.</p>
+              </div>
+
+              <div>
+                <h3 className="mb-1 font-semibold">Opening hours</h3>
+                <div className="grid grid-cols-2 gap-1 text-xs md:grid-cols-4">
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, i) => {
+                    const h = hours.data?.find((x: any) => x.day_of_week === i);
+                    return <div key={d}>{d}: {h?.is_24h ? '24h' : h?.is_closed ? 'Closed' : h ? `${h.open_time}–${h.close_time}` : '—'}</div>;
+                  })}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge className={color}>{m.status}</Badge>
         </CardTitle>
       </CardHeader>
