@@ -23,28 +23,33 @@ function MerchantLayout() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        {/* السيدبار بدون أي هيدر فوقه لتفادي التراكب */}
-        <MerchantSidebar />
-        <div className="flex flex-1 flex-col">
-          {/* الهيدر الرئيسي للموقع — جوا عمود المحتوى بس، فبيضل ثابت
-              بكل صفحات لوحة التاجر بدون ما يتراكب فوق القائمة الجانبية */}
-          <Header />
+    <div className="min-h-screen bg-background">
+      {/* الهيدر الرئيسي للموقع — فوق كل شي بعرض الصفحة الكامل */}
+      <Header />
 
-          {/* هيدر ثانوي صغير خاص بلوحة التاجر (زر فتح/طي القائمة) */}
-          <header className="flex h-14 items-center gap-3 border-b px-4">
-            <SidebarTrigger />
-            <h1 className="font-display text-lg font-semibold">
-              <span className="text-primary">Erbil</span>
-              <span className="text-gold">Go</span> Merchant
-            </h1>
-          </header>
-          <main className="flex-1 p-6">
-            <Outlet />
-          </main>
-        </div>
+      {/* هاد الغلاف (بفضل transform) بيصير هو "المرجع" لموضعة القائمة
+          الجانبية الثابتة (fixed) بدل الشاشة كلها — هيك القائمة بتبلش
+          تحت الهيدر مباشرة، مش من أعلى الشاشة، وما في أي تراكب. */}
+      <div className="relative" style={{ transform: 'translateZ(0)' }}>
+        <SidebarProvider>
+          <div className="flex w-full">
+            <MerchantSidebar />
+            <div className="flex flex-1 flex-col">
+              {/* هيدر ثانوي صغير خاص بلوحة التاجر (زر فتح/طي القائمة) */}
+              <header className="flex h-14 items-center gap-3 border-b px-4">
+                <SidebarTrigger />
+                <h1 className="font-display text-lg font-semibold">
+                  <span className="text-primary">Erbil</span>
+                  <span className="text-gold">Go</span> Merchant
+                </h1>
+              </header>
+              <main className="flex-1 p-6">
+                <Outlet />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
