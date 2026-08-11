@@ -32,8 +32,8 @@ function Approvals() {
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from('merchants').update({
       status: 'approved', reviewed_at: new Date().toISOString(),
-      reviewed_by: u.user?.id, rejection_reason: null,
-    }).eq('id', m.id);
+      reviewed_by: u.user?.id, rejection_reason: null, pending_changes: null,
+    } as any).eq('id', m.id);
     if (error) return toast.error(error.message);
     await logActivity({ action: 'business.approved', target_type: 'merchant', target_id: m.id, target_label: m.name });
     toast.success('Approved');
@@ -45,8 +45,8 @@ function Approvals() {
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from('merchants').update({
       status: 'rejected', reviewed_at: new Date().toISOString(),
-      reviewed_by: u.user?.id, rejection_reason: reason,
-    }).eq('id', m.id);
+      reviewed_by: u.user?.id, rejection_reason: reason, pending_changes: null,
+    } as any).eq('id', m.id);
     if (error) return toast.error(error.message);
     await logActivity({ action: 'business.rejected', target_type: 'merchant', target_id: m.id, target_label: m.name, metadata: { reason } });
     toast.success('Rejected');
@@ -90,6 +90,44 @@ function Approvals() {
           <ReviewCard key={m.id} m={m} onApprove={approve} onReject={reject} onRequest={requestChanges} compact />
         ))}
       </section>
+    </div>
+  );
+}
+
+function ChangesSummary({ changes }: { changes: any }) {
+  if (!changes || Object.keys(changes).length === 0) return null;
+  return (
+    <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gold">What changed</p>
+      <ul className="space-y-1 text-xs">
+        {Object.entries(changes).map(([field, value]: [string, any]) => {
+          if (typeof value === 'string') {
+            return <li key={field}><span className="font-medium">{field}:</span> {value}</li>;
+          }
+          if (value && typeof value === 'object' && 'old' in value && 'new' in value) {
+            return (
+              <li key={field}>
+                <span className="font-medium">{field}:</span>{' '}
+                <span className="text-muted-foreground line-through">{value.old || '—'}</span>{' '}
+                → <span>{value.new || '—'}</span>
+              </li>
+            );
+          }
+          if (value && typeof value === 'object' && ('added' in value || 'removed' in value)) {
+            const added: string[] = value.added ?? [];
+            const removed: string[] = value.removed ?? [];
+            return (
+              <li key={field}>
+                <span className="font-medium">{field}:</span>{' '}
+                {added.length > 0 && <span className="text-green-600">+ {added.join(', ')}</span>}
+                {added.length > 0 && removed.length > 0 && '  '}
+                {removed.length > 0 && <span className="text-destructive">− {removed.join(', ')}</span>}
+              </li>
+            );
+          }
+          return null;
+        })}
+      </ul>
     </div>
   );
 }
@@ -140,6 +178,8 @@ function ReviewCard({
               {m.cover_url && (
                 <img src={m.cover_url} alt="cover" className="h-48 w-full rounded-lg object-cover" />
               )}
+
+              <ChangesSummary changes={(m as any).pending_changes} />
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
@@ -200,6 +240,8 @@ function ReviewCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        <ChangesSummary changes={(m as any).pending_changes} />
+
         {!compact && (
           <>
             <div className="grid gap-4 md:grid-cols-2">
