@@ -41,18 +41,31 @@ export function AvatarCropper({ file, onClose, onCropped }: AvatarCropperProps) 
   const displayW = img ? img.width * displayScale : 0;
   const displayH = img ? img.height * displayScale : 0;
 
-  // Re-center and clamp the pan whenever the image or zoom changes, so the
-  // crop circle is always fully covered by the image (no empty gaps).
+  // Center only when a NEW image is loaded — zooming afterwards (wheel or
+  // slider) should keep the current pan position (just clamped so no gaps
+  // appear), not snap back to center on every tick.
   useEffect(() => {
     if (!img) return;
-    setPan({ x: (CROP_SIZE - displayW) / 2, y: (CROP_SIZE - displayH) / 2 });
+    const base = CROP_SIZE / Math.min(img.width, img.height);
+    setPan({ x: (CROP_SIZE - img.width * base) / 2, y: (CROP_SIZE - img.height * base) / 2 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [img, zoom]);
+  }, [img]);
+
+  useEffect(() => {
+    if (!img) return;
+    setPan((p) => clampPan(p.x, p.y));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom]);
 
   function clampPan(x: number, y: number) {
     const minX = Math.min(0, CROP_SIZE - displayW);
     const minY = Math.min(0, CROP_SIZE - displayH);
     return { x: Math.min(0, Math.max(minX, x)), y: Math.min(0, Math.max(minY, y)) };
+  }
+
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    setZoom((z) => Math.min(4, Math.max(1, z - e.deltaY * 0.002)));
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -107,6 +120,7 @@ export function AvatarCropper({ file, onClose, onCropped }: AvatarCropperProps) 
         <div className="flex flex-col items-center gap-4">
           <div
             onPointerDown={onPointerDown}
+            onWheel={onWheel}
             className="relative touch-none overflow-hidden rounded-full border-2 border-gold/60 bg-muted"
             style={{ width: CROP_SIZE, height: CROP_SIZE, cursor: 'grab' }}
           >
@@ -116,7 +130,14 @@ export function AvatarCropper({ file, onClose, onCropped }: AvatarCropperProps) 
                 alt="Crop preview"
                 draggable={false}
                 className="absolute select-none"
-                style={{ width: displayW, height: displayH, left: pan.x, top: pan.y }}
+                style={{
+                  width: displayW,
+                  height: displayH,
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                  left: pan.x,
+                  top: pan.y,
+                }}
               />
             )}
           </div>
@@ -125,7 +146,7 @@ export function AvatarCropper({ file, onClose, onCropped }: AvatarCropperProps) 
             <ZoomIn className="h-4 w-4 text-muted-foreground" />
             <Slider min={1} max={4} step={0.05} value={[zoom]} onValueChange={([v]) => setZoom(v)} />
           </div>
-          <p className="text-[11px] text-muted-foreground">Drag the photo to reposition. Use the slider to zoom.</p>
+          <p className="text-[11px] text-muted-foreground">Drag to reposition. Scroll/pinch or use the slider to zoom.</p>
         </div>
 
         <DialogFooter>
