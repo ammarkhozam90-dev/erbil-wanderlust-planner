@@ -25,6 +25,8 @@ import { useStore } from "@/lib/store";
 import { useAuth, type TravelStyle, PASSWORD_RULES, validatePassword } from "@/lib/auth";
 import { LOCATIONS } from "@/data/locations";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { AvatarCropper } from "@/components/AvatarCropper";
 
 const STYLES: TravelStyle[] = [
   "Foodie", "Remote Work Focus", "Family Friendly", "Nightlife", "Cultural/Historical",
@@ -227,16 +229,35 @@ function ProfilePage() {
     await updateProfile({ travel_style_prefs: nextPrefs });
   }
 
+  const [cropperFile, setCropperFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const res = await updateProfile({ avatar_url: reader.result as string });
+    if (f) setCropperFile(f);
+    e.target.value = ""; // allow picking the same file again later
+  }
+
+  async function onAvatarCropped(blob: Blob) {
+    if (!session?.user) return;
+    setAvatarUploading(true);
+    setCropperFile(null);
+    try {
+      const path = `${session.user.id}/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, blob, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+      if (uploadError) throw uploadError;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const res = await updateProfile({ avatar_url: pub.publicUrl });
       if (res.error) toast.error(res.error);
       else toast.success("Profile photo updated");
-    };
-    reader.readAsDataURL(f);
+    } catch (err: any) {
+      toast.error(err.message ?? "Could not upload photo");
+    } finally {
+      setAvatarUploading(false);
+    }
   }
 
   async function saveAccount() {
@@ -312,8 +333,14 @@ function ProfilePage() {
                   {initial}
                 </span>
               )}
+              {avatarUploading && (
+                <div className="absolute inset-0 grid place-items-center bg-background/70">
+                  <Loader2 className="h-6 w-6 animate-spin text-gold" />
+                </div>
+              )}
               <button
                 onClick={() => fileRef.current?.click()}
+                disabled={avatarUploading}
                 className="absolute inset-0 grid place-items-center bg-background/70 opacity-0 transition-opacity hover:opacity-100"
                 aria-label="Upload new photo"
               >
@@ -324,6 +351,7 @@ function ProfilePage() {
               </button>
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
+            <AvatarCropper file={cropperFile} onClose={() => setCropperFile(null)} onCropped={onAvatarCropped} />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
