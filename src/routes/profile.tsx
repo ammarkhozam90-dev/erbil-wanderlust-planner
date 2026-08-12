@@ -242,6 +242,7 @@ function ProfilePage() {
     if (!session?.user) return;
     setAvatarUploading(true);
     setCropperFile(null);
+    const previousAvatarUrl = profile.avatar_url;
     try {
       const path = `${session.user.id}/${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, blob, {
@@ -251,13 +252,28 @@ function ProfilePage() {
       if (uploadError) throw uploadError;
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
       const res = await updateProfile({ avatar_url: pub.publicUrl });
-      if (res.error) toast.error(res.error);
-      else toast.success("Profile photo updated");
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Profile photo updated");
+        // Clean up the old avatar file now that the new one is saved, so
+        // storage usage doesn't grow with every photo change.
+        const oldPath = extractAvatarStoragePath(previousAvatarUrl);
+        if (oldPath) await supabase.storage.from("avatars").remove([oldPath]);
+      }
     } catch (err: any) {
       toast.error(err.message ?? "Could not upload photo");
     } finally {
       setAvatarUploading(false);
     }
+  }
+
+  function extractAvatarStoragePath(url: string | null | undefined): string | null {
+    if (!url) return null;
+    const marker = "/storage/v1/object/public/avatars/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null; // not an avatars-bucket URL (e.g. an old base64 value) — nothing to clean up
+    return decodeURIComponent(url.slice(idx + marker.length));
   }
 
   async function saveAccount() {
