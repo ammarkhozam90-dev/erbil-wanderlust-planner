@@ -16,6 +16,17 @@ import type { Merchant } from '@/integrations/supabase/types-local';
 
 export const Route = createFileRoute('/admin/approvals')({ component: Approvals });
 
+const REVERTIBLE_KEYS = new Set([
+  'Business name', 'Description', 'Category', 'Phone', 'Email', 'Website',
+  'Address', 'City', 'Logo', 'Cover image', 'Visit duration', 'Price level',
+  'Map location', 'Features', 'Mood tags',
+]);
+
+function hasRevertibleChange(changes: any): boolean {
+  if (!changes) return false;
+  return Object.keys(changes).some((k) => REVERTIBLE_KEYS.has(k));
+}
+
 function Approvals() {
   const qc = useQueryClient();
   const list = useQuery({
@@ -30,11 +41,19 @@ function Approvals() {
 
   async function approve(m: Merchant) {
     const { data: u } = await supabase.auth.getUser();
+    const priorChanges = (m as any).pending_changes;
     const { error } = await supabase.from('merchants').update({
       status: 'approved', reviewed_at: new Date().toISOString(),
       reviewed_by: u.user?.id, rejection_reason: null, pending_changes: null,
     } as any).eq('id', m.id);
     if (error) return toast.error(error.message);
+    await supabase.from('merchant_approval_history').insert({
+      merchant_id: m.id,
+      action: 'approved',
+      changes: priorChanges ?? null,
+      reviewed_by: u.user?.id,
+      revertible_until: hasRevertibleChange(priorChanges) ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
+    } as any);
     await logActivity({ action: 'business.approved', target_type: 'merchant', target_id: m.id, target_label: m.name });
     toast.success('Approved');
     qc.invalidateQueries({ queryKey: ['admin-approvals'] });
@@ -48,6 +67,10 @@ function Approvals() {
       reviewed_by: u.user?.id, rejection_reason: reason, pending_changes: null,
     } as any).eq('id', m.id);
     if (error) return toast.error(error.message);
+    await supabase.from('merchant_approval_history').insert({
+      merchant_id: m.id, action: 'rejected', changes: (m as any).pending_changes ?? null,
+      reason, reviewed_by: u.user?.id,
+    } as any);
     await logActivity({ action: 'business.rejected', target_type: 'merchant', target_id: m.id, target_label: m.name, metadata: { reason } });
     toast.success('Rejected');
     qc.invalidateQueries({ queryKey: ['admin-approvals'] });
@@ -61,6 +84,10 @@ function Approvals() {
       reviewed_at: new Date().toISOString(), reviewed_by: u.user?.id,
     }).eq('id', m.id);
     if (error) return toast.error(error.message);
+    await supabase.from('merchant_approval_history').insert({
+      merchant_id: m.id, action: 'changes_requested', changes: (m as any).pending_changes ?? null,
+      reason: note, reviewed_by: u.user?.id,
+    } as any);
     await logActivity({ action: 'business.edited', target_type: 'merchant', target_id: m.id, target_label: m.name, metadata: { changes_requested: note } });
     toast.success('Sent back to merchant');
     qc.invalidateQueries({ queryKey: ['admin-approvals'] });
