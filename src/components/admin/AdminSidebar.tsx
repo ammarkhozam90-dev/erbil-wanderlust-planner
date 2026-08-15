@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
-  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette,
+  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 const items = [
   { title: 'Dashboard',          url: '/admin',            icon: LayoutDashboard },
   { title: 'Merchant Approvals', url: '/admin/approvals',  icon: ShieldCheck },
+  { title: 'Approval History',   url: '/admin/approval-history', icon: History },
   { title: 'Businesses',         url: '/admin/businesses', icon: Building2 },
   { title: 'Tour Management',    url: '/admin/tours',      icon: Map },
   { title: 'Photos',             url: '/admin/photos',     icon: Images },
