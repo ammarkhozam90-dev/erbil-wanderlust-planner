@@ -23,20 +23,23 @@ function AdminLayout() {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>;
   }
 
-  if (!user) return <Navigate to="/merchant/auth" replace />;
+  // FIX: this used to redirect to "/merchant/auth" (the merchant sign-in
+  // page) by mistake — an admin with no session has nothing to do there.
+  // Send them to the homepage instead, where they can sign in normally.
+  if (!user) return <Navigate to="/" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex w-full">
-        {/* السيدبار يظهر بجانب المحتوى — بدون أي هيدر فوقه لتفادي التراكب */}
+        {/* السيدبار بدون أي هيدر فوقه لتفادي التراكب */}
         <AdminSidebar />
-
         <div className="flex flex-1 flex-col">
-          {/* الهيدر الرئيسي صار هون، جوا عمود المحتوى بس، فما بيتراكب أبدًا فوق القائمة الجانبية */}
+          {/* الهيدر الرئيسي للموقع — جوا عمود المحتوى بس، فبيضل ثابت
+              بكل صفحات لوحة الأدمن بدون ما يتراكب فوق القائمة الجانبية */}
           <Header />
 
-          {/* هذا الهيدر يظهر فقط في الموبايل لفتح السيدبار */}
+          {/* هيدر ثانوي صغير خاص بلوحة الأدمن (زر فتح/طي القائمة، موبايل بس) */}
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur md:hidden">
             <SidebarTrigger />
             <span className="text-sm font-semibold">Admin Panel</span>
