@@ -244,9 +244,9 @@ function ProfilePage() {
     setCropperFile(null);
     const previousAvatarUrl = profile.avatar_url;
     try {
-      const path = `${session.user.id}/${Date.now()}.jpg`;
+      const path = `${session.user.id}/${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, blob, {
-        contentType: "image/jpeg",
+        contentType: "image/png",
         upsert: true,
       });
       if (uploadError) throw uploadError;
