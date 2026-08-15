@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Header } from '@/components/Header';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/merchant/auth')({
@@ -70,7 +71,9 @@ function MerchantAuth() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">
@@ -129,6 +132,7 @@ function MerchantAuth() {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
