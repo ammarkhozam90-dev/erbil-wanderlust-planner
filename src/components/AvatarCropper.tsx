@@ -5,10 +5,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, Loader2 } from 'lucide-react';
-import { compressImage } from '@/lib/compress-image';
 
 const CROP_SIZE = 280; // display size of the circular crop viewport, in px
-const OUTPUT_SIZE = 480; // exported image resolution (still small once compressed)
+const MAX_OUTPUT_SIZE = 400; // never store a bigger avatar than this
 
 interface AvatarCropperProps {
   file: File | null;
@@ -94,17 +93,33 @@ export function AvatarCropper({ file, onClose, onCropped }: AvatarCropperProps) 
       const srcY = (0 - pan.y) / displayScale;
       const srcSize = CROP_SIZE / displayScale;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = OUTPUT_SIZE;
-      canvas.height = OUTPUT_SIZE;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+      // Never upscale — if the visible crop is already smaller than
+      // MAX_OUTPUT_SIZE at native resolution, keep it at its real size;
+      // only downscale when it's bigger than the cap.
+      const outputSize = Math.round(Math.min(MAX_OUTPUT_SIZE, srcSize));
 
-      const rawBlob: Blob = await new Promise((resolve, reject) =>
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Crop failed'))), 'image/jpeg', 0.92),
+      const canvas = document.createElement('canvas');
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const ctx = canvas.getContext('2d')!;
+
+      // Clip to a circle first, so everything outside it is actually
+      // removed from the saved file (transparent), not just hidden by the
+      // CSS rounding used to display it.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, outputSize, outputSize);
+      ctx.restore();
+
+      // PNG (not JPEG) so the transparent corners outside the circle are
+      // preserved — the output is already small (≤400x400) so file size
+      // stays modest even without lossy compression.
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Crop failed'))), 'image/png'),
       );
-      const compressed = await compressImage(rawBlob, { maxSizeKB: 150, maxDimension: OUTPUT_SIZE });
-      onCropped(compressed);
+      onCropped(blob);
     } finally {
       setSaving(false);
     }
