@@ -20,9 +20,14 @@ export const Route = createFileRoute('/merchant/_authenticated/ai-planning')({
   component: AIPlanning,
 });
 
-const MOODS = ['romantic', 'family', 'adventure', 'relaxing', 'social', 'cultural', 'energetic', 'cozy'];
+// Kept in sync with the traveler-facing vocabulary used on the user
+// profile page (travel styles) and the Tour Organizer portal's mood tags —
+// same words everywhere so a traveler's preference actually matches a
+// business's tags instead of two different vocabularies talking past
+// each other.
+const MOODS = ['Adventure', 'Nature', 'History & Culture', 'Luxury', 'Family', 'Photography', 'Relaxing', 'Nightlife', 'Food', 'Budget', 'Social', 'Cozy'];
 const TIMES = ['morning', 'afternoon', 'evening', 'night'];
-const SUITS = ['family', 'couples', 'solo', 'groups', 'business', 'kids'];
+const SUITS = ['Solo', 'Couple', 'Family', 'Friends', 'Business Travelers'];
 const TRANSPORT = ['walking', 'car', 'taxi', 'public'];
 const PRICES: PriceLevel[] = ['$', '$$', '$$$', '$$$$'];
 
