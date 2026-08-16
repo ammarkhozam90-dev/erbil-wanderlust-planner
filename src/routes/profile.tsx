@@ -27,6 +27,7 @@ import { LOCATIONS } from "@/data/locations";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarCropper } from "@/components/AvatarCropper";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
 
 // Kept in sync with the vocabulary used on the merchant side
 // (src/routes/merchant/_authenticated/ai-planning.tsx MOODS) and the Tour
@@ -102,6 +103,17 @@ function ProfilePage() {
   // Delete Account State
   const [showDelete, setShowDelete] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  // These must live here (before any early return below) — same Rules-of-
+  // Hooks requirement documented further down for completionPct.
+  const [cropperFile, setCropperFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (profile && showOnboarding === null) {
+      setShowOnboarding(!profile.onboarding_completed);
+    }
+  }, [profile, showOnboarding]);
 
   // Hydrate form from DB profile whenever it loads/updates
   useEffect(() => {
@@ -235,9 +247,6 @@ function ProfilePage() {
     await updateProfile({ travel_style_prefs: nextPrefs });
   }
 
-  const [cropperFile, setCropperFile] = useState<File | null>(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (f) setCropperFile(f);
@@ -343,6 +352,9 @@ function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {showOnboarding && (
+        <OnboardingWizard open={showOnboarding} onDone={() => setShowOnboarding(false)} />
+      )}
       <div className="mx-auto max-w-[1400px] px-4 py-10 lg:px-8 lg:py-14">
         {/* Hero */}
         <section className="mb-10 flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
