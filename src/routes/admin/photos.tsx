@@ -14,14 +14,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { logActivity } from '@/components/admin/log-activity';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 export const Route = createFileRoute('/admin/photos')({ component: Photos });
 
-type Filter = 'all' | 'approved' | 'recent';
+type Filter = 'all' | 'approved' | 'pending' | 'recent';
 
 function Photos() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>('all');
+  const [search, setSearch] = useState('');
 
   const q = useQuery({
     queryKey: ['admin-photos', filter],
@@ -38,9 +41,14 @@ function Photos() {
       if (error) throw error;
       let rows = data ?? [];
       if (filter === 'approved') rows = rows.filter((r: any) => r.merchants?.status === 'approved');
+      if (filter === 'pending') rows = rows.filter((r: any) => r.merchants?.status === 'pending');
       return rows;
     },
   });
+
+  const visibleRows = search.trim()
+    ? q.data?.filter((r: any) => (r.merchants?.name ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+    : q.data;
 
   async function deletePhoto(row: any) {
     const path = extractPath(row.url);
@@ -68,23 +76,35 @@ function Photos() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">Photo Moderation</h1>
-          <p className="text-sm text-muted-foreground">Review, replace, or remove uploaded images.</p>
+          <p className="text-sm text-muted-foreground">Review, replace, or remove uploaded images. Newest first.</p>
         </div>
-        <Select value={filter} onValueChange={(v: Filter) => setFilter(v)}>
-          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All photos</SelectItem>
-            <SelectItem value="approved">Approved businesses</SelectItem>
-            <SelectItem value="recent">Recently uploaded (7d)</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by business name…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 pl-8"
+            />
+          </div>
+          <Select value={filter} onValueChange={(v: Filter) => setFilter(v)}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All photos</SelectItem>
+              <SelectItem value="approved">Approved businesses</SelectItem>
+              <SelectItem value="pending">Pending businesses</SelectItem>
+              <SelectItem value="recent">Recently uploaded (7d)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {q.isLoading && <div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-56" /><Skeleton className="h-56" /><Skeleton className="h-56" /></div>}
-      {q.data?.length === 0 && <p className="text-sm text-muted-foreground">No photos match this filter.</p>}
+      {!q.isLoading && visibleRows?.length === 0 && <p className="text-sm text-muted-foreground">No photos match this search/filter.</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {q.data?.map((row: any) => (
+        {visibleRows?.map((row: any) => (
           <Card key={row.id}>
             <CardContent className="space-y-3 p-4">
               <img src={row.url} alt={row.caption ?? ''} className="h-48 w-full rounded object-cover" />
