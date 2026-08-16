@@ -13,8 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type TravelStyle =
-  | "Foodie" | "Remote Work Focus" | "Family Friendly" | "Nightlife" | "Cultural/Historical"
-  | "Adventure & Outdoors" | "Budget Traveler" | "Luxury" | "Solo Explorer" | "Photography";
+  | "Adventure" | "Nature" | "History & Culture" | "Luxury" | "Family" | "Photography"
+  | "Relaxing" | "Nightlife" | "Food" | "Budget" | "Social" | "Cozy"
+  | "Remote Work Focus" | "Solo Explorer";
 export type AppRole = Database["public"]["Enums"]["app_role"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
