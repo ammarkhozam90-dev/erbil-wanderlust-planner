@@ -28,9 +28,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarCropper } from "@/components/AvatarCropper";
 
+// Kept in sync with the vocabulary used on the merchant side
+// (src/routes/merchant/_authenticated/ai-planning.tsx MOODS) and the Tour
+// Organizer portal, so a traveler's preference matches business tags
+// exactly instead of two different wordings for the same idea.
 const STYLES: TravelStyle[] = [
-  "Foodie", "Remote Work Focus", "Family Friendly", "Nightlife", "Cultural/Historical",
-  "Adventure & Outdoors", "Budget Traveler", "Luxury", "Solo Explorer", "Photography",
+  "Adventure", "Nature", "History & Culture", "Luxury", "Family", "Photography",
+  "Relaxing", "Nightlife", "Food", "Budget", "Social", "Cozy",
+  "Remote Work Focus", "Solo Explorer",
 ];
 
 const INTERESTS = [
@@ -40,7 +45,8 @@ const INTERESTS = [
   "Coffee & Tea Culture", "Live Music & Events", "Hiking", "Spa & Wellness",
 ];
 
-const COMPANIONS = ["Solo", "Couple", "Friends", "Family"];
+// Matches SUITS on the merchant side (ai-planning.tsx) exactly.
+const COMPANIONS = ["Solo", "Couple", "Family", "Friends", "Business Travelers"];
 const MOBILITY = ["High", "Moderate", "Low / Accessibility"];
 const BUDGET = ["Budget", "Mid-range", "Premium", "Luxury"];
 const DIETARY = ["Halal", "Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free", "No restrictions"];
