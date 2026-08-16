@@ -17,27 +17,44 @@ export const Route = createFileRoute('/merchant/_authenticated/features')({
 const FEATURE_OPTIONS = [
   'WiFi', 'Parking', 'Outdoor Seating', 'Family Friendly', 'Pet Friendly',
   'Wheelchair Accessible', 'Delivery', 'Takeaway', 'Reservations', 'Live Music',
-  'Smoking Area', 'Card Payment', 'Halal', 'Vegan Options', 'Kids Play Area',
+  'Smoking Area', 'Card Payment', 'Kids Play Area',
   'Air Conditioning', 'Power Outlets', 'Private Rooms',
 ];
+
+// Kept identical to the DIETARY list on the user profile page
+// (src/routes/profile.tsx) so a traveler's dietary preference can match
+// directly against what a business actually offers.
+const DIETARY_OPTIONS = ['Halal', 'Vegetarian', 'Vegan', 'Pescatarian', 'Gluten-free', 'Dairy-free', 'No restrictions'];
 
 function Features() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data: m } = useMyMerchant(user?.id);
   const [selected, setSelected] = useState<string[]>([]);
+  const [dietary, setDietary] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (m) setSelected(m.features ?? []); }, [m]);
+  useEffect(() => {
+    if (m) {
+      setSelected(m.features ?? []);
+      setDietary((m as any).dietary_options ?? []);
+    }
+  }, [m]);
   if (!m) return <div className="text-muted-foreground">Set up your business first.</div>;
 
   function toggle(f: string) {
     setSelected((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
   }
+  function toggleDietary(d: string) {
+    setDietary((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
+  }
 
   async function save() {
     setSaving(true);
-    const { error } = await supabase.from('merchants').update({ features: selected }).eq('id', m!.id);
+    const { error } = await supabase.from('merchants').update({
+      features: selected,
+      dietary_options: dietary,
+    } as any).eq('id', m!.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success('Saved');
@@ -63,6 +80,30 @@ function Features() {
                     className={cn('cursor-pointer px-3 py-1.5 text-sm', active && 'bg-primary')}
                   >
                     {f}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Dietary options</CardTitle>
+          <p className="text-sm text-muted-foreground">So travelers with specific dietary needs can find you.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {DIETARY_OPTIONS.map((d) => {
+              const active = dietary.includes(d);
+              return (
+                <button key={d} onClick={() => toggleDietary(d)} type="button">
+                  <Badge
+                    variant={active ? 'default' : 'outline'}
+                    className={cn('cursor-pointer px-3 py-1.5 text-sm', active && 'bg-primary')}
+                  >
+                    {d}
                   </Badge>
                 </button>
               );
