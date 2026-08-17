@@ -34,6 +34,21 @@ function fluidSize(px: number) {
 
 const BTN_PAD: Record<string, string> = { sm: "px-3 py-2 text-xs", md: "px-5 py-3 text-sm", lg: "px-7 py-4 text-base" };
 
+// Explicit mapping to the real category slugs (src/lib/categories.ts) —
+// a naive lowercase+hyphen conversion of the display name doesn't work
+// here because some names have accents (Cafés) or "&" (Parks & Nature),
+// which don't match the actual slugs at all.
+const CATEGORY_SLUGS: Record<string, string> = {
+  "Cafés": "cafes",
+  "Restaurants": "restaurants",
+  "Things to Do": "things-to-do",
+  "Landmarks": "landmarks",
+  "Parks & Nature": "parks",
+  "Nightlife": "nightlife",
+  "Art & Culture": "art-culture",
+  "Shopping": "shopping",
+};
+
 const DEFAULT_LAYOUT = {
   align: "left",
   eyebrow: { runs: [{ text: "Welcome", color: "#D4AF37", fontSize: 12 }, { text: "to", color: "#D4AF37", fontSize: 12 }, { text: "Kurdistan", color: "#D4AF37", fontSize: 12 }] },
@@ -158,7 +173,7 @@ function Home() {
             <SectionHeader title="Explore Erbil" />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {CATEGORIES.map((c) => (
-                <Link key={c.name} to="/category/$slug" params={{ slug: c.name.toLowerCase().replace(/\s+/g, "-") }} className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury block">
+                <Link key={c.name} to="/category/$slug" params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }} className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury block">
                   <img src={coverFor(c.name)} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-3">
