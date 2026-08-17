@@ -37,7 +37,7 @@ async function fetchCategoryBusinesses(
     .eq("status", "approved")
     .range(from, to);
 
-  if (category.enum) q = q.eq("category", category.enum);
+  if (category.enum) q = q.contains("categories", [category.enum]);
   if (category.moodAny?.length) q = q.overlaps("mood_tags", category.moodAny);
 
   if (filters.q.trim()) {
