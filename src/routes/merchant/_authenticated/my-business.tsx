@@ -10,9 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { BusinessCategory } from '@/integrations/supabase/types-local';
 
@@ -35,7 +34,9 @@ function MyBusiness() {
         qc.invalidateQueries({ queryKey: ['my-merchant', user.id] }),
       );
     }
-    if (m && !form) setForm(m);
+    if (m && !form) {
+      setForm({ ...m, categories: (m as any).categories?.length ? (m as any).categories : [m.category] });
+    }
   }, [m, user, isLoading, qc, form]);
 
   if (isLoading || !form) return <div className="text-muted-foreground">Loading…</div>;
@@ -44,18 +45,29 @@ function MyBusiness() {
     setForm((f: any) => ({ ...f, [key]: value }));
   }
 
+  function toggleCategory(c: BusinessCategory) {
+    setForm((f: any) => {
+      const current: BusinessCategory[] = f.categories ?? [];
+      if (current.includes(c)) {
+        if (current.length === 1) return f; // keep at least one category selected
+        return { ...f, categories: current.filter((x) => x !== c) };
+      }
+      return { ...f, categories: [...current, c] };
+    });
+  }
+
   async function save() {
     setSaving(true);
     const { error } = await supabase
       .from('merchants')
       .update({
-        name: form.name, category: form.category, description: form.description,
+        name: form.name, categories: form.categories, description: form.description,
         phone: form.phone, email: form.email, website: form.website,
         address: form.address, city: form.city,
         latitude: form.latitude, longitude: form.longitude,
         instagram: form.instagram, facebook: form.facebook,
         tiktok: form.tiktok, whatsapp: form.whatsapp,
-      })
+      } as any)
       .eq('id', form.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -80,14 +92,24 @@ function MyBusiness() {
             <Label>Business name</Label>
             <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
           </div>
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={form.category} onValueChange={(v) => update('category', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Categories</Label>
+            <p className="text-xs text-muted-foreground">Select every category that applies — e.g. a hotel with its own restaurant and cafe.</p>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((c) => {
+                const active = (form.categories ?? []).includes(c);
+                return (
+                  <button key={c} type="button" onClick={() => toggleCategory(c)}>
+                    <Badge
+                      variant={active ? 'default' : 'outline'}
+                      className={cn('cursor-pointer px-3 py-1.5 text-sm capitalize', active && 'bg-primary')}
+                    >
+                      {c}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="space-y-2">
             <Label>City</Label>
