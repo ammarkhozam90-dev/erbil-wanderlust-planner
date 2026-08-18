@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
-  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History, UploadCloud,
+  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History, UploadCloud, UserCheck,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -14,6 +14,7 @@ const items = [
   { title: 'Dashboard',          url: '/admin',            icon: LayoutDashboard },
   { title: 'Merchant Approvals', url: '/admin/approvals',  icon: ShieldCheck },
   { title: 'Approval History',   url: '/admin/approval-history', icon: History },
+  { title: 'Claim Requests',     url: '/admin/claims',     icon: UserCheck },
   { title: 'Businesses',         url: '/admin/businesses', icon: Building2 },
   { title: 'Bulk Import',        url: '/admin/import',     icon: UploadCloud },
   { title: 'Tour Management',    url: '/admin/tours',      icon: Map },
@@ -45,6 +46,19 @@ export function AdminSidebar() {
     },
   });
 
+  const { data: pendingClaims = 0 } = useQuery({
+    queryKey: ['admin-pending-claims-count'],
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('merchant_claims')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -61,6 +75,11 @@ export function AdminSidebar() {
                       {item.url === '/admin/approvals' && pendingCount > 0 && (
                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
                           {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                      )}
+                      {item.url === '/admin/claims' && pendingClaims > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
+                          {pendingClaims > 99 ? '99+' : pendingClaims}
                         </span>
                       )}
                     </Link>
