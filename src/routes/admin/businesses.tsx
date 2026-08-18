@@ -106,7 +106,7 @@ function Businesses() {
                   <TableCell className="text-xs text-muted-foreground">{fmt(m.created_at)}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{fmt(m.updated_at)}</TableCell>
                   <TableCell className="space-x-1 text-right">
-                    <Button asChild size="sm" variant="outline"><Link to="/admin/businesses/$id" params={{ id: m.id }}><Pencil className="mr-1 h-3.5 w-3.5" /> Edit</Link></Button>
+                    <Button asChild size="sm" variant="outline"><Link to="/admin/business-edit/$id" params={{ id: m.id }}><Pencil className="mr-1 h-3.5 w-3.5" /> Edit</Link></Button>
                     <Button size="sm" variant="outline" onClick={() => approve(m)}>Approve</Button>
                     <Button size="sm" variant="outline" onClick={() => reject(m)}>Reject</Button>
                     <AlertDialog>
