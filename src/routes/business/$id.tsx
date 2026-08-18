@@ -1,15 +1,18 @@
-import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { MapView } from "@/components/MapView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState } from "@/lib/opening-status";
+import { toast } from "sonner";
 import {
-  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink,
+  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Store, Clock, Loader2,
 } from "lucide-react";
 
 const businessDetailQuery = (id: string) => queryOptions({
@@ -59,6 +62,76 @@ export const Route = createFileRoute("/business/$id")({
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimStatus: string | null | undefined }) {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: pendingClaim } = useQuery({
+    queryKey: ["business-pending-claim", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("merchant_claims")
+        .select("*")
+        .eq("merchant_id", businessId)
+        .eq("status", "pending")
+        .maybeSingle();
+      return data;
+    },
+    enabled: claimStatus === "unclaimed",
+  });
+
+  if (claimStatus !== "unclaimed") return null;
+
+  async function submitClaim() {
+    if (!session?.user) {
+      toast("Sign in as a merchant first to claim this business.");
+      navigate({ to: "/merchant/auth" });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("merchant_claims").insert({
+      merchant_id: businessId,
+      requester_id: session.user.id,
+    } as any);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message.includes("duplicate") || error.message.includes("uq_one_pending")
+        ? "This business already has a pending claim."
+        : error.message);
+      return;
+    }
+    toast.success("Claim submitted — an admin will review it shortly.");
+    qc.invalidateQueries({ queryKey: ["business-pending-claim", businessId] });
+  }
+
+  const isMine = pendingClaim && session?.user?.id === pendingClaim.requester_id;
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/40 bg-gold/5 p-4">
+      <div className="flex items-center gap-3">
+        <Store className="h-5 w-5 shrink-0 text-gold" />
+        <div>
+          <p className="text-sm font-semibold">Is this your business?</p>
+          <p className="text-xs text-muted-foreground">
+            {pendingClaim
+              ? (isMine ? "Your claim is awaiting admin review." : "A claim request for this listing is under review.")
+              : "Claim it to manage photos, hours, and more."}
+          </p>
+        </div>
+      </div>
+      {!pendingClaim && (
+        <Button size="sm" onClick={submitClaim} disabled={submitting} className="bg-gold text-background hover:bg-gold/90">
+          {submitting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+          Claim this business
+        </Button>
+      )}
+      {pendingClaim && <Badge className="bg-yellow-500/10 text-yellow-700"><Clock className="mr-1 h-3 w-3" /> Pending review</Badge>}
+    </div>
+  );
+}
+
 function BusinessDetail() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(businessDetailQuery(id));
@@ -104,6 +177,8 @@ function BusinessDetail() {
             </div>
           </div>
         </div>
+
+        <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
 
         {b.description && <p className="mt-4 text-sm text-muted-foreground">{b.description}</p>}
 
