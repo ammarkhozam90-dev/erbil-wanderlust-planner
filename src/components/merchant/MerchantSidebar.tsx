@@ -13,6 +13,7 @@ import {
   ChevronsUpDown,
   Plus,
   Store,
+  Search,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -42,6 +43,7 @@ import { toast } from 'sonner';
 
 const items = [
   { title: 'Dashboard', url: '/merchant/dashboard', icon: LayoutDashboard },
+  { title: 'Claim a Business', url: '/merchant/claim',      icon: Search },
   { title: 'My Business', url: '/merchant/my-business', icon: Building2 },
   { title: 'Photos', url: '/merchant/photos', icon: Images },
   { title: 'Opening Hours', url: '/merchant/hours', icon: Clock },
