@@ -120,17 +120,21 @@ function MyBusiness() {
 
   // Creates a brand-new business under this account and immediately links
   // it as a branch of the current one — covers the common case where a
-  // merchant doesn't have a second business yet to link.
+  // merchant doesn't have a second business yet to link. Passing `form`
+  // (the current business's own data) as the copy source pre-fills the new
+  // branch with the same description, categories, photos, socials, and AI
+  // planning tags — everything except its physical location, which the
+  // merchant sets separately since a branch is assumed to be elsewhere.
   async function handleCreateBranch() {
     if (!newBranchName.trim()) return toast.error('Enter a name for the new branch');
     setCreatingBranch(true);
     try {
-      const created = await createBusiness(newBranchName.trim());
+      const created = await createBusiness(newBranchName.trim(), form);
       // createBusiness() switches the active business to the new one —
       // switch back to the one we're linking from before continuing.
       setCurrentMerchantId(form.id);
       await linkAsBranch(form.id, created.id, newBranchLabel || undefined);
-      toast.success('New branch created and linked — fill in its details from the business switcher.');
+      toast.success('New branch created with your business details copied over — set its location and submit for review.');
       setNewBranchName('');
       setNewBranchLabel('');
     } catch (e: any) {
