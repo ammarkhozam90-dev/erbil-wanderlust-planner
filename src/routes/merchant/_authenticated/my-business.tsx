@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Link2, Link2Off } from 'lucide-react';
+import { Link2, Link2Off, Plus } from 'lucide-react';
 import type { BusinessCategory } from '@/integrations/supabase/types-local';
 
 export const Route = createFileRoute('/merchant/_authenticated/my-business')({
@@ -30,12 +30,15 @@ function MyBusiness() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data: m, isLoading } = useMyMerchant(user?.id);
-  const { merchants, branchSiblings, linkAsBranch, unlinkBranch } = useMerchantContext();
+  const { merchants, branchSiblings, linkAsBranch, unlinkBranch, createBusiness, setCurrentMerchantId } = useMerchantContext();
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [linkTargetId, setLinkTargetId] = useState<string>('');
   const [branchLabel, setBranchLabel] = useState('');
   const [linking, setLinking] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchLabel, setNewBranchLabel] = useState('');
+  const [creatingBranch, setCreatingBranch] = useState(false);
 
   useEffect(() => {
     if (!m && user?.email && user?.id && !isLoading) {
@@ -112,6 +115,28 @@ function MyBusiness() {
       toast.success('Unlinked');
     } catch (e: any) {
       toast.error(e.message ?? 'Could not unlink');
+    }
+  }
+
+  // Creates a brand-new business under this account and immediately links
+  // it as a branch of the current one — covers the common case where a
+  // merchant doesn't have a second business yet to link.
+  async function handleCreateBranch() {
+    if (!newBranchName.trim()) return toast.error('Enter a name for the new branch');
+    setCreatingBranch(true);
+    try {
+      const created = await createBusiness(newBranchName.trim());
+      // createBusiness() switches the active business to the new one —
+      // switch back to the one we're linking from before continuing.
+      setCurrentMerchantId(form.id);
+      await linkAsBranch(form.id, created.id, newBranchLabel || undefined);
+      toast.success('New branch created and linked — fill in its details from the business switcher.');
+      setNewBranchName('');
+      setNewBranchLabel('');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not create branch');
+    } finally {
+      setCreatingBranch(false);
     }
   }
 
@@ -241,7 +266,7 @@ function MyBusiness() {
           {linkCandidates.length > 0 && (
             <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
               <div className="min-w-[200px] flex-1 space-y-2">
-                <Label>Link a business you own</Label>
+                <Label>Link a business you already own</Label>
                 <Select value={linkTargetId} onValueChange={setLinkTargetId}>
                   <SelectTrigger><SelectValue placeholder="Choose a business…" /></SelectTrigger>
                   <SelectContent>
@@ -260,6 +285,23 @@ function MyBusiness() {
               </Button>
             </div>
           )}
+
+          <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
+            <div className="min-w-[200px] flex-1 space-y-2">
+              <Label>Or create a brand-new branch</Label>
+              <Input placeholder="New branch name" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} />
+            </div>
+            <div className="min-w-[160px] space-y-2">
+              <Label>Branch label</Label>
+              <Input placeholder="e.g. Ankawa branch" value={newBranchLabel} onChange={(e) => setNewBranchLabel(e.target.value)} />
+            </div>
+            <Button variant="outline" onClick={handleCreateBranch} disabled={!newBranchName.trim() || creatingBranch}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> {creatingBranch ? 'Creating…' : 'Create & link'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            You can also use "Add another business" in the sidebar switcher first, then link it here.
+          </p>
         </CardContent>
       </Card>
 
