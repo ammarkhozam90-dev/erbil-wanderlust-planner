@@ -27,6 +27,28 @@ function hasRevertibleChange(changes: any): boolean {
   return Object.keys(changes).some((k) => REVERTIBLE_KEYS.has(k));
 }
 
+// Safely turn any pending_changes "old"/"new" value into a displayable string.
+// Handles plain strings/numbers, {lat,lng} location objects, and anything
+// unexpected — never returns a raw object for JSX to render directly
+// (that's what was crashing the page with React error #31).
+function formatChangeValue(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'string' || typeof v === 'number') return String(v);
+  if (typeof v === 'object') {
+    const obj = v as Record<string, unknown>;
+    if ('lat' in obj && 'lng' in obj) {
+      return obj.lat != null && obj.lng != null ? `${obj.lat}, ${obj.lng}` : '—';
+    }
+    // Fallback for any other unexpected object shape
+    try {
+      return JSON.stringify(obj);
+    } catch {
+      return '—';
+    }
+  }
+  return String(v);
+}
+
 function Approvals() {
   const qc = useQueryClient();
   const list = useQuery({
@@ -135,8 +157,8 @@ function ChangesSummary({ changes }: { changes: any }) {
             return (
               <li key={field}>
                 <span className="font-medium">{field}:</span>{' '}
-                <span className="text-muted-foreground line-through">{value.old || '—'}</span>{' '}
-                → <span>{value.new || '—'}</span>
+                <span className="text-muted-foreground line-through">{formatChangeValue(value.old)}</span>{' '}
+                → <span>{formatChangeValue(value.new)}</span>
               </li>
             );
           }
