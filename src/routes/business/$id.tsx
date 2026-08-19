@@ -1,468 +1,317 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { MapPicker } from '@/components/merchant/MapPicker';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { Header } from "@/components/Header";
+import { MapView } from "@/components/MapView";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { computeOpenState } from "@/lib/opening-status";
+import { toast } from "sonner";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { compressImage } from '@/lib/compress-image';
-import { ArrowLeft, Upload, Trash2, Loader2 } from 'lucide-react';
-import type { BusinessCategory, MerchantHour } from '@/integrations/supabase/types-local';
+  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Store, Clock, Loader2, Building2,
+} from "lucide-react";
 
-export const Route = createFileRoute('/admin/business-edit/$id')({ component: EditBusiness });
+const businessDetailQuery = (id: string) => queryOptions({
+  queryKey: ["business-detail", id],
+  queryFn: async () => {
+    const [{ data: business, error }, { data: photos }, { data: hours }] = await Promise.all([
+      supabase.from("merchants").select("*").eq("id", id).eq("status", "approved").maybeSingle(),
+      supabase.from("merchant_photos").select("*").eq("merchant_id", id).order("sort_order"),
+      supabase.from("merchant_hours").select("*").eq("merchant_id", id).order("day_of_week"),
+    ]);
+    if (error) throw error;
+    if (!business) throw notFound();
 
-const CATEGORIES: BusinessCategory[] = ['restaurant', 'cafe', 'hotel', 'attraction', 'shop', 'activity', 'other'];
-const FEATURE_OPTIONS = [
-  'WiFi', 'Parking', 'Outdoor Seating', 'Family Friendly', 'Pet Friendly',
-  'Wheelchair Accessible', 'Delivery', 'Takeaway', 'Reservations', 'Live Music',
-  'Smoking Area', 'Card Payment', 'Kids Play Area', 'Air Conditioning', 'Power Outlets', 'Private Rooms',
-];
-const DIETARY_OPTIONS = ['Halal', 'Vegetarian', 'Vegan', 'Pescatarian', 'Gluten-free', 'Dairy-free', 'No restrictions'];
-const MOODS = ['Adventure', 'Nature', 'History & Culture', 'Luxury', 'Family', 'Photography', 'Relaxing', 'Nightlife', 'Food', 'Budget', 'Social', 'Cozy'];
-const TIMES = ['morning', 'afternoon', 'evening', 'night'];
-const SUITS = ['Solo', 'Couple', 'Family', 'Friends', 'Business Travelers'];
-const TRANSPORT = ['walking', 'car', 'taxi', 'public'];
-const PRICES = ['$', '$$', '$$$', '$$$$'];
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let branches: any[] = [];
+    if ((business as any).brand_group_id) {
+      const { data: siblings } = await supabase
+        .from("merchants")
+        .select("id, name, branch_label, is_main_branch, address, city")
+        .eq("brand_group_id", (business as any).brand_group_id)
+        .eq("status", "approved")
+        .order("is_main_branch", { ascending: false });
+      branches = siblings ?? [];
+    }
 
-function emptyHours(): MerchantHour[] {
-  return DAYS.map((_, i) => ({
-    id: `tmp-${i}`, merchant_id: '', day_of_week: i,
-    is_closed: false, is_24h: false, open_time: '09:00', close_time: '22:00',
-  })) as MerchantHour[];
-}
+    return { business, photos: photos ?? [], hours: hours ?? [], branches };
+  },
+});
 
-function MultiPick({ options, value, onChange }: { options: string[]; value: string[]; onChange: (v: string[]) => void }) {
-  function toggle(o: string) {
-    onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o]);
-  }
+export const Route = createFileRoute("/business/$id")({
+  loader: ({ params, context }) => context.queryClient.ensureQueryData(businessDetailQuery(params.id)),
+  head: ({ loaderData }) => ({
+    meta: [
+      { title: loaderData ? `${loaderData.business.name} — ErbilGo` : "ErbilGo" },
+      { name: "description", content: loaderData?.business.description ?? "Discover this place on ErbilGo." },
+    ],
+  }),
+  component: BusinessDetail,
+  pendingComponent: () => (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto max-w-4xl space-y-4 p-4 md:p-6">
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto max-w-2xl p-6 text-center">
+        <h1 className="font-display text-2xl font-bold">Not found</h1>
+        <p className="mt-2 text-sm text-muted-foreground">This place doesn't exist or isn't published yet.</p>
+        <Button asChild className="mt-4"><Link to="/">Back home</Link></Button>
+      </div>
+    </div>
+  ),
+});
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function BranchSelector({ currentId, branches }: { currentId: string; branches: any[] }) {
+  if (branches.length === 0) return null;
+  const all = [...branches]; // includes the current business itself (returned by the siblings query)
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const active = value.includes(o);
-        return (
-          <button key={o} type="button" onClick={() => toggle(o)}>
-            <Badge variant={active ? 'default' : 'outline'} className={cn('cursor-pointer px-3 py-1.5 text-sm capitalize', active && 'bg-primary')}>
-              {o}
-            </Badge>
-          </button>
-        );
-      })}
+    <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <Building2 className="h-4 w-4 text-gold" />
+        This business has {all.length} branches in Erbil — choose one
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {all.map((br) => (
+          <Link
+            key={br.id}
+            to="/business/$id"
+            params={{ id: br.id }}
+            className={`rounded-full border px-3 py-1.5 text-xs transition ${
+              br.id === currentId
+                ? "border-gold bg-gold text-background"
+                : "border-border bg-background text-muted-foreground hover:border-gold/50 hover:text-foreground"
+            }`}
+          >
+            {br.branch_label || br.name || "Branch"}
+            {br.is_main_branch && " · Main"}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
 
-function EditBusiness() {
-  const { id } = Route.useParams();
+function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimStatus: string | null | undefined }) {
+  const { session } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
-  const [form, setForm] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const [hourRows, setHourRows] = useState<MerchantHour[]>(emptyHours());
-  const [savingHours, setSavingHours] = useState(false);
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const businessQ = useQuery({
-    queryKey: ['admin-edit-business', id],
+  const { data: pendingClaim } = useQuery({
+    queryKey: ["business-pending-claim", businessId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('merchants').select('*').eq('id', id).single();
-      if (error) throw error;
-      return data as any;
+      const { data } = await supabase
+        .from("merchant_claims")
+        .select("*")
+        .eq("merchant_id", businessId)
+        .eq("status", "pending")
+        .maybeSingle();
+      return data;
     },
+    enabled: claimStatus === "unclaimed",
   });
 
-  const photosQ = useQuery({
-    queryKey: ['admin-edit-photos', id],
-    queryFn: async () => (await supabase.from('merchant_photos').select('*').eq('merchant_id', id).order('sort_order')).data ?? [],
-  });
+  if (claimStatus !== "unclaimed") return null;
 
-  const hoursQ = useQuery({
-    queryKey: ['admin-edit-hours', id],
-    queryFn: async () => (await supabase.from('merchant_hours').select('*').eq('merchant_id', id).order('day_of_week')).data ?? [],
-  });
-
-  // Multi-branch: siblings already sharing this business's brand_group_id
-  const branchesQ = useQuery({
-    queryKey: ['admin-edit-branches', id, businessQ.data?.brand_group_id],
-    enabled: !!businessQ.data?.brand_group_id,
-    queryFn: async () => (await supabase.from('merchants')
-      .select('id, name, branch_label, is_main_branch')
-      .eq('brand_group_id', businessQ.data.brand_group_id)
-      .neq('id', id)).data ?? [],
-  });
-
-  // Search box for "link this business to another one" — searches by name
-  // across ALL businesses (admin isn't limited to businesses they own).
-  const [branchSearch, setBranchSearch] = useState('');
-  const [branchLabelInput, setBranchLabelInput] = useState('');
-  const branchSearchQ = useQuery({
-    queryKey: ['admin-branch-search', branchSearch],
-    enabled: branchSearch.trim().length > 1,
-    queryFn: async () => (await supabase.from('merchants')
-      .select('id, name, city, brand_group_id')
-      .ilike('name', `%${branchSearch.trim()}%`)
-      .neq('id', id)
-      .limit(8)).data ?? [],
-  });
-
-  async function linkBranch(targetId: string) {
-    const { error } = await supabase.rpc('admin_link_merchant_as_branch' as any, {
-      p_main_id: id, p_branch_id: targetId, p_branch_label: branchLabelInput || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success('Linked as a branch');
-    setBranchSearch(''); setBranchLabelInput('');
-    qc.invalidateQueries({ queryKey: ['admin-edit-branches'] });
-    qc.invalidateQueries({ queryKey: ['admin-edit-business', id] });
-  }
-
-  async function unlinkBranch(branchId: string) {
-    const { error } = await supabase.rpc('admin_unlink_merchant_branch' as any, { p_branch_id: branchId });
-    if (error) return toast.error(error.message);
-    toast.success('Unlinked');
-    qc.invalidateQueries({ queryKey: ['admin-edit-branches'] });
-    qc.invalidateQueries({ queryKey: ['admin-edit-business', id] });
-  }
-
-  useEffect(() => {
-    if (businessQ.data && !form) {
-      setForm({ ...businessQ.data, categories: businessQ.data.categories?.length ? businessQ.data.categories : [businessQ.data.category] });
+  async function submitClaim() {
+    if (!session?.user) {
+      toast("Sign in as a merchant first to claim this business.");
+      navigate({ to: "/merchant/auth" });
+      return;
     }
-  }, [businessQ.data, form]);
-
-  useEffect(() => {
-    if (hoursQ.data) {
-      const map = new Map(hoursQ.data.map((h: any) => [h.day_of_week, h]));
-      setHourRows(emptyHours().map((d) => (map.get(d.day_of_week) as MerchantHour) ?? d));
+    setSubmitting(true);
+    const { error } = await supabase.from("merchant_claims").insert({
+      merchant_id: businessId,
+      requester_id: session.user.id,
+    } as any);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message.includes("duplicate") || error.message.includes("uq_one_pending")
+        ? "This business already has a pending claim."
+        : error.message);
+      return;
     }
-  }, [hoursQ.data]);
-
-  if (!form) return <div className="text-muted-foreground">Loading…</div>;
-
-  function update(key: string, value: unknown) {
-    setForm((f: any) => ({ ...f, [key]: value }));
+    toast.success("Claim submitted — an admin will review it shortly.");
+    qc.invalidateQueries({ queryKey: ["business-pending-claim", businessId] });
   }
 
-  function toggleCategory(c: BusinessCategory) {
-    setForm((f: any) => {
-      const current: BusinessCategory[] = f.categories ?? [];
-      if (current.includes(c)) {
-        if (current.length === 1) return f;
-        return { ...f, categories: current.filter((x: string) => x !== c) };
-      }
-      return { ...f, categories: [...current, c] };
-    });
-  }
-
-  async function saveBasics() {
-    setSaving(true);
-    const { error } = await supabase.from('merchants').update({
-      name: form.name, categories: form.categories, description: form.description,
-      phone: form.phone, email: form.email, website: form.website,
-      address: form.address, city: form.city,
-      latitude: form.latitude, longitude: form.longitude,
-      instagram: form.instagram, facebook: form.facebook, tiktok: form.tiktok, whatsapp: form.whatsapp,
-      features: form.features, dietary_options: form.dietary_options,
-      mood_tags: form.mood_tags, best_visit_time: form.best_visit_time,
-      avg_duration_minutes: Number(form.avg_duration_minutes) || null,
-      price_level: form.price_level, suitability: form.suitability, transportation: form.transportation,
-    } as any).eq('id', id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success('Saved');
-    qc.invalidateQueries({ queryKey: ['admin-edit-business', id] });
-    qc.invalidateQueries({ queryKey: ['admin-businesses'] });
-  }
-
-  async function saveHours() {
-    setSavingHours(true);
-    const payload = hourRows.map((r) => ({
-      merchant_id: id, day_of_week: r.day_of_week, is_closed: r.is_closed, is_24h: r.is_24h,
-      open_time: r.is_24h || r.is_closed ? null : r.open_time,
-      close_time: r.is_24h || r.is_closed ? null : r.close_time,
-    }));
-    const { error } = await supabase.from('merchant_hours').upsert(payload, { onConflict: 'merchant_id,day_of_week' });
-    setSavingHours(false);
-    if (error) return toast.error(error.message);
-    toast.success('Hours saved');
-    qc.invalidateQueries({ queryKey: ['admin-edit-hours', id] });
-  }
-
-  function updateHour(i: number, patch: Partial<MerchantHour>) {
-    setHourRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
-  }
-
-  async function uploadPhoto(kind: 'logo' | 'cover' | 'gallery', file: File) {
-    setUploading(kind);
-    let toUpload: Blob;
-    try { toUpload = await compressImage(file, { maxSizeKB: 250, maxDimension: 1920 }); } catch { toUpload = file; }
-    const path = `admin/${id}/${kind}-${Date.now()}.jpg`;
-    const { error: upErr } = await supabase.storage.from('merchant-media').upload(path, toUpload, { contentType: 'image/jpeg', upsert: true });
-    setUploading(null);
-    if (upErr) return toast.error(upErr.message);
-    const { data } = supabase.storage.from('merchant-media').getPublicUrl(path);
-    if (kind === 'gallery') {
-      const { error: insertErr } = await supabase.from('merchant_photos').insert({ merchant_id: id, url: data.publicUrl, sort_order: photosQ.data?.length ?? 0 });
-      if (insertErr) return toast.error(insertErr.message);
-      qc.invalidateQueries({ queryKey: ['admin-edit-photos', id] });
-    } else {
-      const { error: updateErr } = await supabase.from('merchants').update({ [`${kind}_url`]: data.publicUrl }).eq('id', id);
-      if (updateErr) return toast.error(updateErr.message);
-      qc.invalidateQueries({ queryKey: ['admin-edit-business', id] });
-    }
-    toast.success('Uploaded');
-  }
-
-  async function removeGalleryPhoto(photoId: string) {
-    await supabase.from('merchant_photos').delete().eq('id', photoId);
-    qc.invalidateQueries({ queryKey: ['admin-edit-photos', id] });
-  }
+  const isMine = pendingClaim && session?.user?.id === pendingClaim.requester_id;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon"><Link to="/admin/businesses"><ArrowLeft className="h-4 w-4" /></Link></Button>
-          <div>
-            <h1 className="font-display text-2xl font-bold">{form.name || 'Edit Business'}</h1>
-            <p className="text-xs text-muted-foreground capitalize">
-              {form.status} · {form.claim_status ?? 'claimed'}
-            </p>
-          </div>
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/40 bg-gold/5 p-4">
+      <div className="flex items-center gap-3">
+        <Store className="h-5 w-5 shrink-0 text-gold" />
+        <div>
+          <p className="text-sm font-semibold">Is this your business?</p>
+          <p className="text-xs text-muted-foreground">
+            {pendingClaim
+              ? (isMine ? "Your claim is awaiting admin review." : "A claim request for this listing is under review.")
+              : "Claim it to manage photos, hours, and more."}
+          </p>
         </div>
-        <Button onClick={saveBasics} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
       </div>
+      {!pendingClaim && (
+        <Button size="sm" onClick={submitClaim} disabled={submitting} className="bg-gold text-background hover:bg-gold/90">
+          {submitting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+          Claim this business
+        </Button>
+      )}
+      {pendingClaim && <Badge className="bg-yellow-500/10 text-yellow-700"><Clock className="mr-1 h-3 w-3" /> Pending review</Badge>}
+    </div>
+  );
+}
 
-      <Card>
-        <CardHeader><CardTitle>Basic info</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <Label>Business name</Label>
-            <Input value={form.name ?? ''} onChange={(e) => update('name', e.target.value)} />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Categories</Label>
-            <MultiPick options={CATEGORIES} value={form.categories ?? []} onChange={(v) => setForm((f: any) => ({ ...f, categories: v }))} />
-          </div>
-          <div className="space-y-2">
-            <Label>City</Label>
-            <Input value={form.city ?? ''} onChange={(e) => update('city', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={form.status} onValueChange={(v) => update('status', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {['draft', 'pending', 'approved', 'rejected'].map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Description</Label>
-            <Textarea rows={4} value={form.description ?? ''} onChange={(e) => update('description', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Phone</Label>
-            <Input value={form.phone ?? ''} onChange={(e) => update('phone', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Contact email</Label>
-            <Input value={form.email ?? ''} onChange={(e) => update('email', e.target.value)} />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Website</Label>
-            <Input value={form.website ?? ''} onChange={(e) => update('website', e.target.value)} />
-          </div>
-          {(['instagram', 'facebook', 'tiktok', 'whatsapp'] as const).map((k) => (
-            <div key={k} className="space-y-2">
-              <Label className="capitalize">{k}</Label>
-              <Input value={form[k] ?? ''} onChange={(e) => update(k, e.target.value)} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+function BusinessDetail() {
+  const { id } = Route.useParams();
+  const { data } = useSuspenseQuery(businessDetailQuery(id));
+  const b = data.business;
+  const open = computeOpenState(data.hours as any);
 
-      <Card>
-        <CardHeader><CardTitle>Location</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Address</Label>
-            <Input value={form.address ?? ''} onChange={(e) => update('address', e.target.value)} />
-          </div>
-          <MapPicker
-            lat={form.latitude}
-            lng={form.longitude}
-            onChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
-          />
-        </CardContent>
-      </Card>
+  const mapsHref = b.latitude != null && b.longitude != null
+    ? `https://www.google.com/maps/search/?api=1&query=${b.latitude},${b.longitude}`
+    : null;
 
-      <Card>
-        <CardHeader><CardTitle>Features &amp; dietary options</CardTitle></CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label className="mb-2 block">Features</Label>
-            <MultiPick options={FEATURE_OPTIONS} value={form.features ?? []} onChange={(v) => update('features', v)} />
-          </div>
-          <div>
-            <Label className="mb-2 block">Dietary options</Label>
-            <MultiPick options={DIETARY_OPTIONS} value={form.dietary_options ?? []} onChange={(v) => update('dietary_options', v)} />
-          </div>
-        </CardContent>
-      </Card>
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
 
-      <Card>
-        <CardHeader><CardTitle>AI Planning</CardTitle></CardHeader>
-        <CardContent className="space-y-6">
-          <div><Label className="mb-2 block">Mood tags</Label><MultiPick options={MOODS} value={form.mood_tags ?? []} onChange={(v) => update('mood_tags', v)} /></div>
-          <div><Label className="mb-2 block">Best visit time</Label><MultiPick options={TIMES} value={form.best_visit_time ?? []} onChange={(v) => update('best_visit_time', v)} /></div>
-          <div><Label className="mb-2 block">Suitable for</Label><MultiPick options={SUITS} value={form.suitability ?? []} onChange={(v) => update('suitability', v)} /></div>
-          <div><Label className="mb-2 block">Transportation</Label><MultiPick options={TRANSPORT} value={form.transportation ?? []} onChange={(v) => update('transportation', v)} /></div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Average duration (minutes)</Label>
-              <Input type="number" min={5} value={form.avg_duration_minutes ?? ''} onChange={(e) => update('avg_duration_minutes', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Price level</Label>
-              <Select value={form.price_level ?? ''} onValueChange={(v) => update('price_level', v)}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>{PRICES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Branches</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {(branchesQ.data?.length ?? 0) > 0 ? (
-            <div className="space-y-2">
-              {form.is_main_branch && <p className="text-xs font-medium text-gold">This is the main branch for its group.</p>}
-              {branchesQ.data!.map((s: any) => (
-                <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <div>
-                    <p className="text-sm font-medium">{s.name || '(untitled)'}</p>
-                    <p className="text-xs text-muted-foreground">{s.branch_label || 'No label'} {s.is_main_branch && '· Main branch'}</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => unlinkBranch(s.id)}>Unlink</Button>
-                </div>
-              ))}
-            </div>
+      <div className="mx-auto max-w-4xl px-4 pb-16 pt-4 md:px-6">
+        {/* Cover */}
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted md:aspect-[21/9]">
+          {b.cover_url ? (
+            <img src={b.cover_url} alt={b.name} className="h-full w-full object-cover" />
           ) : (
-            <p className="text-sm text-muted-foreground">Not linked to any other business yet.</p>
+            <div className="flex h-full w-full items-center justify-center text-muted-foreground">No image</div>
           )}
+          {open !== "unknown" && (
+            <Badge variant={open === "open" ? "default" : "secondary"} className="absolute right-3 top-3">
+              {open === "open" ? "Open now" : "Closed"}
+            </Badge>
+          )}
+        </div>
 
-          <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
-            <div className="min-w-[220px] flex-1 space-y-2">
-              <Label>Search any business by name to link</Label>
-              <Input placeholder="Type at least 2 letters…" value={branchSearch} onChange={(e) => setBranchSearch(e.target.value)} />
-              {branchSearchQ.data && branchSearchQ.data.length > 0 && (
-                <div className="mt-1 space-y-1 rounded-lg border border-border p-2">
-                  {branchSearchQ.data.map((r: any) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => linkBranch(r.id)}
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                    >
-                      <span>{r.name || '(untitled)'} <span className="text-xs text-muted-foreground">{r.city}</span></span>
-                      {r.brand_group_id && <Badge variant="outline" className="text-[10px]">already linked elsewhere</Badge>}
-                    </button>
-                  ))}
-                </div>
+        {/* Title row */}
+        <div className="mt-4 flex items-start gap-4">
+          {b.logo_url && (
+            <img src={b.logo_url} alt="" className="h-16 w-16 shrink-0 rounded-xl border border-border object-cover" />
+          )}
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-2xl font-bold md:text-3xl">{b.name}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="capitalize">{b.category}</Badge>
+              {b.price_level && <span className="text-sm text-muted-foreground">{b.price_level}</span>}
+              {b.avg_duration_minutes && (
+                <span className="text-sm text-muted-foreground">· ~{b.avg_duration_minutes} min visit</span>
+              )}
+              {(b as any).branch_label && (
+                <Badge variant="secondary" className="text-xs">{(b as any).branch_label}</Badge>
               )}
             </div>
-            <div className="min-w-[160px] space-y-2">
-              <Label>Branch label (optional)</Label>
-              <Input placeholder="e.g. Ankawa branch" value={branchLabelInput} onChange={(e) => setBranchLabelInput(e.target.value)} />
-            </div>
           </div>
-          <p className="text-xs text-muted-foreground">Click a search result to link it as a branch of this business.</p>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader><CardTitle>Photos</CardTitle></CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Logo</Label>
-              {form.logo_url && <img src={form.logo_url} className="h-20 w-20 rounded object-cover" alt="logo" />}
-              <UploadButton busy={uploading === 'logo'} onPick={(f) => uploadPhoto('logo', f)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Cover image</Label>
-              {form.cover_url && <img src={form.cover_url} className="h-24 w-full rounded object-cover" alt="cover" />}
-              <UploadButton busy={uploading === 'cover'} onPick={(f) => uploadPhoto('cover', f)} />
-            </div>
+        <BranchSelector currentId={b.id} branches={data.branches} />
+
+        <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
+
+        {b.description && <p className="mt-4 text-sm text-muted-foreground">{b.description}</p>}
+
+        {/* Tags */}
+        {((b.features?.length ?? 0) > 0 || (b.mood_tags?.length ?? 0) > 0 || (b.dietary_options?.length ?? 0) > 0) && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {[...(b.mood_tags ?? []), ...(b.features ?? []), ...(b.dietary_options ?? [])].map((t: string) => (
+              <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label>Gallery</Label>
-            <UploadButton busy={uploading === 'gallery'} onPick={(f) => uploadPhoto('gallery', f)} />
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {photosQ.data?.map((p: any) => (
-                <div key={p.id} className="group relative">
-                  <img src={p.url} className="aspect-square w-full rounded object-cover" alt="" />
-                  <button onClick={() => removeGalleryPhoto(p.id)} className="absolute right-1 top-1 rounded bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
+        )}
+
+        {/* Contact */}
+        <div className="mt-6 grid gap-2 text-sm md:grid-cols-2">
+          {b.address && (
+            <a href={mapsHref ?? "#"} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <MapPin className="h-4 w-4 shrink-0" /> {b.address}{b.city ? `, ${b.city}` : ""}
+            </a>
+          )}
+          {b.phone && (
+            <a href={`tel:${b.phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Phone className="h-4 w-4 shrink-0" /> {b.phone}
+            </a>
+          )}
+          {b.email && (
+            <a href={`mailto:${b.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Mail className="h-4 w-4 shrink-0" /> {b.email}
+            </a>
+          )}
+          {b.website && (
+            <a href={b.website} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Globe className="h-4 w-4 shrink-0" /> Website <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          {b.instagram && (
+            <a href={`https://instagram.com/${b.instagram.replace("@", "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Instagram className="h-4 w-4 shrink-0" /> @{b.instagram.replace("@", "")}
+            </a>
+          )}
+          {b.facebook && (
+            <a href={b.facebook} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Facebook className="h-4 w-4 shrink-0" /> Facebook
+            </a>
+          )}
+        </div>
+
+        {/* Map */}
+        {b.latitude != null && b.longitude != null && (
+          <div className="mt-6">
+            <h2 className="mb-2 font-display text-lg font-bold">Location</h2>
+            <MapView lat={b.latitude} lng={b.longitude} label={b.name} className="h-72 w-full rounded-xl border border-border" />
+          </div>
+        )}
+
+        {/* Gallery */}
+        {data.photos.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-2 font-display text-lg font-bold">Photos</h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {data.photos.map((p: any) => (
+                <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
+                  <img src={p.url} alt="" className="aspect-square w-full rounded-lg object-cover transition hover:opacity-90" />
+                </a>
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Opening hours</CardTitle>
-          <Button size="sm" onClick={saveHours} disabled={savingHours}>{savingHours ? 'Saving…' : 'Save hours'}</Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {hourRows.map((row, i) => (
-            <div key={i} className="grid grid-cols-1 items-center gap-3 rounded border p-3 md:grid-cols-[110px_1fr_1fr_auto_auto]">
-              <div className="font-medium text-sm">{DAYS[row.day_of_week]}</div>
-              <Input type="time" value={row.open_time ?? '09:00'} disabled={row.is_closed || row.is_24h} onChange={(e) => updateHour(i, { open_time: e.target.value })} />
-              <Input type="time" value={row.close_time ?? '22:00'} disabled={row.is_closed || row.is_24h} onChange={(e) => updateHour(i, { close_time: e.target.value })} />
-              <label className="flex items-center gap-2 text-sm">
-                <Switch checked={row.is_24h} onCheckedChange={(v) => updateHour(i, { is_24h: v, is_closed: false })} /> 24h
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Switch checked={row.is_closed} onCheckedChange={(v) => updateHour(i, { is_closed: v, is_24h: false })} /> Closed
-              </label>
+        {/* Hours */}
+        {data.hours.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-2 font-display text-lg font-bold">Opening hours</h2>
+            <div className="grid grid-cols-2 gap-1 text-sm sm:grid-cols-4">
+              {DAYS.map((d, i) => {
+                const h = data.hours.find((x: any) => x.day_of_week === i);
+                return (
+                  <div key={d} className="text-muted-foreground">
+                    <span className="font-medium text-foreground">{d}:</span>{" "}
+                    {h?.is_24h ? "24h" : h?.is_closed ? "Closed" : h ? `${h.open_time}–${h.close_time}` : "—"}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end pb-10">
-        <Button onClick={saveBasics} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-function UploadButton({ busy, onPick }: { busy: boolean; onPick: (f: File) => void }) {
-  return (
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-      {busy ? 'Uploading…' : 'Upload'}
-      <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => {
-        const f = e.target.files?.[0];
-        if (f) onPick(f);
-        e.target.value = '';
-      }} />
-    </label>
   );
 }
