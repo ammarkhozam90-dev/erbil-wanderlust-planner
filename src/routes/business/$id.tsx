@@ -33,6 +33,7 @@ const businessDetailQuery = (id: string) => queryOptions({
         .select("id, name, branch_label, is_main_branch, address, city")
         .eq("brand_group_id", (business as any).brand_group_id)
         .eq("status", "approved")
+        .neq("id", id)
         .order("is_main_branch", { ascending: false });
       branches = siblings ?? [];
     }
@@ -74,9 +75,12 @@ export const Route = createFileRoute("/business/$id")({
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function BranchSelector({ currentId, branches }: { currentId: string; branches: any[] }) {
+function BranchSelector({ currentId, currentName, isMain, branches }: { currentId: string; currentName: string; isMain: boolean; branches: any[] }) {
   if (branches.length === 0) return null;
-  const all = [...branches]; // includes the current business itself (returned by the siblings query)
+  const all = [
+    { id: currentId, name: currentName, branch_label: null, is_main_branch: isMain },
+    ...branches,
+  ];
   return (
     <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
@@ -223,7 +227,7 @@ function BusinessDetail() {
           </div>
         </div>
 
-        <BranchSelector currentId={b.id} branches={data.branches} />
+        <BranchSelector currentId={b.id} currentName={b.name} isMain={(b as any).is_main_branch} branches={data.branches} />
 
         <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
 
