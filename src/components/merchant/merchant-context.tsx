@@ -10,7 +10,7 @@ interface MerchantContextValue {
   isLoading: boolean;
   currentMerchant: Merchant | null;
   setCurrentMerchantId: (id: string) => void;
-  createBusiness: (name: string) => Promise<Merchant>;
+  createBusiness: (name: string, copyFrom?: Partial<Merchant>) => Promise<Merchant>;
   refetch: () => void;
   // Multi-branch: every other business the same account owns that shares
   // the current business's brand_group_id (empty if not linked to anyone).
@@ -20,6 +20,35 @@ interface MerchantContextValue {
 }
 
 const MerchantContext = createContext<MerchantContextValue | undefined>(undefined);
+
+// Fields that make sense to copy from the main business onto a brand-new
+// branch (shared branding / content). Location is deliberately excluded —
+// a branch is assumed to be at a different physical spot, so
+// address/city/latitude/longitude are left for the merchant to fill in.
+// Identity, status, and branch-linkage fields are always excluded (a new
+// branch must start as its own fresh 'draft' row, not inherit the main
+// business's review state).
+const BRANCH_COPY_FIELDS = [
+  'description',
+  'categories',
+  'category',
+  'phone',
+  'website',
+  'logo_url',
+  'cover_url',
+  'instagram',
+  'facebook',
+  'tiktok',
+  'whatsapp',
+  'features',
+  'mood_tags',
+  'best_visit_time',
+  'avg_duration_minutes',
+  'price_level',
+  'suitability',
+  'transportation',
+  'dietary_options',
+] as const;
 
 export function MerchantProvider({
   userId,
@@ -75,11 +104,23 @@ export function MerchantProvider({
     if (typeof window !== 'undefined') window.localStorage.setItem(CURRENT_MERCHANT_KEY, id);
   }
 
-  async function createBusiness(name: string) {
+  // `copyFrom` is optional and only meant for the "create a new branch"
+  // flow — pass the main business's current data (e.g. the form state in
+  // My Business) and its content fields get pre-filled on the new row.
+  // Called without it (e.g. "Add another business" in the sidebar), the
+  // new business starts completely blank, same as before.
+  async function createBusiness(name: string, copyFrom?: Partial<Merchant>) {
     if (!userId) throw new Error('Not signed in');
+    const insertPayload: Record<string, any> = { owner_id: userId, email: email ?? undefined, name };
+    if (copyFrom) {
+      for (const field of BRANCH_COPY_FIELDS) {
+        const value = (copyFrom as any)[field];
+        if (value !== undefined) insertPayload[field] = value;
+      }
+    }
     const { data, error } = await supabase
       .from('merchants')
-      .insert({ owner_id: userId, email: email ?? undefined, name })
+      .insert(insertPayload)
       .select('*')
       .single();
     if (error) throw error;
