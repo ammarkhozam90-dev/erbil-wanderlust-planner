@@ -12,6 +12,11 @@ interface MerchantContextValue {
   setCurrentMerchantId: (id: string) => void;
   createBusiness: (name: string) => Promise<Merchant>;
   refetch: () => void;
+  // Multi-branch: every other business the same account owns that shares
+  // the current business's brand_group_id (empty if not linked to anyone).
+  branchSiblings: Merchant[];
+  linkAsBranch: (mainId: string, branchId: string, label?: string) => Promise<void>;
+  unlinkBranch: (branchId: string) => Promise<void>;
 }
 
 const MerchantContext = createContext<MerchantContextValue | undefined>(undefined);
@@ -88,6 +93,28 @@ export function MerchantProvider({
     [merchants, currentMerchantId],
   );
 
+  const branchSiblings = useMemo(() => {
+    const groupId = (currentMerchant as any)?.brand_group_id;
+    if (!groupId || !currentMerchant) return [];
+    return merchants.filter((m) => (m as any).brand_group_id === groupId && m.id !== currentMerchant.id);
+  }, [merchants, currentMerchant]);
+
+  async function linkAsBranch(mainId: string, branchId: string, label?: string) {
+    const { error } = await supabase.rpc('link_merchant_as_branch' as any, {
+      p_main_id: mainId,
+      p_branch_id: branchId,
+      p_branch_label: label ?? null,
+    });
+    if (error) throw error;
+    await qc.invalidateQueries({ queryKey: ['my-merchants', userId] });
+  }
+
+  async function unlinkBranch(branchId: string) {
+    const { error } = await supabase.rpc('unlink_merchant_branch' as any, { p_branch_id: branchId });
+    if (error) throw error;
+    await qc.invalidateQueries({ queryKey: ['my-merchants', userId] });
+  }
+
   const value: MerchantContextValue = {
     merchants,
     isLoading,
@@ -95,6 +122,9 @@ export function MerchantProvider({
     setCurrentMerchantId,
     createBusiness,
     refetch,
+    branchSiblings,
+    linkAsBranch,
+    unlinkBranch,
   };
 
   return <MerchantContext.Provider value={value}>{children}</MerchantContext.Provider>;
