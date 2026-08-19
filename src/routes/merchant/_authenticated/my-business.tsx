@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { ensureMerchant, useMyMerchant } from '@/components/merchant/use-my-merchant';
+import { useMerchantContext } from '@/components/merchant/merchant-context';
 import { MapPicker } from '@/components/merchant/MapPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Link2, Link2Off } from 'lucide-react';
 import type { BusinessCategory } from '@/integrations/supabase/types-local';
 
 export const Route = createFileRoute('/merchant/_authenticated/my-business')({
@@ -25,8 +30,12 @@ function MyBusiness() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data: m, isLoading } = useMyMerchant(user?.id);
+  const { merchants, branchSiblings, linkAsBranch, unlinkBranch } = useMerchantContext();
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [linkTargetId, setLinkTargetId] = useState<string>('');
+  const [branchLabel, setBranchLabel] = useState('');
+  const [linking, setLinking] = useState(false);
 
   useEffect(() => {
     if (!m && user?.email && user?.id && !isLoading) {
@@ -73,6 +82,37 @@ function MyBusiness() {
     if (error) return toast.error(error.message);
     toast.success('Saved');
     qc.invalidateQueries({ queryKey: ['my-merchant', user?.id] });
+  }
+
+  // Other businesses this account owns that aren't already this business's
+  // branch group — candidates to link as a branch.
+  const linkCandidates = merchants.filter(
+    (x) => x.id !== form.id && (x as any).brand_group_id !== (form as any).brand_group_id,
+  );
+
+  async function handleLink() {
+    if (!linkTargetId) return;
+    setLinking(true);
+    try {
+      // form.id becomes (or stays) the main branch; linkTargetId joins its group.
+      await linkAsBranch(form.id, linkTargetId, branchLabel || undefined);
+      toast.success('Linked as a branch');
+      setLinkTargetId('');
+      setBranchLabel('');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not link');
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function handleUnlink(branchId: string) {
+    try {
+      await unlinkBranch(branchId);
+      toast.success('Unlinked');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not unlink');
+    }
   }
 
   return (
@@ -164,6 +204,62 @@ function MyBusiness() {
               <Input value={form[k]} onChange={(e) => update(k, e.target.value)} />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Branches</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Link another business you own as a branch of this one — they'll show together on the public page with a branch switcher.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {branchSiblings.length > 0 ? (
+            <div className="space-y-2">
+              {(form as any).is_main_branch && (
+                <p className="text-xs font-medium text-gold">This is the main branch for its group.</p>
+              )}
+              {branchSiblings.map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{s.name || '(untitled)'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(s as any).branch_label || 'No label'} {(s as any).is_main_branch && '· Main branch'}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => handleUnlink(s.id)}>
+                    <Link2Off className="mr-1.5 h-3.5 w-3.5" /> Unlink
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Not linked to any other business yet.</p>
+          )}
+
+          {linkCandidates.length > 0 && (
+            <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
+              <div className="min-w-[200px] flex-1 space-y-2">
+                <Label>Link a business you own</Label>
+                <Select value={linkTargetId} onValueChange={setLinkTargetId}>
+                  <SelectTrigger><SelectValue placeholder="Choose a business…" /></SelectTrigger>
+                  <SelectContent>
+                    {linkCandidates.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name || '(untitled)'}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[160px] space-y-2">
+                <Label>Branch label</Label>
+                <Input placeholder="e.g. Ankawa branch" value={branchLabel} onChange={(e) => setBranchLabel(e.target.value)} />
+              </div>
+              <Button onClick={handleLink} disabled={!linkTargetId || linking}>
+                <Link2 className="mr-1.5 h-3.5 w-3.5" /> {linking ? 'Linking…' : 'Link'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
