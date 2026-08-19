@@ -253,9 +253,14 @@ function MyBusiness() {
                       {(s as any).branch_label || 'No label'} {(s as any).is_main_branch && '· Main branch'}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleUnlink(s.id)}>
-                    <Link2Off className="mr-1.5 h-3.5 w-3.5" /> Unlink
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setCurrentMerchantId(s.id)}>
+                      Manage this branch
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleUnlink(s.id)}>
+                      <Link2Off className="mr-1.5 h-3.5 w-3.5" /> Unlink
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
