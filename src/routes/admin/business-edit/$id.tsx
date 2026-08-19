@@ -168,10 +168,12 @@ function EditBusiness() {
     if (upErr) return toast.error(upErr.message);
     const { data } = supabase.storage.from('merchant-media').getPublicUrl(path);
     if (kind === 'gallery') {
-      await supabase.from('merchant_photos').insert({ merchant_id: id, url: data.publicUrl, sort_order: photosQ.data?.length ?? 0 });
+      const { error: insertErr } = await supabase.from('merchant_photos').insert({ merchant_id: id, url: data.publicUrl, sort_order: photosQ.data?.length ?? 0 });
+      if (insertErr) return toast.error(insertErr.message);
       qc.invalidateQueries({ queryKey: ['admin-edit-photos', id] });
     } else {
-      await supabase.from('merchants').update({ [`${kind}_url`]: data.publicUrl }).eq('id', id);
+      const { error: updateErr } = await supabase.from('merchants').update({ [`${kind}_url`]: data.publicUrl }).eq('id', id);
+      if (updateErr) return toast.error(updateErr.message);
       qc.invalidateQueries({ queryKey: ['admin-edit-business', id] });
     }
     toast.success('Uploaded');
