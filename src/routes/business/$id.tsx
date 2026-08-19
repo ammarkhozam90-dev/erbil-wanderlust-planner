@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState } from "@/lib/opening-status";
 import { toast } from "sonner";
 import {
-  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Store, Clock, Loader2,
+  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Store, Clock, Loader2, Building2,
 } from "lucide-react";
 
 const businessDetailQuery = (id: string) => queryOptions({
@@ -25,7 +25,19 @@ const businessDetailQuery = (id: string) => queryOptions({
     ]);
     if (error) throw error;
     if (!business) throw notFound();
-    return { business, photos: photos ?? [], hours: hours ?? [] };
+
+    let branches: any[] = [];
+    if ((business as any).brand_group_id) {
+      const { data: siblings } = await supabase
+        .from("merchants")
+        .select("id, name, branch_label, is_main_branch, address, city")
+        .eq("brand_group_id", (business as any).brand_group_id)
+        .eq("status", "approved")
+        .order("is_main_branch", { ascending: false });
+      branches = siblings ?? [];
+    }
+
+    return { business, photos: photos ?? [], hours: hours ?? [], branches };
   },
 });
 
@@ -61,6 +73,36 @@ export const Route = createFileRoute("/business/$id")({
 });
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function BranchSelector({ currentId, branches }: { currentId: string; branches: any[] }) {
+  if (branches.length === 0) return null;
+  const all = [...branches]; // includes the current business itself (returned by the siblings query)
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <Building2 className="h-4 w-4 text-gold" />
+        This business has {all.length} branches in Erbil — choose one
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {all.map((br) => (
+          <Link
+            key={br.id}
+            to="/business/$id"
+            params={{ id: br.id }}
+            className={`rounded-full border px-3 py-1.5 text-xs transition ${
+              br.id === currentId
+                ? "border-gold bg-gold text-background"
+                : "border-border bg-background text-muted-foreground hover:border-gold/50 hover:text-foreground"
+            }`}
+          >
+            {br.branch_label || br.name || "Branch"}
+            {br.is_main_branch && " · Main"}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimStatus: string | null | undefined }) {
   const { session } = useAuth();
@@ -174,9 +216,14 @@ function BusinessDetail() {
               {b.avg_duration_minutes && (
                 <span className="text-sm text-muted-foreground">· ~{b.avg_duration_minutes} min visit</span>
               )}
+              {(b as any).branch_label && (
+                <Badge variant="secondary" className="text-xs">{(b as any).branch_label}</Badge>
+              )}
             </div>
           </div>
         </div>
+
+        <BranchSelector currentId={b.id} branches={data.branches} />
 
         <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
 
