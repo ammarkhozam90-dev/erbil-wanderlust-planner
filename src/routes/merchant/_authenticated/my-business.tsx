@@ -158,7 +158,7 @@ function MyBusiness() {
   useEffect(() => {
     if (!m && user?.email && user?.id && !isLoading) {
       ensureMerchant(user.id, user.email).then(() =>
-        qc.invalidateQueries({ queryKey: ['my-merchant', user.id] }),
+        qc.invalidateQueries({ queryKey: ['my-merchants', user.id] }),
       );
     }
     if (m && !form) {
@@ -222,7 +222,7 @@ function MyBusiness() {
     if (merchantRes.error) return toast.error(merchantRes.error.message);
     if (hoursRes.error) return toast.error(hoursRes.error.message);
     toast.success('All changes saved');
-    qc.invalidateQueries({ queryKey: ['my-merchant', user?.id] });
+    qc.invalidateQueries({ queryKey: ['my-merchants', user?.id] });
     qc.invalidateQueries({ queryKey: ['merchant-hours', form.id] });
   }
 
@@ -255,7 +255,7 @@ function MyBusiness() {
       qc.invalidateQueries({ queryKey: ['merchant-photos', m!.id] });
     } else {
       await supabase.from('merchants').update({ [`${kind}_url`]: url }).eq('id', m!.id);
-      qc.invalidateQueries({ queryKey: ['my-merchant', user!.id] });
+      qc.invalidateQueries({ queryKey: ['my-merchants', user!.id] });
       const oldPath = extractStoragePath(previousUrl);
       if (oldPath) await supabase.storage.from('merchant-media').remove([oldPath]);
     }
@@ -353,7 +353,7 @@ function MyBusiness() {
     setSubmitting(false);
     if (error) return toast.error(error.message);
     toast.success('Submitted for review!');
-    qc.invalidateQueries({ queryKey: ['my-merchant', user?.id] });
+    qc.invalidateQueries({ queryKey: ['my-merchants', user?.id] });
     navigate({ to: '/merchant/dashboard' });
   }
 
