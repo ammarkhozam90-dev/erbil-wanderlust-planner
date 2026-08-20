@@ -3,10 +3,6 @@ import { useState } from 'react';
 import {
   LayoutDashboard,
   Building2,
-  Images,
-  Clock,
-  Tags,
-  Sparkles,
   Eye,
   Send,
   LogOut,
@@ -41,14 +37,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMerchantContext } from './merchant-context';
 import { toast } from 'sonner';
 
+// Photos, Opening Hours, Features & Tags, and AI Planning Info used to be
+// separate nav items — they're now sections inside the single My Business
+// page (with a sticky in-page nav to jump between them), so they no longer
+// need their own sidebar entries.
 const items = [
   { title: 'Dashboard', url: '/merchant/dashboard', icon: LayoutDashboard },
-  { title: 'Claim a Business', url: '/merchant/claim',      icon: Search },
+  { title: 'Claim a Business', url: '/merchant/claim', icon: Search },
   { title: 'My Business', url: '/merchant/my-business', icon: Building2 },
-  { title: 'Photos', url: '/merchant/photos', icon: Images },
-  { title: 'Opening Hours', url: '/merchant/hours', icon: Clock },
-  { title: 'Features & Tags', url: '/merchant/features', icon: Tags },
-  { title: 'AI Planning Info', url: '/merchant/ai-planning', icon: Sparkles },
   { title: 'Preview', url: '/merchant/preview', icon: Eye },
   { title: 'Submit for Review', url: '/merchant/submit', icon: Send },
 ];
