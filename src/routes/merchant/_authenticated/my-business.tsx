@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { compressImage } from '@/lib/compress-image';
+import { ImageCropDialog } from '@/components/merchant/ImageCropDialog';
 import {
   Link2, Link2Off, Plus, Upload, Trash2, CheckCircle2, AlertCircle, Rocket, Circle, ImageOff,
 } from 'lucide-react';
@@ -130,6 +131,11 @@ function MyBusiness() {
   // survived) — tracked so we can show a clear placeholder + an always-on
   // delete button instead of the browser's default broken-image icon.
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set());
+  // Logo/cover go through a crop step before upload (square for the logo,
+  // 16:9 for the cover — see saveAll's comment on why cover stays 16:9
+  // even though desktop displays it wider). Gallery photos skip this and
+  // upload as-is, same as before.
+  const [cropTarget, setCropTarget] = useState<{ kind: 'logo' | 'cover'; src: string } | null>(null);
 
   const hoursQ = useQuery({
     queryKey: ['merchant-hours', m?.id],
@@ -264,6 +270,28 @@ function MyBusiness() {
       if (oldPath) await supabase.storage.from('merchant-media').remove([oldPath]);
     }
     toast.success('Uploaded');
+  }
+
+  // Logo/cover picks open the crop dialog instead of uploading right away.
+  function pickForCrop(kind: 'logo' | 'cover', file: File) {
+    const src = URL.createObjectURL(file);
+    setCropTarget({ kind, src });
+  }
+
+  function cancelCrop() {
+    if (cropTarget) URL.revokeObjectURL(cropTarget.src);
+    setCropTarget(null);
+  }
+
+  async function confirmCrop(blob: Blob) {
+    if (!cropTarget) return;
+    const { kind, src } = cropTarget;
+    URL.revokeObjectURL(src);
+    setCropTarget(null);
+    // Wrap the cropped Blob as a File so it drops straight into the
+    // existing compress-and-upload pipeline unchanged.
+    const croppedFile = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
+    await uploadPhoto(kind, croppedFile);
   }
 
   async function removePhoto(photo: MerchantPhoto) {
@@ -501,13 +529,13 @@ function MyBusiness() {
               <div className={cn('space-y-3 rounded-lg', invalid('logo') && 'ring-2 ring-destructive p-3')}>
                 <Label>Logo</Label>
                 {m.logo_url && <img src={m.logo_url} alt="logo" className="h-24 w-24 rounded object-cover" />}
-                <UploadInput label="Upload logo" onPick={(f) => { void uploadPhoto('logo', f); }} />
+                <UploadInput label="Upload logo" onPick={(f) => pickForCrop('logo', f)} />
                 <FieldError show={invalid('logo')} message="Add a logo so customers recognize you." />
               </div>
               <div className={cn('space-y-3 rounded-lg', invalid('cover') && 'ring-2 ring-destructive p-3')}>
                 <Label>Cover image</Label>
                 {m.cover_url && <img src={m.cover_url} alt="cover" className="h-32 w-full rounded object-cover" />}
-                <UploadInput label="Upload cover" onPick={(f) => { void uploadPhoto('cover', f); }} />
+                <UploadInput label="Upload cover" onPick={(f) => pickForCrop('cover', f)} />
                 <FieldError show={invalid('cover')} message="Add a cover photo for your listing's header." />
               </div>
             </div>
@@ -790,6 +818,15 @@ function MyBusiness() {
           </CardContent>
         </Card>
       </div>
+
+      <ImageCropDialog
+        open={!!cropTarget}
+        imageSrc={cropTarget?.src ?? null}
+        aspect={cropTarget?.kind === 'logo' ? 1 : 16 / 9}
+        title={cropTarget?.kind === 'logo' ? 'Adjust your logo' : 'Adjust your cover image'}
+        onCancel={cancelCrop}
+        onConfirm={confirmCrop}
+      />
     </div>
   );
 }
