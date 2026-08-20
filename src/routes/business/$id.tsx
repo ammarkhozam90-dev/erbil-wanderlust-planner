@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { MapView } from "@/components/MapView";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -183,6 +184,7 @@ function BusinessDetail() {
   const { data } = useSuspenseQuery(businessDetailQuery(id));
   const b = data.business;
   const open = computeOpenState(data.hours as any);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const mapsHref = b.latitude != null && b.longitude != null
     ? `https://www.google.com/maps/search/?api=1&query=${b.latitude},${b.longitude}`
@@ -289,13 +291,26 @@ function BusinessDetail() {
           <div className="mt-6">
             <h2 className="mb-2 font-display text-lg font-bold">Photos</h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {data.photos.map((p: any) => (
-                <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
+              {data.photos.map((p: any, i: number) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setLightboxIndex(i)}
+                  className="block"
+                >
                   <img src={p.url} alt="" className="aspect-square w-full rounded-lg object-cover transition hover:opacity-90" />
-                </a>
+                </button>
               ))}
             </div>
           </div>
+        )}
+
+        {lightboxIndex !== null && (
+          <ImageLightbox
+            images={data.photos.map((p: any) => p.url)}
+            index={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+          />
         )}
 
         {/* Hours */}
