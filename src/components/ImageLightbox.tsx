@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageLightboxProps {
@@ -10,6 +11,12 @@ interface ImageLightboxProps {
 // Full-screen image viewer. Click the backdrop, press the X, or hit
 // Escape to close. With more than one image it also gets prev/next
 // arrows, a counter, and left/right arrow-key navigation.
+//
+// Rendered via a portal straight into <body>, outside the page's own
+// DOM tree. Third-party widgets (Leaflet maps, dropdowns, etc.) often
+// set very high internal z-index values on their own elements — a
+// portal plus a max z-index here means this overlay always wins,
+// regardless of what any of those set.
 export function ImageLightbox({ images, index, onClose }: ImageLightboxProps) {
   const [current, setCurrent] = useState(index);
 
@@ -39,11 +46,12 @@ export function ImageLightbox({ images, index, onClose }: ImageLightboxProps) {
     };
   }, [onClose, goPrev, goNext, images.length]);
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4"
+      className="fixed inset-0 flex items-center justify-center bg-black/95 p-4"
+      style={{ zIndex: 2147483647 }}
       onClick={onClose}
     >
       <button
@@ -82,6 +90,7 @@ export function ImageLightbox({ images, index, onClose }: ImageLightboxProps) {
         className="max-h-[90vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
