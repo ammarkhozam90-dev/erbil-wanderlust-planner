@@ -43,11 +43,15 @@ export function useAuth() {
   }, []);
 
   async function checkAdminStatus(userId: string) {
+    // ⚠️ column is `role`, not `app_role` — `app_role` is the enum TYPE
+    // name, not a column on user_roles. Querying it as a column throws a
+    // 400 on every single auth check (see console: repeated "Auth Error"
+    // + failed requests to .../user_roles?...app_role=eq.admin).
     const { data, error } = await supabase
       .from('user_roles')
-      .select('app_role')
+      .select('role')
       .eq('user_id', userId)
-      .eq('app_role', 'admin')
+      .eq('role', 'admin')
       .maybeSingle();
 
     if (error) {
