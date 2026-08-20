@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { compressImage } from '@/lib/compress-image';
 import {
-  Link2, Link2Off, Plus, Upload, Trash2, CheckCircle2, AlertCircle, Rocket, Circle,
+  Link2, Link2Off, Plus, Upload, Trash2, CheckCircle2, AlertCircle, Rocket, Circle, ImageOff,
 } from 'lucide-react';
 import type {
   BusinessCategory, PriceLevel, MerchantHour, MerchantPhoto,
@@ -126,6 +126,10 @@ function MyBusiness() {
   const [creatingBranch, setCreatingBranch] = useState(false);
 
   const [hourRows, setHourRows] = useState<MerchantHour[]>(emptyHours());
+  // Gallery thumbnails whose file 404'd (deleted from storage but the row
+  // survived) — tracked so we can show a clear placeholder + an always-on
+  // delete button instead of the browser's default broken-image icon.
+  const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set());
 
   const hoursQ = useQuery({
     queryKey: ['merchant-hours', m?.id],
@@ -514,10 +518,25 @@ function MyBusiness() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {photosQ.data?.map((p) => (
                   <div key={p.id} className="group relative">
-                    <img src={p.url} alt={p.caption} className="aspect-square w-full rounded object-cover" />
+                    {brokenPhotoIds.has(p.id) ? (
+                      <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-destructive/40 bg-destructive/5 p-2 text-center">
+                        <ImageOff className="h-5 w-5 text-destructive/70" />
+                        <span className="text-[10px] leading-tight text-muted-foreground">Image unavailable</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={p.url}
+                        alt={p.caption}
+                        className="aspect-square w-full rounded object-cover"
+                        onError={() => setBrokenPhotoIds((prev) => new Set(prev).add(p.id))}
+                      />
+                    )}
                     <button
                       onClick={() => removePhoto(p)}
-                      className="absolute right-1 top-1 rounded bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      className={cn(
+                        'absolute right-1 top-1 rounded bg-destructive p-1 text-destructive-foreground transition-opacity',
+                        brokenPhotoIds.has(p.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                      )}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
