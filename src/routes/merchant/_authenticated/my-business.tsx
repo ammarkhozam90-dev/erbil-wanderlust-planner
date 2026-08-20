@@ -394,7 +394,7 @@ function MyBusiness() {
       {/* Sticky header: title, always-on Save, and a quiet progress pill —
           no gating, just a running total that only matters once they open
           the Submit section at the bottom. */}
-      <div className="sticky top-0 z-10 -mx-4 mb-6 space-y-3 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur md:-mx-6 md:px-6">
+      <div className="sticky top-0 z-[1000] -mx-4 mb-6 space-y-3 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur md:-mx-6 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl font-bold">My Business</h2>
