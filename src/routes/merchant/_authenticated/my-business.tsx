@@ -69,9 +69,6 @@ function jumpTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Small red helper line shown under a field only after the merchant has
-// tried to submit and that specific field is still missing. Keeps the page
-// silent and un-intimidating until they actually try to move forward.
 function FieldError({ show, message }: { show: boolean; message: string }) {
   if (!show) return null;
   return (
@@ -127,14 +124,7 @@ function MyBusiness() {
   const [creatingBranch, setCreatingBranch] = useState(false);
 
   const [hourRows, setHourRows] = useState<MerchantHour[]>(emptyHours());
-  // Gallery thumbnails whose file 404'd (deleted from storage but the row
-  // survived) — tracked so we can show a clear placeholder + an always-on
-  // delete button instead of the browser's default broken-image icon.
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set());
-  // Logo/cover go through a crop step before upload (square for the logo,
-  // 16:9 for the cover — see saveAll's comment on why cover stays 16:9
-  // even though desktop displays it wider). Gallery photos skip this and
-  // upload as-is, same as before.
   const [cropTarget, setCropTarget] = useState<{ kind: 'logo' | 'cover'; src: string } | null>(null);
 
   const hoursQ = useQuery({
@@ -171,26 +161,17 @@ function MyBusiness() {
     }
   }, [m, form]);
 
+  // If no business exists, redirect back to the Gateway Dashboard
+  useEffect(() => {
+    if (!isLoading && !m) {
+      navigate({ to: '/merchant/dashboard', replace: true });
+    }
+  }, [isLoading, m, navigate]);
+
   if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
 
   if (!m) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-6 py-20 text-center">
-        <div className="rounded-full bg-gold/10 p-6">
-          <ShieldCheck className="h-12 w-12 text-gold" />
-        </div>
-        <div className="max-w-md space-y-2">
-          <h2 className="font-display text-2xl font-bold">No Business Linked</h2>
-          <p className="text-muted-foreground">
-            You don't have any businesses linked to your account yet. You can claim an existing business or create a new one.
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <Button onClick={() => navigate({ to: '/merchant/claim' })}>Claim a Business</Button>
-          <Button variant="outline" onClick={() => createBusiness('My New Business')}>Create New</Button>
-        </div>
-      </div>
-    );
+    return <div className="text-muted-foreground">Redirecting to setup…</div>;
   }
 
   if (!form) return <div className="text-muted-foreground">Loading form…</div>;
@@ -203,7 +184,7 @@ function MyBusiness() {
     setForm((f: any) => {
       const current: BusinessCategory[] = f.categories ?? [];
       if (current.includes(c)) {
-        if (current.length === 1) return f; // keep at least one category selected
+        if (current.length === 1) return f; 
         return { ...f, categories: current.filter((x) => x !== c) };
       }
       return { ...f, categories: [...current, c] };
@@ -214,9 +195,6 @@ function MyBusiness() {
     setHourRows((rows) => rows.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
   }
 
-  // One button, one save: writes every editable merchants-table field plus
-  // the weekly hours in a single pass, so nothing gets left half-saved
-  // across what used to be five separate pages.
   async function saveAll() {
     setSaving(true);
     const hoursPayload = hourRows.map((r) => ({
@@ -253,7 +231,6 @@ function MyBusiness() {
     qc.invalidateQueries({ queryKey: ['merchant-hours', form.id] });
   }
 
-  // ---- Photos ----
   function extractStoragePath(url: string | null | undefined): string | null {
     if (!url) return null;
     const marker = '/storage/v1/object/public/merchant-media/';
@@ -289,7 +266,6 @@ function MyBusiness() {
     toast.success('Uploaded');
   }
 
-  // Logo/cover picks open the crop dialog instead of uploading right away.
   function pickForCrop(kind: 'logo' | 'cover', file: File) {
     const src = URL.createObjectURL(file);
     setCropTarget({ kind, src });
@@ -305,8 +281,6 @@ function MyBusiness() {
     const { kind, src } = cropTarget;
     URL.revokeObjectURL(src);
     setCropTarget(null);
-    // Wrap the cropped Blob as a File so it drops straight into the
-    // existing compress-and-upload pipeline unchanged.
     const croppedFile = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
     await uploadPhoto(kind, croppedFile);
   }
@@ -318,7 +292,6 @@ function MyBusiness() {
     qc.invalidateQueries({ queryKey: ['merchant-photos', m!.id] });
   }
 
-  // ---- Branches ----
   const linkCandidates = merchants.filter(
     (x) => x.id !== form.id && (x as any).brand_group_id !== (form as any).brand_group_id,
   );
@@ -354,7 +327,7 @@ function MyBusiness() {
       const created = await createBusiness(newBranchName.trim(), form);
       setCurrentMerchantId(form.id);
       await linkAsBranch(form.id, created.id, newBranchLabel || undefined);
-      toast.success('New branch created with your business details copied over — set its location and submit for review.');
+      toast.success('New branch created with your business details copied over — set its location and hours below.');
       setNewBranchName('');
       setNewBranchLabel('');
     } catch (e: any) {
@@ -364,229 +337,215 @@ function MyBusiness() {
     }
   }
 
-  // ---- Readiness (drives the progress pill, the nav dots, inline field
-  // errors, and the Submit action at the bottom — one source of truth) ----
   const checks = [
-    { id: 'name', ok: !!form.name, label: 'Business name', section: 'section-basic' },
-    { id: 'description', ok: !!form.description, label: 'Description', section: 'section-basic' },
-    { id: 'location', ok: form.latitude != null && form.longitude != null, label: 'Location pinned on the map', section: 'section-location' },
-    { id: 'logo', ok: !!m.logo_url, label: 'Logo', section: 'section-photos' },
-    { id: 'cover', ok: !!m.cover_url, label: 'Cover image', section: 'section-photos' },
-    { id: 'features', ok: (form.features ?? []).length > 0, label: 'At least one feature', section: 'section-features' },
-    { id: 'mood_tags', ok: (form.mood_tags ?? []).length > 0, label: 'At least one AI planning mood tag', section: 'section-ai-planning' },
+    { id: 'name', label: 'Business name', ok: !!form.name?.trim(), section: 'section-basic' },
+    { id: 'cat', label: 'Category', ok: !!form.categories?.length, section: 'section-basic' },
+    { id: 'loc', label: 'Map location', ok: form.latitude != null && form.longitude != null, section: 'section-location' },
+    { id: 'phone', label: 'Phone number', ok: !!form.phone?.trim(), section: 'section-basic' },
+    { id: 'logo', label: 'Logo', ok: !!m?.logo_url, section: 'section-photos' },
+    { id: 'cover', label: 'Cover image', ok: !!m?.cover_url, section: 'section-photos' },
   ];
-  const readyCount = checks.filter((c) => c.ok).length;
-  const ready = readyCount === checks.length;
-
-  function invalid(id: string) {
-    return attemptedSubmit && !checks.find((c) => c.id === id)?.ok;
-  }
-
-  const sectionComplete = (sectionId: string) => {
-    const relevant = checks.filter((c) => c.section === sectionId);
-    return relevant.length === 0 || relevant.every((c) => c.ok);
-  };
+  const ready = checks.every((c) => c.ok);
 
   async function handleSubmitForReview() {
     if (!ready) {
       setAttemptedSubmit(true);
-      toast.error('A few things need your attention — highlighted below.');
+      toast.error('Please complete all required fields before submitting.');
       const firstMissing = checks.find((c) => !c.ok);
-      if (firstMissing) requestAnimationFrame(() => jumpTo(firstMissing.section));
+      if (firstMissing) jumpTo(firstMissing.section);
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from('merchants')
-      .update({ status: 'pending', submitted_at: new Date().toISOString(), rejection_reason: null })
-      .eq('id', form.id);
+    const { error } = await supabase.from('merchants').update({ status: 'pending' }).eq('id', form.id);
     setSubmitting(false);
     if (error) return toast.error(error.message);
     toast.success('Submitted for review!');
     qc.invalidateQueries({ queryKey: ['my-merchants', user?.id] });
-    navigate({ to: '/merchant/dashboard' });
   }
 
   return (
-    <div className="mx-auto max-w-4xl pb-16">
-      {/* Sticky header: title, always-on Save, and a quiet progress pill —
-          no gating, just a running total that only matters once they open
-          the Submit section at the bottom. */}
-      <div className="sticky top-0 z-[1000] -mx-4 mb-6 space-y-3 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur md:-mx-6 md:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display text-2xl font-bold">My Business</h2>
-            <p className="text-sm text-muted-foreground">Everything about your listing, in one place.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{readyCount}/{checks.length} ready for review</span>
-            <Button onClick={saveAll} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
-          </div>
-        </div>
-        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+    <div className="mx-auto max-w-4xl pb-20">
+      <nav className="sticky top-14 z-40 -mx-6 mb-8 border-b bg-background/95 px-6 py-3 backdrop-blur overflow-x-auto">
+        <div className="flex gap-6">
           {NAV_SECTIONS.map((s) => (
             <button
               key={s.id}
-              type="button"
               onClick={() => jumpTo(s.id)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:border-gold/50 hover:text-foreground"
+              className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-primary"
             >
-              {sectionComplete(s.id)
-                ? <CheckCircle2 className="h-3 w-3 text-green-600" />
-                : <Circle className="h-3 w-3" />}
               {s.label}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
-      <div className="space-y-6">
+      <div className="space-y-12">
         <Card id="section-basic">
-          <CardHeader><CardTitle>Basic info</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label>Business name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-                className={cn(invalid('name') && 'border-destructive focus-visible:ring-destructive')}
-              />
-              <FieldError show={invalid('name')} message="Give your business a name so customers can find it." />
+          <CardHeader><CardTitle>Basic Info</CardTitle></CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Business name</Label>
+                <Input value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="e.g. Citadel View Restaurant" />
+                <FieldError show={attemptedSubmit && !form.name?.trim()} message="Name is required" />
+              </div>
+              <div className="space-y-2">
+                <Label>Primary Phone</Label>
+                <Input value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+964 …" />
+                <FieldError show={attemptedSubmit && !form.phone?.trim()} message="Phone is required" />
+              </div>
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Categories</Label>
-              <p className="text-xs text-muted-foreground">Select every category that applies — e.g. a hotel with its own restaurant and cafe.</p>
+
+            <div className="space-y-2">
+              <Label>Categories (Select all that apply)</Label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((c) => {
                   const active = (form.categories ?? []).includes(c);
                   return (
                     <button key={c} type="button" onClick={() => toggleCategory(c)}>
-                      <Badge
-                        variant={active ? 'default' : 'outline'}
-                        className={cn('cursor-pointer px-3 py-1.5 text-sm capitalize', active && 'bg-primary')}
-                      >
+                      <Badge variant={active ? 'default' : 'outline'} className={cn('cursor-pointer capitalize', active && 'bg-primary')}>
                         {c}
                       </Badge>
                     </button>
                   );
                 })}
               </div>
+              <FieldError show={attemptedSubmit && !form.categories?.length} message="Select at least one category" />
             </div>
+
             <div className="space-y-2">
-              <Label>City</Label>
-              <Input value={form.city} onChange={(e) => update('city', e.target.value)} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
-              <Textarea
-                rows={4}
-                value={form.description}
-                onChange={(e) => update('description', e.target.value)}
-                className={cn(invalid('description') && 'border-destructive focus-visible:ring-destructive')}
-              />
-              <FieldError show={invalid('description')} message="Add a short description — a sentence or two is enough." />
+              <Textarea value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="Tell travelers what makes your place special…" rows={4} />
             </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={form.phone} onChange={(e) => update('phone', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Contact email</Label>
-              <Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Website</Label>
-              <Input value={form.website} onChange={(e) => update('website', e.target.value)} />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Email (Public)</Label>
+                <Input value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="hello@business.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Website</Label>
+                <Input value={form.website} onChange={(e) => update('website', e.target.value)} placeholder="https://…" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card id="section-location">
-          <CardHeader><CardTitle>Location</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input value={form.address} onChange={(e) => update('address', e.target.value)} />
+          <CardHeader>
+            <CardTitle>Location</CardTitle>
+            <p className="text-sm text-muted-foreground">Drag the pin to your exact location on the map.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Street Address</Label>
+                <Input value={form.address} onChange={(e) => update('address', e.target.value)} placeholder="e.g. 100m Road, near Citadel" />
+              </div>
+              <div className="space-y-2">
+                <Label>City / District</Label>
+                <Input value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="e.g. Ankawa, Erbil" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Click on the map or drag the pin to set the exact location.</p>
-            <div className={cn('overflow-hidden rounded-lg', invalid('location') && 'ring-2 ring-destructive')}>
+            <div className="h-[400px] overflow-hidden rounded-xl border">
               <MapPicker
                 lat={form.latitude}
                 lng={form.longitude}
-                onChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
+                onChange={(lat, lng) => {
+                  update('latitude', lat);
+                  update('longitude', lng);
+                }}
               />
             </div>
-            {form.latitude != null && (
-              <p className="text-xs text-muted-foreground">
-                {form.latitude.toFixed(5)}, {form.longitude?.toFixed(5)}
-              </p>
-            )}
-            <FieldError show={invalid('location')} message="Pin your business on the map so travelers can find it." />
+            <FieldError show={attemptedSubmit && (form.latitude == null || form.longitude == null)} message="Please select your location on the map" />
           </CardContent>
         </Card>
 
         <Card id="section-social">
-          <CardHeader>
-            <CardTitle>Social media</CardTitle>
-            <p className="text-sm text-muted-foreground">Optional — add whichever ones you use.</p>
-          </CardHeader>
+          <CardHeader><CardTitle>Social Media</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {(['instagram', 'facebook', 'tiktok', 'whatsapp'] as const).map((k) => (
-              <div key={k} className="space-y-2">
-                <Label className="capitalize">{k}</Label>
-                <Input value={form[k]} onChange={(e) => update(k, e.target.value)} />
-              </div>
-            ))}
+            <div className="space-y-2">
+              <Label>Instagram Username</Label>
+              <Input value={form.instagram} onChange={(e) => update('instagram', e.target.value)} placeholder="@username" />
+            </div>
+            <div className="space-y-2">
+              <Label>Facebook Page URL</Label>
+              <Input value={form.facebook} onChange={(e) => update('facebook', e.target.value)} placeholder="https://facebook.com/…" />
+            </div>
+            <div className="space-y-2">
+              <Label>Tiktok</Label>
+              <Input value={form.tiktok} onChange={(e) => update('tiktok', e.target.value)} placeholder="@username" />
+            </div>
+            <div className="space-y-2">
+              <Label>Whatsapp</Label>
+              <Input value={form.whatsapp} onChange={(e) => update('whatsapp', e.target.value)} placeholder="+964 …" />
+            </div>
           </CardContent>
         </Card>
 
         <Card id="section-photos">
           <CardHeader><CardTitle>Photos</CardTitle></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className={cn('space-y-3 rounded-lg', invalid('logo') && 'ring-2 ring-destructive p-3')}>
-                <Label>Logo</Label>
-                {m.logo_url && <img src={m.logo_url} alt="logo" className="h-24 w-24 rounded object-cover" />}
+          <CardContent className="space-y-8">
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="space-y-3">
+                <Label className="text-base">Logo</Label>
+                <div className="relative aspect-square w-32 overflow-hidden rounded-xl border bg-muted">
+                  {m?.logo_url ? (
+                    <img src={m.logo_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center"><ImageOff className="h-6 w-6 text-muted-foreground" /></div>
+                  )}
+                </div>
                 <UploadInput label="Upload logo" onPick={(f) => pickForCrop('logo', f)} />
-                <FieldError show={invalid('logo')} message="Add a logo so customers recognize you." />
+                <FieldError show={attemptedSubmit && !m?.logo_url} message="Logo is required" />
               </div>
-              <div className={cn('space-y-3 rounded-lg', invalid('cover') && 'ring-2 ring-destructive p-3')}>
-                <Label>Cover image</Label>
-                {m.cover_url && <img src={m.cover_url} alt="cover" className="h-32 w-full rounded object-cover" />}
+              <div className="space-y-3">
+                <Label className="text-base">Cover image</Label>
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-muted">
+                  {m?.cover_url ? (
+                    <img src={m.cover_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center"><ImageOff className="h-6 w-6 text-muted-foreground" /></div>
+                  )}
+                </div>
                 <UploadInput label="Upload cover" onPick={(f) => pickForCrop('cover', f)} />
-                <FieldError show={invalid('cover')} message="Add a cover photo for your listing's header." />
+                <FieldError show={attemptedSubmit && !m?.cover_url} message="Cover image is required" />
               </div>
             </div>
 
-            <div className="space-y-3 border-t border-border pt-4">
-              <Label>Gallery</Label>
-              <UploadInput label="Add photo" onPick={(f) => { void uploadPhoto('gallery', f); }} />
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {photosQ.data?.map((p) => (
-                  <div key={p.id} className="group relative">
-                    {brokenPhotoIds.has(p.id) ? (
-                      <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-destructive/40 bg-destructive/5 p-2 text-center">
-                        <ImageOff className="h-5 w-5 text-destructive/70" />
-                        <span className="text-[10px] leading-tight text-muted-foreground">Image unavailable</span>
-                      </div>
-                    ) : (
-                      <img
-                        src={p.url}
-                        alt={p.caption}
-                        className="aspect-square w-full rounded object-cover"
-                        onError={() => setBrokenPhotoIds((prev) => new Set(prev).add(p.id))}
-                      />
-                    )}
-                    <button
-                      onClick={() => removePhoto(p)}
-                      className={cn(
-                        'absolute right-1 top-1 rounded bg-destructive p-1 text-destructive-foreground transition-opacity',
-                        brokenPhotoIds.has(p.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+            <div className="space-y-4">
+              <Label className="text-base">Gallery</Label>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {photosQ.data?.map((p) => {
+                  const isBroken = brokenPhotoIds.has(p.id);
+                  return (
+                    <div key={p.id} className="group relative aspect-square overflow-hidden rounded-lg border bg-muted">
+                      {isBroken ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-muted-foreground">
+                          <ImageOff className="h-4 w-4" /> Photo missing
+                        </div>
+                      ) : (
+                        <img
+                          src={p.url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          onError={() => setBrokenPhotoIds((s) => new Set(s).add(p.id))}
+                        />
                       )}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => removePhoto(p)}
+                        className="absolute right-1 top-1 rounded-md bg-destructive p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+                <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/20 transition-colors hover:border-primary/50 hover:bg-accent">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Add photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadPhoto('gallery', e.target.files[0])} />
+                </label>
               </div>
             </div>
           </CardContent>
@@ -594,108 +553,83 @@ function MyBusiness() {
 
         <Card id="section-hours">
           <CardHeader><CardTitle>Opening hours</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {hourRows.map((row, i) => (
-              <div key={i} className="grid grid-cols-1 items-center gap-3 rounded border p-3 md:grid-cols-[110px_1fr_1fr_auto_auto]">
-                <div className="font-medium">{DAYS[row.day_of_week]}</div>
-                <Input
-                  type="time" value={row.open_time ?? '09:00'}
-                  disabled={row.is_closed || row.is_24h}
-                  onChange={(e) => updateHour(i, { open_time: e.target.value })}
-                />
-                <Input
-                  type="time" value={row.close_time ?? '22:00'}
-                  disabled={row.is_closed || row.is_24h}
-                  onChange={(e) => updateHour(i, { close_time: e.target.value })}
-                />
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch checked={row.is_24h} onCheckedChange={(v) => updateHour(i, { is_24h: v, is_closed: false })} />
-                  24h
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch checked={row.is_closed} onCheckedChange={(v) => updateHour(i, { is_closed: v, is_24h: false })} />
-                  Closed
-                </label>
+          <CardContent className="space-y-4">
+            {hourRows.map((h, i) => (
+              <div key={h.day_of_week} className="flex flex-wrap items-center gap-4 border-b border-border/40 pb-4 last:border-0 last:pb-0">
+                <div className="w-24 font-medium">{DAYS[h.day_of_week]}</div>
+                <div className="flex flex-1 items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      className="w-32"
+                      disabled={h.is_closed || h.is_24h}
+                      value={h.open_time || '09:00'}
+                      onChange={(e) => updateHour(i, { open_time: e.target.value })}
+                    />
+                    <span className="text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      className="w-32"
+                      disabled={h.is_closed || h.is_24h}
+                      value={h.close_time || '22:00'}
+                      onChange={(e) => updateHour(i, { close_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={h.is_24h} onCheckedChange={(v) => updateHour(i, { is_24h: v, is_closed: false })} />
+                      24h
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={h.is_closed} onCheckedChange={(v) => updateHour(i, { is_closed: v, is_24h: false })} />
+                      Closed
+                    </label>
+                  </div>
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
         <Card id="section-features">
-          <CardHeader><CardTitle>Features & tags</CardTitle></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Select all that apply</Label>
-              <div className="flex flex-wrap gap-2">
-                {FEATURE_OPTIONS.map((f) => {
-                  const active = (form.features ?? []).includes(f);
-                  return (
-                    <button key={f} type="button" onClick={() => setForm((s: any) => ({
-                      ...s,
-                      features: active ? s.features.filter((x: string) => x !== f) : [...(s.features ?? []), f],
-                    }))}>
-                      <Badge variant={active ? 'default' : 'outline'} className={cn('cursor-pointer px-3 py-1.5 text-sm', active && 'bg-primary')}>
-                        {f}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-              <FieldError show={invalid('features')} message="Pick at least one feature travelers might care about." />
-            </div>
-
-            <div className="space-y-2 border-t border-border pt-4">
-              <Label>Dietary options</Label>
-              <p className="text-xs text-muted-foreground">Optional — so travelers with specific dietary needs can find you.</p>
-              <div className="flex flex-wrap gap-2">
-                {DIETARY_OPTIONS.map((d) => {
-                  const active = (form.dietary_options ?? []).includes(d);
-                  return (
-                    <button key={d} type="button" onClick={() => setForm((s: any) => ({
-                      ...s,
-                      dietary_options: active ? s.dietary_options.filter((x: string) => x !== d) : [...(s.dietary_options ?? []), d],
-                    }))}>
-                      <Badge variant={active ? 'default' : 'outline'} className={cn('cursor-pointer px-3 py-1.5 text-sm', active && 'bg-primary')}>
-                        {d}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <CardHeader><CardTitle>Features &amp; Dietary</CardTitle></CardHeader>
+          <CardContent className="space-y-8">
+            <MultiPick label="Amenities & Features" options={FEATURE_OPTIONS} value={form.features || []} onChange={(v) => update('features', v)} />
+            <MultiPick label="Dietary Options" options={DIETARY_OPTIONS} value={form.dietary_options || []} onChange={(v) => update('dietary_options', v)} />
           </CardContent>
         </Card>
 
         <Card id="section-ai-planning">
           <CardHeader>
-            <CardTitle>AI planning info</CardTitle>
-            <p className="text-sm text-muted-foreground">Helps ErbilGo recommend your place to the right travelers.</p>
+            <CardTitle>AI Planning Info</CardTitle>
+            <p className="text-sm text-muted-foreground">This information helps our AI recommend your business to the right travelers.</p>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <MultiPick
-              label="Mood tags" options={MOODS} value={form.mood_tags ?? []}
-              onChange={(v) => update('mood_tags', v)}
-              error={invalid('mood_tags') ? 'Pick at least one mood tag so the AI planner can match you to travelers.' : undefined}
-            />
-            <MultiPick label="Best visit time" options={TIMES} value={form.best_visit_time ?? []} onChange={(v) => update('best_visit_time', v)} />
-            <MultiPick label="Suitable for" options={SUITS} value={form.suitability ?? []} onChange={(v) => update('suitability', v)} />
-            <MultiPick label="Transportation" options={TRANSPORT} value={form.transportation ?? []} onChange={(v) => update('transportation', v)} />
-
-            <div className="grid gap-4 border-t border-border pt-4 md:grid-cols-2">
+          <CardContent className="space-y-8">
+            <MultiPick label="Best Moods/Vibes" options={MOODS} value={form.mood_tags || []} onChange={(v) => update('mood_tags', v)} />
+            
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Average duration (minutes)</Label>
-                <Input type="number" min={5} value={form.avg_duration_minutes ?? 60}
-                  onChange={(e) => update('avg_duration_minutes', e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Price level</Label>
-                <Select value={form.price_level ?? '$$'} onValueChange={(v) => update('price_level', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {PRICES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
+                <Label>Best time to visit</Label>
+                <Select value={form.best_visit_time} onValueChange={(v) => update('best_visit_time', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select time…" /></SelectTrigger>
+                  <SelectContent>{TIMES.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Price Level</Label>
+                <Select value={form.price_level} onValueChange={(v) => update('price_level', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select level…" /></SelectTrigger>
+                  <SelectContent>{PRICES.map((p) => <SelectItem key={t} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <MultiPick label="Suitable for" options={SUITS} value={form.suitability || []} onChange={(v) => update('suitability', v)} />
+            <MultiPick label="Best transportation" options={TRANSPORT} value={form.transportation || []} onChange={(v) => update('transportation', v)} />
+
+            <div className="space-y-2">
+              <Label>Average visit duration (minutes)</Label>
+              <Input type="number" value={form.avg_duration_minutes} onChange={(e) => update('avg_duration_minutes', e.target.value)} placeholder="e.g. 60" />
             </div>
           </CardContent>
         </Card>
@@ -778,62 +712,20 @@ function MyBusiness() {
           </CardContent>
         </Card>
 
-        <Card id="section-submit" className="border-gold/30">
-          <CardHeader><CardTitle>Submit for review</CardTitle></CardHeader>
-          <CardContent className="space-y-5">
-            {m.status === 'approved' && (
-              <Alert className="border-green-600/30 bg-green-600/5">
-                <Rocket className="h-4 w-4 text-green-600" />
-                <AlertTitle>Your listing is live</AlertTitle>
-                <AlertDescription>Editing your business details, photos, hours, or tags will automatically send it back for review.</AlertDescription>
-              </Alert>
-            )}
-            {m.status === 'pending' && (
-              <Alert>
-                <AlertTitle>Already pending</AlertTitle>
-                <AlertDescription>Your listing is awaiting admin approval.</AlertDescription>
-              </Alert>
-            )}
-            {m.status === 'rejected' && (
-              <Alert variant="destructive">
-                <AlertTitle>Previously rejected</AlertTitle>
-                <AlertDescription>{m.rejection_reason || 'No reason provided. Update your listing and resubmit.'}</AlertDescription>
-              </Alert>
-            )}
-
-            {m.status !== 'approved' && (
-              <>
-                <div className="space-y-2">
-                  {checks.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => jumpTo(c.section)}
-                      className="flex w-full items-center gap-2 text-left text-sm hover:underline"
-                    >
-                      {c.ok
-                        ? <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-                        : <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                      <span className={c.ok ? '' : 'text-muted-foreground'}>{c.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <Button
-                  size="lg"
-                  className="w-full"
-                  disabled={submitting || m.status === 'pending'}
-                  onClick={handleSubmitForReview}
-                >
-                  {submitting ? 'Submitting…' : m.status === 'pending' ? 'Already submitted' : 'Submit for review'}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  {ready ? "You're all set — this goes straight to an admin." : "You can submit any time — we'll point out anything still missing."}
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <div className="sticky bottom-6 z-50 flex items-center justify-between rounded-2xl border border-gold/30 bg-background/80 p-4 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Ready to publish?</span>
+            <span className="text-sm font-medium">Save and submit for review</span>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={saveAll} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Draft'}
+            </Button>
+            <Button className="bg-gold text-background hover:bg-gold/90" onClick={handleSubmitForReview} disabled={submitting || m.status === 'pending'}>
+              {submitting ? 'Submitting…' : 'Submit for Review'}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <ImageCropDialog
