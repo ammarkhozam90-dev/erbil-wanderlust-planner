@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { User, Settings, History, LogOut, LogIn, ShieldCheck } from "lucide-react";
+import { User, Settings, History, LogOut, LogIn, ShieldCheck, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
