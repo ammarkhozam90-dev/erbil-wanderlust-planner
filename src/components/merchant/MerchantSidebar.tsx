@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard,
   Building2,
+  GitBranch,
   Eye,
   Send,
   LogOut,
@@ -45,6 +46,7 @@ const items = [
   { title: 'Dashboard', url: '/merchant/dashboard', icon: LayoutDashboard },
   { title: 'Claim a Business', url: '/merchant/claim', icon: Search },
   { title: 'My Business', url: '/merchant/my-business', icon: Building2 },
+  { title: 'Branches', url: '/merchant/branches', icon: GitBranch },
   { title: 'Preview', url: '/merchant/preview', icon: Eye },
   { title: 'Submit for Review', url: '/merchant/submit', icon: Send },
 ];
