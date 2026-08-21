@@ -133,8 +133,8 @@ function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimSta
 
   async function submitClaim() {
     if (!session?.user) {
-      toast("Sign in as a merchant first to claim this business.");
-      navigate({ to: "/merchant/auth" });
+      toast("Sign in first to claim this business.");
+      navigate({ to: "/auth" });
       return;
     }
     setSubmitting(true);
