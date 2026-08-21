@@ -619,7 +619,7 @@ function MyBusiness() {
                 <Label>Price Level</Label>
                 <Select value={form.price_level} onValueChange={(v) => update('price_level', v)}>
                   <SelectTrigger><SelectValue placeholder="Select level…" /></SelectTrigger>
-                  <SelectContent>{PRICES.map((p) => <SelectItem key={t} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <SelectContent>{PRICES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
