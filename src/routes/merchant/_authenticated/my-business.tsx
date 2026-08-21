@@ -145,7 +145,9 @@ function MyBusiness() {
 
   useEffect(() => {
     if (m && !form) {
-      setForm({ ...m, categories: (m as any).categories?.length ? (m as any).categories : [m.category] });
+      const nextForm = { ...m, categories: (m as any).categories?.length ? (m as any).categories : [m.category] } as any;
+      if (nextForm.name === 'My New Business' || nextForm.name === 'Untitled business') nextForm.name = '';
+      setForm(nextForm);
     }
   }, [m, form]);
 
@@ -315,7 +317,9 @@ function MyBusiness() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-[#090b0b] p-2 md:p-5 lg:p-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.06),transparent_30%)]" />
+      <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-[1.75rem] border border-gold/20 bg-background/95 shadow-2xl shadow-black/50 backdrop-blur-xl md:rounded-[2.25rem]">
       {/* Immersive Header */}
       <header className="flex h-20 shrink-0 items-center justify-between border-b border-gold/10 bg-card/40 px-6 backdrop-blur-xl md:px-12">
         <div className="flex items-center gap-4">
@@ -344,7 +348,7 @@ function MyBusiness() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-20">
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
         <div className="mx-auto max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="mb-10 text-center md:text-left">
             <h1 className="font-display text-3xl font-bold md:text-4xl">{STEPS[activeStep].label}</h1>
@@ -495,7 +499,7 @@ function MyBusiness() {
       </main>
 
       {/* Floating Immersive Footer Navigation */}
-      <footer className="fixed bottom-10 left-1/2 z-50 flex w-full max-w-xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border border-gold/30 bg-card/80 p-3 shadow-2xl backdrop-blur-2xl md:p-4">
+      <footer className="z-20 flex shrink-0 items-center justify-between gap-3 border-t border-gold/15 bg-card/75 px-3 py-3 backdrop-blur-2xl md:gap-6 md:px-6 md:py-4">
         <button onClick={goBack} disabled={activeStep === 0} className={cn('flex h-12 items-center gap-2 rounded-full px-6 text-sm font-bold transition-all active:scale-95', activeStep === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-gold/10 text-gold')}>
           <ChevronLeft className="h-5 w-5" /> Back
         </button>
@@ -517,6 +521,8 @@ function MyBusiness() {
           <div className="w-[100px]" />
         )}
       </footer>
+
+      </div>
 
       <ImageCropDialog
         open={!!cropTarget}
