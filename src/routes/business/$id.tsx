@@ -244,6 +244,60 @@ function BusinessDetail() {
           </div>
         )}
 
+        {/* Ride Hailing / Taxi */}
+        {b.latitude != null && b.longitude != null && (
+          <div className="mt-6 rounded-2xl border border-gold/20 bg-gold/5 p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-lg font-bold">Get there with Taxi</h3>
+                <p className="text-xs text-muted-foreground">Quickest way to reach this destination.</p>
+              </div>
+              <div className="flex -space-x-2">
+                <div className="h-8 w-8 rounded-full border-2 border-background bg-green-600 p-1.5 shadow-sm">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/Careem_logo.svg" alt="Careem" className="h-full w-full invert" />
+                </div>
+                <div className="h-8 w-8 rounded-full border-2 border-background bg-yellow-400 p-1 shadow-sm">
+                  <span className="flex h-full w-full items-center justify-center text-[10px] font-black text-black">B</span>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button 
+                asChild
+                className="h-12 bg-green-600 text-white hover:bg-green-700 shadow-md"
+              >
+                <a 
+                  href={`careem://ride?dropoff_lat=${b.latitude}&dropoff_lng=${b.longitude}&dropoff_name=${encodeURIComponent(b.name)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/Careem_logo.svg" alt="" className="h-5 w-5 invert" />
+                  Order Careem
+                </a>
+              </Button>
+              <Button 
+                asChild
+                variant="outline"
+                className="h-12 border-yellow-400 bg-yellow-400 text-black hover:bg-yellow-500 shadow-md"
+              >
+                <a 
+                  href={`baly://ride?lat=${b.latitude}&lng=${b.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <span className="font-black">Baly</span>
+                  Order Baly
+                </a>
+              </Button>
+            </div>
+            <p className="mt-3 text-center text-[10px] text-muted-foreground">
+              Note: App must be installed on your mobile device.
+            </p>
+          </div>
+        )}
+
         {/* Contact */}
         <div className="mt-6 grid gap-2 text-sm md:grid-cols-2">
           {b.address && (
