@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
-  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History, UploadCloud, UserCheck,
+  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History, UploadCloud, UserCheck, Tag,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -23,6 +23,7 @@ const items = [
   { title: 'Users',              url: '/admin/users',      icon: Users },
   { title: 'Reports',            url: '/admin/reports',    icon: Flag },
   { title: 'Analytics',          url: '/admin/analytics',  icon: BarChart3 },
+  { title: 'Offers',             url: '/admin/offers',     icon: Tag },
   { title: 'Activity Log',       url: '/admin/activity',   icon: ScrollText },
   { title: 'Site Content',       url: '/admin/site-content', icon: Palette },
   { title: 'Settings',           url: '/admin/settings',   icon: SettingsIcon },
