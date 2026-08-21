@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyMerchant } from '@/components/merchant/use-my-merchant';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +18,8 @@ import {
   Sparkles, 
   MapPin, 
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 
 export const Route = createFileRoute('/merchant/_authenticated/dashboard')({
@@ -35,6 +38,24 @@ function Dashboard() {
   const navigate = useNavigate();
   const { data: merchant, isLoading } = useMyMerchant(user?.id);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Live search for unclaimed businesses
+  const liveResults = useQuery({
+    queryKey: ['live-unclaimed-search', searchQuery],
+    enabled: searchQuery.trim().length >= 2,
+    queryFn: async () => {
+      const safe = searchQuery.trim().replace(/[%,]/g, ' ');
+      const { data, error } = await supabase
+        .from('merchants')
+        .select('id, name, address, category, categories')
+        .eq('claim_status', 'unclaimed')
+        .eq('status', 'approved')
+        .or(`name.ilike.%${safe}%,address.ilike.%${safe}%`)
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
 
@@ -68,8 +89,8 @@ function Dashboard() {
         {/* Action Cards */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Path 1: Claim Existing */}
-          <Card className="relative overflow-hidden border-2 transition-all hover:border-gold/50 shadow-luxury group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Card className="relative overflow-visible border-2 transition-all hover:border-gold/50 shadow-luxury group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
               <Search className="h-24 w-24" />
             </div>
             <CardHeader>
@@ -78,27 +99,64 @@ function Dashboard() {
                 Find Your Business
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 relative">
               <p className="text-sm text-muted-foreground">
-                We may have already added your business to help you get started. Search for it now to claim ownership and start editing.
+                We may have already added your business to help you get started. Search for it now to claim ownership.
               </p>
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <Input 
-                  placeholder="Business name or phone..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-background"
-                />
-                <Button type="submit" size="icon" className="shrink-0 bg-gold text-background hover:bg-gold/90">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
+              <div className="relative">
+                <form onSubmit={handleSearch} className="flex gap-2">
+                  <Input 
+                    placeholder="Business name or phone..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-background"
+                  />
+                  <Button type="submit" size="icon" className="shrink-0 bg-gold text-background hover:bg-gold/90">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </form>
+
+                {/* Live Results Dropdown */}
+                {searchQuery.trim().length >= 2 && (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border bg-card p-2 shadow-xl">
+                    {liveResults.isLoading ? (
+                      <div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" /> Searching...
+                      </div>
+                    ) : liveResults.data?.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-muted-foreground">
+                        No matches found. Try creating a new listing.
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {liveResults.data?.map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => navigate({ to: '/merchant/claim', search: { q: r.name } as any })}
+                            className="flex w-full flex-col items-start rounded-md p-2 text-left hover:bg-accent transition-colors"
+                          >
+                            <span className="text-sm font-medium">{r.name}</span>
+                            <span className="text-[10px] text-muted-foreground truncate w-full">{r.address || 'Erbil'}</span>
+                          </button>
+                        ))}
+                        <Link 
+                          to="/merchant/claim" 
+                          search={{ q: searchQuery } as any}
+                          className="block border-t border-border pt-2 mt-1 text-center text-[10px] font-bold text-gold hover:underline"
+                        >
+                          View all results
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
           {/* Path 2: Create New */}
           <Card className="relative overflow-hidden border-2 transition-all hover:border-primary/50 shadow-luxury group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
               <PlusCircle className="h-24 w-24" />
             </div>
             <CardHeader>
