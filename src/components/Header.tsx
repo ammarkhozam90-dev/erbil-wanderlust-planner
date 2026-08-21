@@ -8,7 +8,7 @@ export function Header() {
   const navItems = [
     { to: "/", label: "Plan My Day" },
     { to: "/guide", label: "Living in Erbil" },
-    { to: "/merchant/dashboard", label: "Merchants" },
+
   ];
 
   return (
