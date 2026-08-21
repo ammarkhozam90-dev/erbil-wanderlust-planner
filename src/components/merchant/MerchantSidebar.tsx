@@ -11,6 +11,7 @@ import {
   Plus,
   Store,
   Search,
+  Tag,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const items = [
   { title: 'Claim a Business', url: '/merchant/claim', icon: Search },
   { title: 'My Business', url: '/merchant/my-business', icon: Building2 },
   { title: 'Branches', url: '/merchant/branches', icon: GitBranch },
+  { title: 'Offers', url: '/merchant/offers', icon: Tag },
   { title: 'Preview', url: '/merchant/preview', icon: Eye },
   { title: 'Submit for Review', url: '/merchant/submit', icon: Send },
 ];
