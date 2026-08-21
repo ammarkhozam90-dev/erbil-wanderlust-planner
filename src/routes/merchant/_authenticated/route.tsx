@@ -16,7 +16,7 @@ function MerchantLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: '/merchant/auth' });
+    if (!loading && !user) navigate({ to: '/auth' });
   }, [loading, user, navigate]);
 
   if (loading || !user) {
