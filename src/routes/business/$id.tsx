@@ -1,20 +1,19 @@
-import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { MapView } from "@/components/MapView";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { ReviewsPanel } from "@/components/ReviewsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState } from "@/lib/opening-status";
-import { toast } from "sonner";
 import {
-  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Store, Clock, Loader2, Building2,
+  MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Building2, Star,
 } from "lucide-react";
 
 const businessDetailQuery = (id: string) => queryOptions({
@@ -112,85 +111,6 @@ function BranchSelector({ currentId, currentName, isMain, branches }: { currentI
   );
 }
 
-function ClaimBanner({ businessId, claimStatus, ownerId }: { businessId: string; claimStatus: string | null | undefined; ownerId?: string | null }) {
-  const { session } = useAuth();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [submitting, setSubmitting] = useState(false);
-
-  // If the current user is already the owner, show management access instead of a claim prompt.
-  if (session?.user?.id && ownerId && session.user.id === ownerId) {
-    return (
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-        <div><p className="text-sm font-semibold">Your business listing</p><p className="text-xs text-muted-foreground">Keep your hours, photos, and offers up to date.</p></div>
-        <Button asChild size="sm" className="bg-gold text-background hover:bg-gold/90"><Link to="/merchant/my-business">Manage listing</Link></Button>
-      </div>
-    );
-  }
-  const { data: pendingClaim } = useQuery({
-    queryKey: ["business-pending-claim", businessId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("merchant_claims")
-        .select("*")
-        .eq("merchant_id", businessId)
-        .eq("status", "pending")
-        .maybeSingle();
-      return data;
-    },
-    enabled: claimStatus === "unclaimed",
-  });
-
-  if (claimStatus !== "unclaimed") return null;
-
-  async function submitClaim() {
-    if (!session?.user) {
-      toast("Sign in first to claim this business.");
-      navigate({ to: "/auth" });
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.from("merchant_claims").insert({
-      merchant_id: businessId,
-      requester_id: session.user.id,
-    } as any);
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message.includes("duplicate") || error.message.includes("uq_one_pending")
-        ? "This business already has a pending claim."
-        : error.message);
-      return;
-    }
-    toast.success("Claim submitted — an admin will review it shortly.");
-    qc.invalidateQueries({ queryKey: ["business-pending-claim", businessId] });
-  }
-
-  const isMine = pendingClaim && session?.user?.id === pendingClaim.requester_id;
-
-  return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/40 bg-gold/5 p-4">
-      <div className="flex items-center gap-3">
-        <Store className="h-5 w-5 shrink-0 text-gold" />
-        <div>
-          <p className="text-sm font-semibold">Is this your business?</p>
-          <p className="text-xs text-muted-foreground">
-            {pendingClaim
-              ? (isMine ? "Your claim is awaiting admin review." : "A claim request for this listing is under review.")
-              : "Claim it to manage photos, hours, and more."}
-          </p>
-        </div>
-      </div>
-      {!pendingClaim && (
-        <Button size="sm" onClick={submitClaim} disabled={submitting} className="bg-gold text-background hover:bg-gold/90">
-          {submitting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
-          Claim this business
-        </Button>
-      )}
-      {pendingClaim && <Badge className="bg-yellow-500/10 text-yellow-700"><Clock className="mr-1 h-3 w-3" /> Pending review</Badge>}
-    </div>
-  );
-}
-
 function LiveOffers({ offers }: { offers: any[] }) {
   return (
     <section className="mt-6 space-y-3 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/10 via-gold/5 to-transparent p-5 shadow-sm">
@@ -241,6 +161,7 @@ function BusinessDetail() {
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="capitalize">{b.category}</Badge>
               {b.price_level && <span className="text-sm text-muted-foreground">{b.price_level}</span>}
+              {(b as any).review_count > 0 && <span className="flex items-center gap-1 text-sm text-gold"><Star className="h-3.5 w-3.5 fill-gold" />{Number((b as any).avg_rating ?? 0).toFixed(1)} <span className="text-muted-foreground">({(b as any).review_count})</span></span>}
               {b.avg_duration_minutes && (
                 <span className="text-sm text-muted-foreground">· ~{b.avg_duration_minutes} min visit</span>
               )}
@@ -253,11 +174,11 @@ function BusinessDetail() {
 
         <BranchSelector currentId={b.id} currentName={b.name} isMain={(b as any).is_main_branch} branches={data.branches} />
 
-        <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} ownerId={b.owner_id} />
-
         {data.offers.length > 0 && <LiveOffers offers={data.offers as any[]} />}
 
         {b.description && <p className="mt-4 text-sm text-muted-foreground">{b.description}</p>}
+
+        <ReviewsPanel merchantId={b.id} averageRating={(b as any).avg_rating} reviewCount={(b as any).review_count} />
 
         {/* Tags */}
         {((b.features?.length ?? 0) > 0 || (b.mood_tags?.length ?? 0) > 0 || (b.dietary_options?.length ?? 0) > 0) && (
