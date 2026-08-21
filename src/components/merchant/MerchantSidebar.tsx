@@ -6,7 +6,6 @@ import {
   GitBranch,
   Eye,
   Send,
-  LogOut,
   ChevronsUpDown,
   Plus,
   Store,
@@ -35,7 +34,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { useMerchantContext } from './merchant-context';
 import { toast } from 'sonner';
 
@@ -146,24 +144,6 @@ export function MerchantSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    // التعديل هنا: التوجيه للصفحة الرئيسية لفرض ظهور الهيدر
-                    window.location.href = '/';
-                  }}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
