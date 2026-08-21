@@ -166,17 +166,34 @@ function MyBusiness() {
   });
 
   useEffect(() => {
-    if (!m && user?.email && user?.id && !isLoading) {
-      ensureMerchant(user.id, user.email).then(() =>
-        qc.invalidateQueries({ queryKey: ['my-merchants', user.id] }),
-      );
-    }
     if (m && !form) {
       setForm({ ...m, categories: (m as any).categories?.length ? (m as any).categories : [m.category] });
     }
-  }, [m, user, isLoading, qc, form]);
+  }, [m, form]);
 
-  if (isLoading || !form) return <div className="text-muted-foreground">Loading…</div>;
+  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+
+  if (!m) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 py-20 text-center">
+        <div className="rounded-full bg-gold/10 p-6">
+          <ShieldCheck className="h-12 w-12 text-gold" />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h2 className="font-display text-2xl font-bold">No Business Linked</h2>
+          <p className="text-muted-foreground">
+            You don't have any businesses linked to your account yet. You can claim an existing business or create a new one.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <Button onClick={() => navigate({ to: '/merchant/claim' })}>Claim a Business</Button>
+          <Button variant="outline" onClick={() => createBusiness('My New Business')}>Create New</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!form) return <div className="text-muted-foreground">Loading form…</div>;
 
   function update<K extends string>(key: K, value: unknown) {
     setForm((f: any) => ({ ...f, [key]: value }));
