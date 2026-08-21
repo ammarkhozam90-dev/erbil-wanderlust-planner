@@ -115,6 +115,7 @@ function MyBusiness() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
 
   const [linkTargetId, setLinkTargetId] = useState('');
   const [branchLabel, setBranchLabel] = useState('');
@@ -347,6 +348,28 @@ function MyBusiness() {
   ];
   const ready = checks.every((c) => c.ok);
 
+  function goNext() {
+    if (activeStep === 0 && (!form.name?.trim() || !form.phone?.trim() || !form.categories?.length)) {
+      setAttemptedSubmit(true);
+      toast.error('Complete the business basics before continuing.');
+      return;
+    }
+    if (activeStep === 1 && (form.latitude == null || form.longitude == null)) {
+      setAttemptedSubmit(true);
+      toast.error('Select the business location on the map before continuing.');
+      return;
+    }
+    setAttemptedSubmit(false);
+    setActiveStep((step) => Math.min(step + 1, NAV_SECTIONS.length - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goBack() {
+    setAttemptedSubmit(false);
+    setActiveStep((step) => Math.max(step - 1, 0));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async function handleSubmitForReview() {
     if (!ready) {
       setAttemptedSubmit(true);
@@ -365,22 +388,33 @@ function MyBusiness() {
 
   return (
     <div className="mx-auto max-w-4xl pb-20">
-      <nav className="sticky top-14 z-40 -mx-6 mb-8 border-b bg-background/95 px-6 py-3 backdrop-blur overflow-x-auto">
-        <div className="flex gap-6">
-          {NAV_SECTIONS.map((s) => (
+      <div className="mb-8 rounded-2xl border border-gold/20 bg-card/60 p-4 shadow-luxury">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold">Business setup</p>
+            <h1 className="mt-1 font-display text-2xl font-bold">Build your listing, one step at a time</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Your progress stays on this page. You can save a draft at any time.</p>
+          </div>
+          <span className="shrink-0 text-sm font-semibold text-gold">{activeStep + 1} / {NAV_SECTIONS.length}</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
+          {NAV_SECTIONS.map((section, index) => (
             <button
-              key={s.id}
-              onClick={() => jumpTo(s.id)}
-              className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-primary"
+              key={section.id}
+              type="button"
+              onClick={() => { setAttemptedSubmit(false); setActiveStep(index); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="group text-left"
+              aria-current={activeStep === index ? 'step' : undefined}
             >
-              {s.label}
+              <div className={cn('h-1.5 rounded-full transition-colors', activeStep >= index ? 'bg-gold' : 'bg-border group-hover:bg-gold/50')} />
+              <span className={cn('mt-1 block truncate text-[9px] font-semibold uppercase tracking-wider', activeStep === index ? 'text-gold' : 'text-muted-foreground')}>{section.label}</span>
             </button>
           ))}
         </div>
-      </nav>
+      </div>
 
-      <div className="space-y-12">
-        <Card id="section-basic">
+      <div className="space-y-8">
+        {activeStep === 0 && <Card id="section-basic">
           <CardHeader><CardTitle>Basic Info</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
@@ -429,9 +463,9 @@ function MyBusiness() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-location">
+        {activeStep === 1 && <Card id="section-location">
           <CardHeader>
             <CardTitle>Location</CardTitle>
             <p className="text-sm text-muted-foreground">Drag the pin to your exact location on the map.</p>
@@ -459,9 +493,9 @@ function MyBusiness() {
             </div>
             <FieldError show={attemptedSubmit && (form.latitude == null || form.longitude == null)} message="Please select your location on the map" />
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-social">
+        {activeStep === 2 && <Card id="section-social">
           <CardHeader><CardTitle>Social Media</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -481,9 +515,9 @@ function MyBusiness() {
               <Input value={form.whatsapp} onChange={(e) => update('whatsapp', e.target.value)} placeholder="+964 …" />
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-photos">
+        {activeStep === 3 && <Card id="section-photos">
           <CardHeader><CardTitle>Photos</CardTitle></CardHeader>
           <CardContent className="space-y-8">
             <div className="grid gap-8 md:grid-cols-2">
@@ -549,9 +583,9 @@ function MyBusiness() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-hours">
+        {activeStep === 4 && <Card id="section-hours">
           <CardHeader><CardTitle>Opening hours</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {hourRows.map((h, i) => (
@@ -589,17 +623,17 @@ function MyBusiness() {
               </div>
             ))}
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-features">
+        {activeStep === 5 && <Card id="section-features">
           <CardHeader><CardTitle>Features &amp; Dietary</CardTitle></CardHeader>
           <CardContent className="space-y-8">
             <MultiPick label="Amenities & Features" options={FEATURE_OPTIONS} value={form.features || []} onChange={(v) => update('features', v)} />
             <MultiPick label="Dietary Options" options={DIETARY_OPTIONS} value={form.dietary_options || []} onChange={(v) => update('dietary_options', v)} />
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-ai-planning">
+        {activeStep === 6 && <Card id="section-ai-planning">
           <CardHeader>
             <CardTitle>AI Planning Info</CardTitle>
             <p className="text-sm text-muted-foreground">This information helps our AI recommend your business to the right travelers.</p>
@@ -632,9 +666,9 @@ function MyBusiness() {
               <Input type="number" value={form.avg_duration_minutes} onChange={(e) => update('avg_duration_minutes', e.target.value)} placeholder="e.g. 60" />
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card id="section-branches">
+        {activeStep === 7 && <Card id="section-branches">
           <CardHeader>
             <CardTitle>Branches</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -710,9 +744,17 @@ function MyBusiness() {
               You can also use "Add another business" in the sidebar switcher first, then link it here.
             </p>
           </CardContent>
-        </Card>
+        </Card>}
 
-        <div className="sticky bottom-6 z-50 flex items-center justify-between rounded-2xl border border-gold/30 bg-background/80 p-4 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card/70 p-4">
+          <Button type="button" variant="outline" onClick={goBack} disabled={activeStep === 0}>Back</Button>
+          <span className="text-xs text-muted-foreground">Step {activeStep + 1} of {NAV_SECTIONS.length}</span>
+          {activeStep < NAV_SECTIONS.length - 1 ? (
+            <Button type="button" onClick={goNext} className="bg-gold text-background hover:bg-gold/90">Next</Button>
+          ) : <span className="w-[76px]" />}
+        </div>
+
+        <div className="relative z-10 flex items-center justify-between rounded-2xl border border-gold/30 bg-background/95 p-4 shadow-2xl backdrop-blur-xl">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Ready to publish?</span>
             <span className="text-sm font-medium">Save and submit for review</span>
