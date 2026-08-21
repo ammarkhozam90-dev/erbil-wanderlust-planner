@@ -74,6 +74,13 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/merchant/auth" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-gold" />
+            <span>Share Your Business</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         {isAdmin && (
           <>
             <DropdownMenuItem asChild>
