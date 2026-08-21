@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth, validatePassword, PASSWORD_RULES } from "@/lib/auth";
+import { searchNationalities } from "@/data/nationalities";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -180,6 +181,8 @@ function SignUpForm({
     pwd.ok &&
     passwordsMatch;
 
+  const nationalitySuggestions = searchNationalities(form.nationality, 8);
+  const [nationalityFocused, setNationalityFocused] = useState(false);
   const step2Valid = form.ageRange && form.gender && form.nationality.trim().length >= 2;
 
   async function submit() {
@@ -279,7 +282,45 @@ function SignUpForm({
             </Select>
           </Row>
           <Row label="Nationality">
-            <Input value={form.nationality} onChange={(e) => set("nationality", e.target.value)} placeholder="e.g. Iraqi" />
+            <div className="relative">
+              <Input
+                value={form.nationality}
+                onChange={(e) => set("nationality", e.target.value)}
+                onFocus={() => setNationalityFocused(true)}
+                onBlur={() => window.setTimeout(() => setNationalityFocused(false), 150)}
+                placeholder="Start typing your nationality…"
+                autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={nationalityFocused && form.nationality.trim().length > 0}
+              />
+              {nationalityFocused && form.nationality.trim().length > 0 && nationalitySuggestions.length > 0 && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
+                >
+                  {nationalitySuggestions.map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      role="option"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        set("nationality", option.name);
+                        setNationalityFocused(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                    >
+                      <span className="font-medium">{option.name}</span>
+                      <span className="ml-3 text-[10px] text-muted-foreground">{option.region}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {form.nationality.trim().length > 0 && nationalitySuggestions.length === 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">No matching nationality found. You can continue with your own entry.</p>
+            )}
           </Row>
 
           <p className="text-[11px] text-muted-foreground">
