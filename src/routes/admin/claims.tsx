@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, FileText } from 'lucide-react';
 
 export const Route = createFileRoute('/admin/claims')({ component: ClaimRequests });
 
@@ -72,6 +72,19 @@ function ClaimRequests() {
               <p className="text-xs text-muted-foreground">
                 {c.merchants?.address}{c.merchants?.city ? `, ${c.merchants.city}` : ''} · requested {new Date(c.created_at).toLocaleString()}
               </p>
+              {c.verification_document_url && (
+                <div className="rounded-md border border-border bg-muted/50 p-2">
+                  <a 
+                    href={c.verification_document_url} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center gap-2 text-xs font-medium text-gold hover:underline"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    View Verification Proof
+                  </a>
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={() => approve(c.id)}>Approve</Button>
                 <Dialog>
