@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { MapView } from "@/components/MapView";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -111,12 +112,21 @@ function BranchSelector({ currentId, currentName, isMain, branches }: { currentI
   );
 }
 
-function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimStatus: string | null | undefined }) {
+function ClaimBanner({ businessId, claimStatus, ownerId }: { businessId: string; claimStatus: string | null | undefined; ownerId?: string | null }) {
   const { session } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
 
+  // If the current user is already the owner, show management access instead of a claim prompt.
+  if (session?.user?.id && ownerId && session.user.id === ownerId) {
+    return (
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+        <div><p className="text-sm font-semibold">Your business listing</p><p className="text-xs text-muted-foreground">Keep your hours, photos, and offers up to date.</p></div>
+        <Button asChild size="sm" className="bg-gold text-background hover:bg-gold/90"><Link to="/merchant/my-business">Manage listing</Link></Button>
+      </div>
+    );
+  }
   const { data: pendingClaim } = useQuery({
     queryKey: ["business-pending-claim", businessId],
     queryFn: async () => {
@@ -213,6 +223,7 @@ function BusinessDetail() {
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">No image</div>
           )}
+          <FavoriteButton merchantId={b.id} className="absolute left-3 top-3" />
           {open !== "unknown" && (
             <Badge variant={open === "open" ? "default" : "secondary"} className="absolute right-3 top-3">
               {open === "open" ? "Open now" : "Closed"}
@@ -242,7 +253,7 @@ function BusinessDetail() {
 
         <BranchSelector currentId={b.id} currentName={b.name} isMain={(b as any).is_main_branch} branches={data.branches} />
 
-        <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
+        <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} ownerId={b.owner_id} />
 
         {data.offers.length > 0 && <LiveOffers offers={data.offers as any[]} />}
 
