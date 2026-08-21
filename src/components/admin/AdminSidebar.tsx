@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
-  Flag, BarChart3, ScrollText, Settings as SettingsIcon, LogOut, Map, Palette, History, UploadCloud, UserCheck, Tag,
+  Flag, BarChart3, ScrollText, Settings as SettingsIcon, Map, Palette, History, UploadCloud, UserCheck, Tag, Star,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -24,6 +24,7 @@ const items = [
   { title: 'Reports',            url: '/admin/reports',    icon: Flag },
   { title: 'Analytics',          url: '/admin/analytics',  icon: BarChart3 },
   { title: 'Offers',             url: '/admin/offers',     icon: Tag },
+  { title: 'Ratings & Reviews',   url: '/admin/reviews',    icon: Star },
   { title: 'Activity Log',       url: '/admin/activity',   icon: ScrollText },
   { title: 'Site Content',       url: '/admin/site-content', icon: Palette },
   { title: 'Settings',           url: '/admin/settings',   icon: SettingsIcon },
@@ -87,23 +88,6 @@ export function AdminSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    window.location.href = '/';
-                  }}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
