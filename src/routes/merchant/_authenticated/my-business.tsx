@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { compressImage } from '@/lib/compress-image';
 import { ImageCropDialog } from '@/components/merchant/ImageCropDialog';
 import {
-  Plus, Upload, Trash2, AlertCircle, ImageOff, ChevronLeft, ChevronRight, Save, Send, Sparkles, X,
+  Plus, Upload, Trash2, AlertCircle, ImageOff, ChevronLeft, ChevronRight, Save, Send, Sparkles, X, ShieldCheck, FileText, Loader2,
 } from 'lucide-react';
 import type {
   BusinessCategory, PriceLevel, MerchantHour, MerchantPhoto,
@@ -54,6 +54,7 @@ const STEPS = [
   { id: 'hours', label: 'Schedule', description: 'When are you open for guests?' },
   { id: 'features', label: 'Services', description: 'Amenities and special offerings' },
   { id: 'ai', label: 'AI Intel', description: 'Help our AI recommend you correctly' },
+  { id: 'verification', label: 'Trust', description: 'Optionally help us verify your ownership' },
   { id: 'review', label: 'Finish', description: 'Review and submit your listing' },
 ];
 
@@ -104,7 +105,7 @@ function MyBusiness() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: m, isLoading } = useMyMerchant(user?.id);
-  
+
   const [form, setForm] = useState<any>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -113,6 +114,8 @@ function MyBusiness() {
   const [hourRows, setHourRows] = useState<MerchantHour[]>(emptyHours());
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set());
   const [cropTarget, setCropTarget] = useState<{ kind: 'logo' | 'cover'; src: string } | null>(null);
+  const [verificationFile, setVerificationFile] = useState<File | null>(null);
+  const [uploadingVerification, setUploadingVerification] = useState(false);
 
   const hoursQ = useQuery({
     queryKey: ['merchant-hours', m?.id],
@@ -160,7 +163,7 @@ function MyBusiness() {
     setForm((f: any) => {
       const current: BusinessCategory[] = f.categories ?? [];
       if (current.includes(c)) {
-        if (current.length === 1) return f; 
+        if (current.length === 1) return f;
         return { ...f, categories: current.filter((x) => x !== c) };
       }
       return { ...f, categories: [...current, c] };
@@ -235,6 +238,28 @@ function MyBusiness() {
     toast.success('Uploaded');
   }
 
+  async function uploadVerificationProof(file: File) {
+    setUploadingVerification(true);
+    try {
+      const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
+      const path = `${user!.id}/${m!.id}/ownership-${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from('verification-docs').upload(path, file, { upsert: false });
+      if (uploadError) throw uploadError;
+      const { error: updateError } = await supabase.from('merchants').update({ verification_document_url: path, verification_status: 'pending' } as any).eq('id', m!.id);
+      if (updateError) throw updateError;
+      update('verification_document_url', path);
+      qc.invalidateQueries({ queryKey: ['my-merchants', user?.id] });
+      setVerificationFile(null);
+      toast.success('Ownership proof saved securely.');
+      return true;
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not upload the proof.');
+      return false;
+    } finally {
+      setUploadingVerification(false);
+    }
+  }
+
   const checks = [
     { id: 'name', label: 'Name', ok: !!form.name?.trim(), step: 0 },
     { id: 'cat', label: 'Category', ok: !!form.categories?.length, step: 0 },
@@ -244,7 +269,7 @@ function MyBusiness() {
     { id: 'cover', label: 'Cover', ok: !!m?.cover_url, step: 3 },
   ];
 
-  function goNext() {
+  async function goNext() {
     if (activeStep === 0 && (!form.name?.trim() || !form.phone?.trim() || !form.categories?.length)) {
       setAttemptedSubmit(true);
       return toast.error('Please complete the basic identity before continuing.');
@@ -253,7 +278,11 @@ function MyBusiness() {
       setAttemptedSubmit(true);
       return toast.error('Pin your location on the map first.');
     }
-    void saveAll(true);
+    if (activeStep === 7 && verificationFile) {
+      const uploaded = await uploadVerificationProof(verificationFile);
+      if (!uploaded) return;
+    }
+    await saveAll(true);
     setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -433,6 +462,17 @@ function MyBusiness() {
             )}
 
             {activeStep === 7 && (
+              <div className="space-y-8">
+                <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-gold/10 text-gold"><ShieldCheck className="h-9 w-9" /></div>
+                <div className="text-center"><h2 className="font-display text-3xl font-bold">Build trust, at your pace</h2><p className="mx-auto mt-3 max-w-xl text-muted-foreground">A simple ownership document helps our team verify your listing. This step is optional now — you can skip it and submit, or provide it later if our team requests it.</p></div>
+                <div className="mx-auto max-w-xl rounded-3xl border border-gold/15 bg-card/50 p-6">
+                  {m.verification_document_url ? <div className="flex items-center gap-3 text-left"><ShieldCheck className="h-6 w-6 text-emerald-500" /><div><p className="font-semibold">Proof already uploaded</p><p className="text-xs text-muted-foreground">It is stored privately and visible only to you and ErbilGo admins.</p></div></div> : <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gold/20 px-6 py-10 transition-colors hover:border-gold/50 hover:bg-gold/5"><FileText className="h-8 w-8 text-gold" /><span className="font-semibold">{verificationFile ? verificationFile.name : 'Upload a business licence, utility bill, or official document'}</span><span className="text-xs text-muted-foreground">Image or PDF · optional · securely stored</span><input type="file" accept="image/*,.pdf" className="hidden" onChange={(event) => setVerificationFile(event.target.files?.[0] ?? null)} /></label>}
+                </div>
+                <p className="text-center text-xs text-muted-foreground">You can continue without uploading anything.</p>
+              </div>
+            )}
+
+            {activeStep === 8 && (
               <div className="space-y-8 text-center">
                 <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-gold/10 text-gold shadow-luxury"><Sparkles className="h-10 w-10" /></div>
                 <div><h2 className="font-display text-3xl font-bold">You're almost there!</h2><p className="mt-3 text-muted-foreground">Your listing is ready to be reviewed by the ErbilGo team.</p></div>
@@ -459,7 +499,7 @@ function MyBusiness() {
         <button onClick={goBack} disabled={activeStep === 0} className={cn('flex h-12 items-center gap-2 rounded-full px-6 text-sm font-bold transition-all active:scale-95', activeStep === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-gold/10 text-gold')}>
           <ChevronLeft className="h-5 w-5" /> Back
         </button>
-        
+
         <div className="flex flex-col items-center">
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gold/60">{STEPS[activeStep].id}</span>
           <div className="mt-1 flex gap-1.5">
@@ -489,4 +529,3 @@ function MyBusiness() {
     </div>
   );
 }
-
