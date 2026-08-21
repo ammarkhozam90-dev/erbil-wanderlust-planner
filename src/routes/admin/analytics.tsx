@@ -19,7 +19,7 @@ type TaxiClick = {
   created_at: string;
   business_id: string | null;
 };
-type MerchantName = { id: string; name: string | null };
+type MerchantName = { id: string; name: string | null; brand_group_id: string | null };
 
 function Analytics() {
   const [period, setPeriod] = useState<Period>('day');
@@ -28,7 +28,7 @@ function Analytics() {
     queryKey: ['admin-analytics', 'taxi-clicks'],
     queryFn: async () => {
       const [{ data: merchants }, { data: roles }, { data: clicks, error: clicksError }] = await Promise.all([
-        supabase.from('merchants').select('id,name,category,status,created_at'),
+        supabase.from('merchants').select('id,name,category,status,created_at,brand_group_id'),
         supabase.from('user_roles').select('role,created_at').eq('role', 'merchant'),
         (supabase.from as any)('taxi_clicks')
           .select('provider,created_at,business_id')
@@ -210,10 +210,22 @@ function buildTaxiReport(clicks: TaxiClick[], merchants: MerchantName[], period:
     if (bucket) bucket[click.provider] += 1;
   });
 
-  const merchantNames = new Map(merchants.map((merchant) => [merchant.id, merchant.name || 'Unnamed business']));
-  const topBusinessCount: Record<string, number> = {};
+  const merchantData = new Map(merchants.map((m) => [m.id, m]));
+  
+  // Group by Brand (Group ID) for top destinations report
+  const brandStats: Record<string, { name: string; count: number }> = {};
+  
   visible.forEach((click) => {
-    if (click.business_id) topBusinessCount[click.business_id] = (topBusinessCount[click.business_id] ?? 0) + 1;
+    if (!click.business_id) return;
+    const m = merchantData.get(click.business_id);
+    if (!m) return;
+    
+    // Use brand_group_id if available, otherwise fallback to business_id
+    const groupId = m.brand_group_id || m.id;
+    if (!brandStats[groupId]) {
+      brandStats[groupId] = { name: m.name || 'Unnamed business', count: 0 };
+    }
+    brandStats[groupId].count += 1;
   });
 
   return {
@@ -221,10 +233,10 @@ function buildTaxiReport(clicks: TaxiClick[], merchants: MerchantName[], period:
     careemTotal: visible.filter((click) => click.provider === 'careem').length,
     balyTotal: visible.filter((click) => click.provider === 'baly').length,
     total: visible.length,
-    topBusinesses: Object.entries(topBusinessCount)
-      .sort(([, a], [, b]) => b - a)
+    topBusinesses: Object.entries(brandStats)
+      .sort(([, a], [, b]) => b.count - a.count)
       .slice(0, 5)
-      .map(([id, value]) => ({ id, name: merchantNames.get(id) || 'Unknown business', value })),
+      .map(([id, data]) => ({ id, name: data.name, value: data.count })),
   };
 }
 
