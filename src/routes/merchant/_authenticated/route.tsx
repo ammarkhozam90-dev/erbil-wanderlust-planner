@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { MerchantSidebar } from '@/components/merchant/MerchantSidebar';
@@ -35,23 +35,25 @@ function MerchantLayout() {
 
 function MerchantLayoutContent() {
   const { merchants, isLoading } = useMerchantContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   if (isLoading) {
     return <div className="flex h-[calc(100vh-64px)] items-center justify-center text-muted-foreground">Loading portal…</div>;
   }
 
   const hasBusiness = merchants.length > 0;
-
-  // If no business, render content in a clean full-width container without sidebar
-  if (!hasBusiness) {
+  const isSetupPage = pathname.includes('/merchant/my-business');
+  
+  // Immersive mode: No sidebar for setup page OR if user has no business yet
+  if (isSetupPage || !hasBusiness) {
     return (
-      <main className="mx-auto max-w-[1600px] p-6">
+      <main className="min-h-[calc(100vh-64px)] bg-background">
         <Outlet />
       </main>
     );
   }
 
-  // If has business, render the full sidebar layout
+  // Standard portal mode: Full sidebar layout
   return (
     <div className="relative" style={{ transform: 'translateZ(0)' }}>
       <SidebarProvider>
