@@ -12,15 +12,9 @@ export function useMyMerchant(_userId: string | undefined) {
 }
 
 // Kept for any legacy call sites — resolves to the currently selected
-// business (or creates one) rather than assuming a single global business.
-export async function ensureMerchant(userId: string, email: string): Promise<Merchant> {
+// business rather than assuming a single global business.
+// Note: Auto-creation is disabled to support the Claim Business flow.
+export async function ensureMerchant(userId: string, _email: string): Promise<Merchant | null> {
   const existing = await supabase.from('merchants').select('*').eq('owner_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
-  if (existing.data) return existing.data as Merchant;
-  const { data, error } = await supabase
-    .from('merchants')
-    .insert({ owner_id: userId, email, name: '' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as Merchant;
+  return existing.data as Merchant | null;
 }
