@@ -75,9 +75,9 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/merchant/auth" className="flex items-center gap-2">
+          <Link to="/merchant/dashboard" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-gold" />
-            <span>Share Your Business</span>
+            <span>{isMerchant ? "Merchant Dashboard" : "Share Your Business"}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
