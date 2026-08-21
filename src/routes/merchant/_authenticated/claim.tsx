@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -18,18 +18,33 @@ import {
 import { Search, MapPin, Clock, CheckCircle2, Upload, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+type ClaimSearch = {
+  q?: string;
+};
+
 export const Route = createFileRoute('/merchant/_authenticated/claim')({
+  validateSearch: (search: Record<string, unknown>): ClaimSearch => {
+    return {
+      q: (search.q as string) || '',
+    };
+  },
   component: ClaimBusiness,
 });
 
 function ClaimBusiness() {
+  const { q: urlQ } = Route.useSearch();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(urlQ || '');
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state with URL if it changes
+  useEffect(() => {
+    if (urlQ) setQ(urlQ);
+  }, [urlQ]);
 
   const results = useQuery({
     queryKey: ['unclaimed-search', q],
