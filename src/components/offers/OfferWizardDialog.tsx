@@ -144,8 +144,11 @@ export function OfferWizardDialog({ open, onOpenChange, merchantId, initialOffer
       const { error } = await request;
       if (error) throw error;
       toast.success(isEditing ? 'Offer updated.' : 'Offer created.');
+      // Let Radix finish closing its portal before invalidating the list. Updating
+      // the parent during portal teardown can make React attempt to remove a node
+      // that the dialog has already removed.
       onOpenChange(false);
-      onSaved();
+      window.setTimeout(onSaved, 0);
     } catch (error: any) {
       toast.error(error?.message ?? 'Could not save the offer.');
     } finally {
