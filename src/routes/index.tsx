@@ -4,12 +4,12 @@ import heroImg from "@/assets/hero-citadel.jpg";
 import toursImg from "@/assets/tours-cover.jpg";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { ControlBar } from "@/components/ControlBar";
+import { SmartHeroBar } from "@/components/SmartHeroBar";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { PlannedDay } from "@/components/PlannedDay";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
-import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Shuffle, MapPin, Sun, Clock, Map as MapIcon, ChevronRight, Star, ArrowRight } from "lucide-react";
+import { MapPin, Sun, Clock, Map as MapIcon, ChevronRight, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +32,6 @@ function fluidSize(px: number) {
   const min = Math.max(9, Math.round(px * 0.55));
   return `clamp(${min}px, ${vw}vw, ${px}px)`;
 }
-
-const BTN_PAD: Record<string, string> = { sm: "px-3 py-2 text-xs", md: "px-5 py-3 text-sm", lg: "px-7 py-4 text-base" };
 
 const CATEGORY_SLUGS: Record<string, string> = {
   "Cafés": "cafes",
@@ -95,8 +93,6 @@ const DEFAULT_LAYOUT = {
 };
 
 function Home() {
-  const { generatePlan, surpriseMe } = useStore();
-
   const hero = useQuery({
     queryKey: ["public-site-hero"],
     queryFn: async () => {
@@ -111,6 +107,16 @@ function Home() {
       const { data } = await supabase.from("category_covers").select("*");
       return data ?? [];
     },
+  });
+
+  const featured = useQuery({
+    queryKey: ["featured-businesses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description").eq("status", "approved").order("created_at", { ascending: false }).limit(6);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   const weather = useQuery({
@@ -148,10 +154,10 @@ function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-gold selection:text-background">
       <Header />
-      
+
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-16 lg:space-y-24">
-          
+
           {/* HERO SECTION - LUXURY REDESIGN */}
           <section className="group relative overflow-hidden rounded-[2.5rem] shadow-luxury">
             <img
@@ -183,53 +189,33 @@ function Home() {
                 <div className="mt-6 max-w-xl text-lg opacity-90">
                   {renderRuns(layout.subheadline.runs)}
                 </div>
-                
-                <div className={`mt-10 flex flex-wrap gap-5 ${justifyClass}`}>
-                  {layout.buttons.map((b: any, i: number) => (
-                    <button
-                      key={i}
-                      onClick={i === 0 ? generatePlan : surpriseMe}
-                      className={cn(
-                        "group/btn flex items-center gap-3 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95",
-                        BTN_PAD[b.size ?? "md"],
-                        b.style === "primary"
-                          ? "bg-gold text-background shadow-glow hover:shadow-luxury"
-                          : "border border-white/20 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-gold/50 text-white"
-                      )}
-                    >
-                      {b.style === "primary" ? <Sparkles className="h-5 w-5" /> : <Shuffle className="h-5 w-5" />}
-                      {b.label}
-                      <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover/btn:opacity-100 group-hover/btn:translate-x-0" />
-                    </button>
-                  ))}
-                </div>
+
+                <div className="mt-10 w-full max-w-5xl"><SmartHeroBar /></div>
               </div>
             </div>
           </section>
 
-          <ControlBar />
-
           {/* CURATED JOURNEYS - LUXURY CARDS */}
           <section className="space-y-10">
-            <SectionHeader 
-              title="Curated Journeys" 
-              subtitle="Handpicked experiences designed by locals to tell the true story of Erbil." 
+            <SectionHeader
+              title="Curated Journeys"
+              subtitle="Handpicked experiences designed by locals to tell the true story of Erbil."
             />
             <div className="grid gap-8 md:grid-cols-3">
               {ITINERARIES.map((it) => (
-                <Link 
-                  key={it.id} 
-                  to="/" 
+                <Link
+                  key={it.id}
+                  to="/"
                   className="group relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-gold/10 bg-card shadow-luxury transition-all hover:-translate-y-3 block"
                 >
-                  <img 
-                    src={it.image} 
-                    alt={it.title} 
-                    className="h-full w-full object-cover transition duration-1000 group-hover:scale-110" 
+                  <img
+                    src={it.image}
+                    alt={it.title}
+                    className="h-full w-full object-cover transition duration-1000 group-hover:scale-110"
                   />
                   <div className={cn("absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-90 transition-opacity group-hover:opacity-100", it.color)} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                  
+
                   <div className="absolute inset-x-0 bottom-0 p-8 space-y-4">
                     <div className="flex items-center gap-3">
                       <Badge className="bg-gold/20 text-gold border border-gold/30 backdrop-blur-md px-3 py-1 font-bold">
@@ -256,6 +242,12 @@ function Home() {
             </div>
           </section>
 
+          {/* FEATURED BUSINESSES */}
+          {featured.data && featured.data.length > 0 && <section className="space-y-8">
+            <SectionHeader title="Featured for you" subtitle="A considered selection of places to add to your Erbil day." />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.map((business: any) => <BusinessCard key={business.id} business={business} />)}</div>
+          </section>}
+
           {/* SIGNATURE EXPERIENCES - NEW SECTION */}
           <section className="rounded-[3rem] bg-gold/5 border border-gold/10 p-8 md:p-16">
             <div className="flex flex-col lg:flex-row items-center gap-12">
@@ -280,9 +272,9 @@ function Home() {
               </div>
               <div className="flex-1 relative">
                 <div className="absolute -inset-4 bg-gold/10 blur-3xl rounded-full" />
-                <img 
-                  src="https://images.unsplash.com/photo-1590073844006-33379778ae09?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Luxury Dining" 
+                <img
+                  src="https://images.unsplash.com/photo-1590073844006-33379778ae09?auto=format&fit=crop&q=80&w=1000"
+                  alt="Luxury Dining"
                   className="relative rounded-[2rem] shadow-luxury border border-gold/20 aspect-video object-cover"
                 />
               </div>
@@ -291,16 +283,16 @@ function Home() {
 
           {/* EXPLORE BY INTEREST - REFINED CARDS */}
           <section className="space-y-10">
-            <SectionHeader 
-              title="Explore by Interest" 
-              subtitle="Every traveler is unique. Find your perfect corner of Erbil." 
+            <SectionHeader
+              title="Explore by Interest"
+              subtitle="Every traveler is unique. Find your perfect corner of Erbil."
             />
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {CATEGORIES.map((c) => (
-                <Link 
-                  key={c.name} 
-                  to="/category/$slug" 
-                  params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }} 
+                <Link
+                  key={c.name}
+                  to="/category/$slug"
+                  params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }}
                   className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[2rem] border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block"
                 >
                   <img src={coverFor(c.name)} alt={c.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
@@ -328,6 +320,10 @@ function Home() {
       </div>
     </div>
   );
+}
+
+function BusinessCard({ business }: { business: any }) {
+  return <Link to="/business/$id" params={{ id: business.id }} className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-gold/30 hover:shadow-luxury"><div className="relative aspect-[16/10] overflow-hidden bg-muted">{business.cover_url ? <img src={business.cover_url} alt={business.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-muted-foreground">ErbilGo</div>}<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" /><FavoriteButton merchantId={business.id} className="absolute right-3 top-3" /><div className="absolute bottom-3 left-4 right-4"><h3 className="font-display text-xl font-bold text-white">{business.name}</h3><p className="mt-1 text-xs capitalize text-white/75">{business.category}{business.city ? ` · ${business.city}` : ''}</p></div></div><div className="p-4"><div className="flex items-center justify-between gap-3"><Badge variant="outline" className="capitalize">{business.category}</Badge>{business.price_level && <span className="text-xs text-muted-foreground">{business.price_level}</span>}</div>{business.address && <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{business.address}</p>}</div></Link>;
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
