@@ -112,9 +112,9 @@ function Home() {
   const featured = useQuery({
     queryKey: ["featured-businesses"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description").eq("status", "approved").order("created_at", { ascending: false }).limit(6);
+      const { data, error } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description,is_sponsored").eq("status", "approved").order("is_sponsored", { ascending: false }).order("created_at", { ascending: false }).limit(12);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((business: any) => business.is_sponsored);
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -130,8 +130,8 @@ function Home() {
   });
 
   const layout: any = hero.data?.layout || DEFAULT_LAYOUT;
-  const alignClass = layout.align === "center" ? "items-center text-center" : layout.align === "right" ? "items-end text-right" : "items-start text-left";
-  const justifyClass = layout.align === "center" ? "justify-center" : layout.align === "right" ? "justify-end" : "justify-start";
+  const alignClass = "items-center text-center";
+  const justifyClass = "justify-center";
 
   function coverFor(categoryName: string) {
     const custom = covers.data?.find((c) => c.category === categoryName)?.image_url;
@@ -181,16 +181,16 @@ function Home() {
             </div>
 
             <div className={`absolute inset-0 flex flex-col justify-center gap-6 p-8 lg:p-20 ${alignClass}`}>
-              <div className="max-w-3xl animate-in fade-in slide-in-from-left-8 duration-1000">
+              <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
                 <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">{renderRuns(layout.eyebrow.runs)}</p>
                 <h1 className="font-display text-4xl leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
                   {renderRuns(layout.headline.runs)}
                 </h1>
-                <div className="mt-6 max-w-xl text-lg opacity-90">
+                <div className="mx-auto mt-6 max-w-xl text-lg opacity-90">
                   {renderRuns(layout.subheadline.runs)}
                 </div>
 
-                <div className="mt-10 w-full max-w-5xl"><SmartHeroBar /></div>
+                <div className="mx-auto mt-10 w-full max-w-5xl"><SmartHeroBar /></div>
               </div>
             </div>
           </section>
@@ -244,8 +244,8 @@ function Home() {
 
           {/* FEATURED BUSINESSES */}
           {featured.data && featured.data.length > 0 && <section className="space-y-8">
-            <SectionHeader title="Featured for you" subtitle="A considered selection of places to add to your Erbil day." />
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.map((business: any) => <BusinessCard key={business.id} business={business} />)}</div>
+            <SectionHeader title="Sponsored for you" subtitle="Partner places selected for visibility by ErbilGo — always clearly labeled." />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.map((business: any) => <BusinessCard key={business.id} business={business} sponsored />)}</div>
           </section>}
 
           {/* SIGNATURE EXPERIENCES - NEW SECTION */}
@@ -322,8 +322,8 @@ function Home() {
   );
 }
 
-function BusinessCard({ business }: { business: any }) {
-  return <Link to="/business/$id" params={{ id: business.id }} className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-gold/30 hover:shadow-luxury"><div className="relative aspect-[16/10] overflow-hidden bg-muted">{business.cover_url ? <img src={business.cover_url} alt={business.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-muted-foreground">ErbilGo</div>}<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" /><FavoriteButton merchantId={business.id} className="absolute right-3 top-3" /><div className="absolute bottom-3 left-4 right-4"><h3 className="font-display text-xl font-bold text-white">{business.name}</h3><p className="mt-1 text-xs capitalize text-white/75">{business.category}{business.city ? ` · ${business.city}` : ''}</p></div></div><div className="p-4"><div className="flex items-center justify-between gap-3"><Badge variant="outline" className="capitalize">{business.category}</Badge>{business.price_level && <span className="text-xs text-muted-foreground">{business.price_level}</span>}</div>{business.address && <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{business.address}</p>}</div></Link>;
+function BusinessCard({ business, sponsored = false }: { business: any; sponsored?: boolean }) {
+  return <Link to="/business/$id" params={{ id: business.id }} className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-gold/30 hover:shadow-luxury"><div className="relative aspect-[16/10] overflow-hidden bg-muted">{business.cover_url ? <img src={business.cover_url} alt={business.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-muted-foreground">ErbilGo</div>}<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />{sponsored && <Badge className="absolute left-3 top-3 border border-white/20 bg-black/35 text-white backdrop-blur-md">Sponsored</Badge>}<FavoriteButton merchantId={business.id} className="absolute right-3 top-3" /><div className="absolute bottom-3 left-4 right-4"><h3 className="font-display text-xl font-bold text-white">{business.name}</h3><p className="mt-1 text-xs capitalize text-white/75">{business.category}{business.city ? ` · ${business.city}` : ''}</p></div></div><div className="p-4"><div className="flex items-center justify-between gap-3"><Badge variant="outline" className="capitalize">{business.category}</Badge>{business.price_level && <span className="text-xs text-muted-foreground">{business.price_level}</span>}</div>{business.address && <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{business.address}</p>}</div></Link>;
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
