@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyMerchant } from '@/components/merchant/use-my-merchant';
+import { useMerchantContext } from '@/components/merchant/merchant-context';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/merchant/_authenticated/dashboard')({
   component: Dashboard,
@@ -37,7 +39,9 @@ function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: merchant, isLoading } = useMyMerchant(user?.id);
+  const { createBusiness } = useMerchantContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [creating, setCreating] = useState(false);
 
   // Live search for unclaimed businesses
   const liveResults = useQuery({
@@ -65,6 +69,19 @@ function Dashboard() {
       navigate({ to: '/merchant/claim', search: { q: searchQuery.trim() } as any });
     } else {
       navigate({ to: '/merchant/claim' });
+    }
+  };
+
+  const handleCreateNew = async () => {
+    setCreating(true);
+    try {
+      await createBusiness('My New Business');
+      toast.success('Draft listing created! Let\'s fill in the details.');
+      navigate({ to: '/merchant/my-business' });
+    } catch (err: any) {
+      toast.error(err.message ?? 'Could not create listing');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -169,10 +186,14 @@ function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Can't find your business in our directory? No problem. Create a brand new listing from scratch and reach your customers today.
               </p>
-              <Button asChild className="w-full" variant="outline">
-                <Link to="/merchant/my-business" className="flex items-center justify-center gap-2">
-                  Start New Listing <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button 
+                onClick={handleCreateNew} 
+                className="w-full" 
+                variant="outline"
+                disabled={creating}
+              >
+                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Start New Listing <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
