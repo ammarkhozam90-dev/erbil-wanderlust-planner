@@ -14,6 +14,8 @@ export const Route = createFileRoute('/merchant/_authenticated')({
 function MerchantLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isSetupPage = pathname.includes('/merchant/my-business');
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: '/auth' });
@@ -21,6 +23,16 @@ function MerchantLayout() {
 
   if (loading || !user) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>;
+  }
+
+  // The setup wizard owns the entire viewport. Do not render the portal header
+  // first, otherwise the old shell can flash for one frame during navigation.
+  if (isSetupPage) {
+    return (
+      <MerchantProvider userId={user.id} email={user.email}>
+        <MerchantLayoutContent />
+      </MerchantProvider>
+    );
   }
 
   return (
@@ -43,7 +55,7 @@ function MerchantLayoutContent() {
 
   const hasBusiness = merchants.length > 0;
   const isSetupPage = pathname.includes('/merchant/my-business');
-  
+
   // Immersive mode: No sidebar for setup page OR if user has no business yet
   if (isSetupPage || !hasBusiness) {
     return (
