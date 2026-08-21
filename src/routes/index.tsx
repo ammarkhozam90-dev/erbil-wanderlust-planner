@@ -8,7 +8,8 @@ import { PlannedDay } from "@/components/PlannedDay";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Shuffle, MapPin, Sun } from "lucide-react";
+import { Sparkles, Shuffle, MapPin, Sun, Clock, Map as MapIcon, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,8 +25,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-// Responsive scaling: text is designed "at 1920px wide" and clamp() shrinks
-// it smoothly on narrow screens instead of a fixed px value overflowing.
 function fluidSize(px: number) {
   const vw = (px / 19.2).toFixed(2);
   const min = Math.max(9, Math.round(px * 0.55));
@@ -34,10 +33,6 @@ function fluidSize(px: number) {
 
 const BTN_PAD: Record<string, string> = { sm: "px-3 py-2 text-xs", md: "px-5 py-3 text-sm", lg: "px-7 py-4 text-base" };
 
-// Explicit mapping to the real category slugs (src/lib/categories.ts) —
-// a naive lowercase+hyphen conversion of the display name doesn't work
-// here because some names have accents (Cafés) or "&" (Parks & Nature),
-// which don't match the actual slugs at all.
 const CATEGORY_SLUGS: Record<string, string> = {
   "Cafés": "cafes",
   "Restaurants": "restaurants",
@@ -48,6 +43,36 @@ const CATEGORY_SLUGS: Record<string, string> = {
   "Art & Culture": "art-culture",
   "Shopping": "shopping",
 };
+
+const ITINERARIES = [
+  {
+    id: "history",
+    title: "Erbil in 5000 Years",
+    story: "A journey through time from the oldest settlement to Islamic heritage.",
+    duration: "4-6 Hours",
+    stops: 5,
+    image: "https://images.unsplash.com/photo-1628153400283-49141042780e?auto=format&fit=crop&q=80&w=800",
+    color: "from-amber-900/80",
+  },
+  {
+    id: "nature",
+    title: "Kings & Nature Path",
+    story: "Escape the city to majestic mountains and fresh waterfalls.",
+    duration: "8-10 Hours",
+    stops: 4,
+    image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&q=80&w=800",
+    color: "from-emerald-900/80",
+  },
+  {
+    id: "vibrant",
+    title: "Vibrant Erbil",
+    story: "Discover the modern, luxury side where tradition meets modernity.",
+    duration: "5-7 Hours",
+    stops: 4,
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&q=80&w=800",
+    color: "from-blue-900/80",
+  },
+];
 
 const DEFAULT_LAYOUT = {
   align: "left",
@@ -93,7 +118,7 @@ function Home() {
       const json = await res.json();
       return json.current_weather as { temperature: number } | undefined;
     },
-    staleTime: 1000 * 60 * 15, // refresh at most every 15 minutes
+    staleTime: 1000 * 60 * 15,
   });
 
   const layout: any = hero.data?.layout || DEFAULT_LAYOUT;
@@ -122,43 +147,47 @@ function Home() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
-        <div className="space-y-8">
+        <div className="space-y-12">
           
-          {/* HERO SECTION — normal responsive flex flow, reflows correctly on every screen size */}
-          <section className="relative overflow-hidden rounded-3xl shadow-luxury">
+          {/* HERO SECTION */}
+          <section className="relative overflow-hidden rounded-[2rem] shadow-luxury">
             <img
               src={heroImg}
               alt="Erbil Citadel at sunset"
-              className="aspect-[600/400] w-full object-cover object-center md:aspect-[1920/575]"
+              className="aspect-[600/400] w-full object-cover object-center md:aspect-[1920/650]"
             />
             <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-            {/* طقس وموقع — ظاهر على كل الشاشات، أصغر شوي عالموبايل */}
-            <div className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-white backdrop-blur-md sm:right-6 sm:top-6 sm:gap-4 sm:px-4 sm:py-2">
-               <div className="flex items-center gap-1 text-xs sm:text-sm"><MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Erbil</div>
-               <div className="flex items-center gap-1 text-xs sm:text-sm">
-                 <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <div className="absolute right-4 top-4 z-10 flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-white backdrop-blur-xl sm:right-8 sm:top-8">
+               <div className="flex items-center gap-1.5 text-xs font-medium sm:text-sm">
+                 <MapPin className="h-4 w-4 text-gold" /> Erbil
+               </div>
+               <div className="h-4 w-px bg-white/20" />
+               <div className="flex items-center gap-1.5 text-xs font-medium sm:text-sm">
+                 <Sun className="h-4 w-4 text-yellow-400" />
                  {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
                </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col justify-center gap-2 p-6 lg:p-10 ${alignClass}`}>
-              <div className="max-w-2xl">
-                <p className="mb-1 font-sans text-xs font-semibold uppercase tracking-[0.3em]">{renderRuns(layout.eyebrow.runs)}</p>
-                <h1 className="font-display leading-[1.05]">{renderRuns(layout.headline.runs)}</h1>
-                <p className="mt-3 max-w-lg font-sans">{renderRuns(layout.subheadline.runs)}</p>
-                <div className={`mt-4 flex flex-wrap gap-3 ${justifyClass}`}>
+            <div className={`absolute inset-0 flex flex-col justify-center gap-4 p-8 lg:p-16 ${alignClass}`}>
+              <div className="max-w-3xl">
+                <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.4em]">{renderRuns(layout.eyebrow.runs)}</p>
+                <h1 className="font-display leading-[1.05] tracking-tight">{renderRuns(layout.headline.runs)}</h1>
+                <div className="mt-4 max-w-xl">
+                  {renderRuns(layout.subheadline.runs)}
+                </div>
+                <div className={`mt-8 flex flex-wrap gap-4 ${justifyClass}`}>
                   {layout.buttons.map((b: any, i: number) => (
                     <button
                       key={i}
                       onClick={i === 0 ? generatePlan : surpriseMe}
-                      className={`flex items-center gap-2 rounded-xl font-semibold transition hover:opacity-90 ${BTN_PAD[b.size ?? "md"]} ${
+                      className={`flex items-center gap-2 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 ${BTN_PAD[b.size ?? "md"]} ${
                         b.style === "primary"
                           ? "bg-primary text-primary-foreground shadow-glow"
-                          : "border border-foreground/30 bg-background/30 backdrop-blur hover:border-gold hover:text-gold"
+                          : "border border-white/20 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-gold/50"
                       }`}
                     >
-                      {b.style === "primary" ? <Sparkles className="h-4 w-4" /> : <Shuffle className="h-4 w-4" />}
+                      {b.style === "primary" ? <Sparkles className="h-5 w-5" /> : <Shuffle className="h-5 w-5" />}
                       {b.label}
                     </button>
                   ))}
@@ -169,26 +198,80 @@ function Home() {
 
           <ControlBar />
 
-          <section>
-            <SectionHeader title="Explore Erbil" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {/* THEMATIC ITINERARIES SECTION */}
+          <section className="space-y-6">
+            <SectionHeader 
+              title="Curated Journeys" 
+              subtitle="Handpicked experiences designed to tell a story." 
+            />
+            <div className="grid gap-6 md:grid-cols-3">
+              {ITINERARIES.map((it) => (
+                <Link 
+                  key={it.id} 
+                  to="/" 
+                  className="group relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/50 shadow-luxury transition-all hover:-translate-y-2 block"
+                >
+                  <img 
+                    src={it.image} 
+                    alt={it.title} 
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110" 
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${it.color} via-transparent to-transparent opacity-80`} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                  
+                  <div className="absolute inset-x-0 bottom-0 p-8 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-gold text-background hover:bg-gold border-none font-bold">
+                        <MapIcon className="mr-1 h-3 w-3" /> {it.stops} Stops
+                      </Badge>
+                      <span className="flex items-center gap-1 text-xs font-medium text-white/80">
+                        <Clock className="h-3 w-3" /> {it.duration}
+                      </span>
+                    </div>
+                    <h3 className="font-display text-2xl font-bold text-white group-hover:text-gold transition-colors">
+                      {it.title}
+                    </h3>
+                    <p className="text-sm text-white/70 line-clamp-2">
+                      {it.story}
+                    </p>
+                    <div className="pt-2">
+                      <div className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-gold group-hover:gap-2 transition-all">
+                        Explore Path <ChevronRight className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* CATEGORIES SECTION */}
+          <section className="space-y-6">
+            <SectionHeader 
+              title="Explore by Interest" 
+              subtitle="Find exactly what you're looking for in the city." 
+            />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {CATEGORIES.map((c) => (
-                <Link key={c.name} to="/category/$slug" params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }} className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury block">
+                <Link 
+                  key={c.name} 
+                  to="/category/$slug" 
+                  params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }} 
+                  className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block"
+                >
                   <img src={coverFor(c.name)} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-3">
-                    <p className="font-display text-lg font-bold leading-tight">{c.name}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <p className="font-display text-lg font-bold leading-tight text-white group-hover:text-gold transition-colors">{c.name}</p>
                   </div>
                 </Link>
               ))}
 
-              {/* Organized Tours — separate feature (tour organizer portal), not a normal
-                  category, so it links straight to /tours instead of /category/$slug. */}
-              <Link to="/tours" className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-luxury block">
+              <Link to="/tours" className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block">
                 <img src={covers.data?.find((c) => c.category === "Organized Tours")?.image_url || toursImg} alt="Organized Tours" className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <p className="font-display text-lg font-bold leading-tight">Organized Tours</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <p className="font-display text-lg font-bold leading-tight text-white group-hover:text-gold transition-colors">Organized Tours</p>
                 </div>
               </Link>
             </div>
@@ -201,10 +284,11 @@ function Home() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="font-display text-2xl font-bold">{title}</h2>
+    <div className="flex flex-col gap-1">
+      <h2 className="font-display text-3xl font-bold tracking-tight">{title}</h2>
+      {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
     </div>
   );
 }
