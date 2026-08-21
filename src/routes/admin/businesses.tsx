@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { logActivity } from '@/components/admin/log-activity';
-import { Pencil } from 'lucide-react';
+import { Pencil, Star } from 'lucide-react';
 import type { Merchant } from '@/integrations/supabase/types-local';
 
 export const Route = createFileRoute('/admin/businesses')({ component: Businesses });
@@ -50,6 +50,16 @@ function Businesses() {
     await logActivity({ action: 'business.approved', target_type: 'merchant', target_id: m.id, target_label: m.name });
     toast.success('Approved'); qc.invalidateQueries({ queryKey: ['admin-businesses'] });
   }
+  async function setSponsored(m: Merchant) {
+    const nextValue = !(m as any).is_sponsored;
+    const { error } = await supabase.from('merchants').update({ is_sponsored: nextValue } as any).eq('id', m.id);
+    if (error) return toast.error(error.message);
+    await logActivity({ action: nextValue ? 'business.sponsored' : 'business.unsponsored', target_type: 'merchant', target_id: m.id, target_label: m.name });
+    toast.success(nextValue ? 'Added to Sponsored for you.' : 'Removed from Sponsored for you.');
+    qc.invalidateQueries({ queryKey: ['admin-businesses'] });
+    qc.invalidateQueries({ queryKey: ['featured-businesses'] });
+  }
+
   async function reject(m: Merchant) {
     const { data: u } = await supabase.auth.getUser();
     await supabase.from('merchants').update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: u.user?.id, rejection_reason: 'Rejected from businesses table' }).eq('id', m.id);
@@ -128,6 +138,7 @@ function Businesses() {
                     <Button asChild size="sm" variant="outline"><Link to="/admin/business-edit/$id" params={{ id: m.id }}><Pencil className="mr-1 h-3.5 w-3.5" /> Edit</Link></Button>
                     <Button size="sm" variant="outline" onClick={() => approve(m)}>Approve</Button>
                     <Button size="sm" variant="outline" onClick={() => reject(m)}>Reject</Button>
+                    <Button size="sm" variant={(m as any).is_sponsored ? 'default' : 'outline'} onClick={() => setSponsored(m)} title="Toggle paid placement"><Star className="mr-1 h-3.5 w-3.5" />{(m as any).is_sponsored ? 'Sponsored' : 'Feature'}</Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild><Button size="sm" variant="destructive">Delete</Button></AlertDialogTrigger>
                       <AlertDialogContent>
