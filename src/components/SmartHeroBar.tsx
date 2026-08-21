@@ -21,10 +21,10 @@ export function SmartHeroBar() {
     queryKey: ['hero-business-search', term.trim().toLowerCase()],
     enabled: term.trim().length >= 2,
     queryFn: async () => {
-      const value = term.trim();
-      const { data, error } = await supabase.from('merchants').select('id,name,category,city').eq('status', 'approved').or(`name.ilike.%${value}%,city.ilike.%${value}%,category.ilike.%${value}%`).order('name').limit(6);
+      const value = term.trim().toLocaleLowerCase();
+      const { data, error } = await supabase.from('merchants').select('id,name,category,city,phone,address').eq('status', 'approved').order('name').limit(100);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((place: any) => [place.name, place.category, place.city, place.phone, place.address].filter(Boolean).some((field) => String(field).toLocaleLowerCase().includes(value))).slice(0, 6);
     },
     staleTime: 1000 * 30,
   });
