@@ -1,10 +1,23 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyMerchant } from '@/components/merchant/use-my-merchant';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertCircle, FileEdit } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle, 
+  FileEdit, 
+  Search, 
+  PlusCircle, 
+  Sparkles, 
+  MapPin, 
+  ShieldCheck,
+  ArrowRight
+} from 'lucide-react';
 
 export const Route = createFileRoute('/merchant/_authenticated/dashboard')({
   component: Dashboard,
@@ -19,11 +32,124 @@ const statusMeta = {
 
 function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: merchant, isLoading } = useMyMerchant(user?.id);
+  const [searchQuery, setSearchQuery] = useState('');
 
   if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
 
-  const status = merchant?.status ?? 'draft';
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate({ to: '/merchant/claim', search: { q: searchQuery.trim() } as any });
+    } else {
+      navigate({ to: '/merchant/claim' });
+    }
+  };
+
+  // --- Landing Page for Users with No Business ---
+  if (!merchant) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-12 py-8">
+        {/* Hero Section */}
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-gold/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-gold">
+            <Sparkles className="h-3.5 w-3.5" />
+            Grow Your Business with ErbilGo
+          </div>
+          <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
+            Put Your Business on Erbil's <span className="text-gold">Tourism Map</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+            Connect with thousands of travelers planning their trips to Erbil. Whether you own a restaurant, hotel, or a hidden gem, ErbilGo helps you reach the right audience.
+          </p>
+        </div>
+
+        {/* Action Cards */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Path 1: Claim Existing */}
+          <Card className="relative overflow-hidden border-2 transition-all hover:border-gold/50 shadow-luxury group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Search className="h-24 w-24" />
+            </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-gold" />
+                Find Your Business
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                We may have already added your business to help you get started. Search for it now to claim ownership and start editing.
+              </p>
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <Input 
+                  placeholder="Business name or phone..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-background"
+                />
+                <Button type="submit" size="icon" className="shrink-0 bg-gold text-background hover:bg-gold/90">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Path 2: Create New */}
+          <Card className="relative overflow-hidden border-2 transition-all hover:border-primary/50 shadow-luxury group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <PlusCircle className="h-24 w-24" />
+            </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-primary" />
+                Create New Listing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Can't find your business in our directory? No problem. Create a brand new listing from scratch and reach your customers today.
+              </p>
+              <Button asChild className="w-full" variant="outline">
+                <Link to="/merchant/my-business" className="flex items-center justify-center gap-2">
+                  Start New Listing <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Benefits Section */}
+        <div className="grid gap-8 md:grid-cols-3 pt-8">
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="rounded-full bg-primary/10 p-3">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="font-bold">Verified Status</h3>
+            <p className="text-xs text-muted-foreground">Get a verified badge to build trust with travelers and tourists.</p>
+          </div>
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="rounded-full bg-gold/10 p-3">
+              <Sparkles className="h-6 w-6 text-gold" />
+            </div>
+            <h3 className="font-bold">Smart Promotion</h3>
+            <p className="text-xs text-muted-foreground">Appear in thematic itineraries and AI-powered travel plans.</p>
+          </div>
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="rounded-full bg-green-500/10 p-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-bold">Easy Management</h3>
+            <p className="text-xs text-muted-foreground">Update hours, photos, and menus in real-time from your portal.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Dashboard for Existing Merchants ---
+  const status = merchant.status ?? 'draft';
   const meta = statusMeta[status];
   const Icon = meta.icon;
 
@@ -44,15 +170,7 @@ function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!merchant && (
-            <>
-              <p className="text-sm text-muted-foreground">You haven't set up your business yet.</p>
-              <Button asChild>
-                <Link to="/merchant/my-business">Start setup</Link>
-              </Button>
-            </>
-          )}
-          {merchant && status === 'draft' && (
+          {status === 'draft' && (
             <>
               <p className="text-sm text-muted-foreground">
                 Complete your profile across the sidebar steps, then submit for review.
@@ -62,17 +180,17 @@ function Dashboard() {
               </Button>
             </>
           )}
-          {merchant && status === 'pending' && (
+          {status === 'pending' && (
             <p className="text-sm text-muted-foreground">
               Your submission is being reviewed. You'll be notified once a decision is made.
             </p>
           )}
-          {merchant && status === 'approved' && (
+          {status === 'approved' && (
             <p className="text-sm text-muted-foreground">
               Your listing is live. Editing key fields will re-trigger review.
             </p>
           )}
-          {merchant && status === 'rejected' && (
+          {status === 'rejected' && (
             <>
               <p className="text-sm text-muted-foreground">Reason: {merchant.rejection_reason ?? '—'}</p>
               <Button asChild>
@@ -87,21 +205,21 @@ function Dashboard() {
         <Card>
           <CardHeader><CardTitle className="text-base">Business</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{merchant?.name || '—'}</div>
-            <div className="text-sm text-muted-foreground capitalize">{merchant?.category}</div>
+            <div className="text-2xl font-semibold">{merchant.name || '—'}</div>
+            <div className="text-sm text-muted-foreground capitalize">{merchant.category}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Features</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{merchant?.features?.length ?? 0}</div>
+            <div className="text-2xl font-semibold">{merchant.features?.length ?? 0}</div>
             <div className="text-sm text-muted-foreground">selected</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Mood tags</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{merchant?.mood_tags?.length ?? 0}</div>
+            <div className="text-2xl font-semibold">{merchant.mood_tags?.length ?? 0}</div>
             <div className="text-sm text-muted-foreground">configured</div>
           </CardContent>
         </Card>
