@@ -80,24 +80,15 @@ export function MerchantProvider({
     return window.localStorage.getItem(CURRENT_MERCHANT_KEY);
   });
 
-  // If the account has zero businesses yet, silently create the first one
-  // (keeps the old "one business per account" experience seamless for
-  // existing merchants — they never see an empty state).
+  // Set the current merchant if one exists and none is selected
   useEffect(() => {
     if (!userId || isLoading) return;
-    if (merchants.length === 0) {
-      supabase
-        .from('merchants')
-        .insert({ owner_id: userId, email: email ?? undefined, name: '' })
-        .select('*')
-        .single()
-        .then(({ data }) => {
-          if (data) qc.invalidateQueries({ queryKey: ['my-merchants', userId] });
-        });
-    } else if (!currentMerchantId || !merchants.some((m) => m.id === currentMerchantId)) {
-      setCurrentMerchantIdState(merchants[0].id);
+    if (merchants.length > 0) {
+      if (!currentMerchantId || !merchants.some((m) => m.id === currentMerchantId)) {
+        setCurrentMerchantIdState(merchants[0].id);
+      }
     }
-  }, [userId, isLoading, merchants, currentMerchantId, email, qc]);
+  }, [userId, isLoading, merchants, currentMerchantId]);
 
   function setCurrentMerchantId(id: string) {
     setCurrentMerchantIdState(id);
