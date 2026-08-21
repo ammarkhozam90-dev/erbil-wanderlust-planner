@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyMerchant } from '@/components/merchant/use-my-merchant';
 import { useMerchantContext } from '@/components/merchant/merchant-context';
@@ -9,15 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  FileEdit, 
-  Search, 
-  PlusCircle, 
-  Sparkles, 
-  MapPin, 
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  FileEdit,
+  Search,
+  PlusCircle,
+  Sparkles,
+  MapPin,
   ShieldCheck,
   ArrowRight,
   Loader2
@@ -42,6 +42,16 @@ function Dashboard() {
   const { createBusiness } = useMerchantContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
+  const [redirectingToDraft, setRedirectingToDraft] = useState(false);
+
+  // Resume an unfinished listing immediately. The gateway is only for users
+  // who have no listing at all; a draft belongs in the setup wizard.
+  useEffect(() => {
+    if (!isLoading && merchant?.status === 'draft') {
+      setRedirectingToDraft(true);
+      navigate({ to: '/merchant/my-business', replace: true });
+    }
+  }, [isLoading, merchant?.status, navigate]);
 
   // Live search for unclaimed businesses
   const liveResults = useQuery({
@@ -61,7 +71,14 @@ function Dashboard() {
     },
   });
 
-  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+  if (isLoading || redirectingToDraft || merchant?.status === 'draft') {
+    return (
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-muted-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin text-gold" />
+        {redirectingToDraft || merchant?.status === 'draft' ? 'Resuming your setup…' : 'Loading…'}
+      </div>
+    );
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +92,8 @@ function Dashboard() {
   const handleCreateNew = async () => {
     setCreating(true);
     try {
-      await createBusiness('My New Business');
+      // Keep the first step empty and ready for the merchant's own name.
+      await createBusiness('');
       toast.success('Draft listing created! Let\'s fill in the details.');
       navigate({ to: '/merchant/my-business' });
     } catch (err: any) {
@@ -122,8 +140,8 @@ function Dashboard() {
               </p>
               <div className="relative">
                 <form onSubmit={handleSearch} className="flex gap-2">
-                  <Input 
-                    placeholder="Business name or phone..." 
+                  <Input
+                    placeholder="Business name or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-background"
@@ -156,8 +174,8 @@ function Dashboard() {
                             <span className="text-[10px] text-muted-foreground truncate w-full">{r.address || 'Erbil'}</span>
                           </button>
                         ))}
-                        <Link 
-                          to="/merchant/claim" 
+                        <Link
+                          to="/merchant/claim"
                           search={{ q: searchQuery } as any}
                           className="block border-t border-border pt-2 mt-1 text-center text-[10px] font-bold text-gold hover:underline"
                         >
@@ -186,9 +204,9 @@ function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Can't find your business in our directory? No problem. Create a brand new listing from scratch and reach your customers today.
               </p>
-              <Button 
-                onClick={handleCreateNew} 
-                className="w-full" 
+              <Button
+                onClick={handleCreateNew}
+                className="w-full"
                 variant="outline"
                 disabled={creating}
               >
