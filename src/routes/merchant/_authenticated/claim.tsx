@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -7,7 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Clock, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Search, MapPin, Clock, CheckCircle2, Upload, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/merchant/_authenticated/claim')({
@@ -18,7 +26,10 @@ function ClaimBusiness() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
-  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const results = useQuery({
     queryKey: ['unclaimed-search', q],
@@ -37,7 +48,6 @@ function ClaimBusiness() {
     },
   });
 
-  // Claims this merchant already has pending, so we can show "Pending" instead of the button again.
   const myPending = useQuery({
     queryKey: ['my-pending-claims', user?.id],
     enabled: !!user?.id,
@@ -47,19 +57,45 @@ function ClaimBusiness() {
     },
   });
 
-  async function claim(merchantId: string) {
-    if (!user) return;
-    setClaimingId(merchantId);
-    const { error } = await supabase.from('merchant_claims').insert({ merchant_id: merchantId, requester_id: user.id } as any);
-    setClaimingId(null);
-    if (error) {
-      toast.error(error.message.includes('duplicate') || error.message.includes('uq_one_pending')
-        ? 'This business already has a pending claim.'
-        : error.message);
-      return;
+  async function submitClaim() {
+    if (!user || !selectedMerchant) return;
+    
+    setSubmitting(true);
+    try {
+      let docUrl = null;
+      
+      if (file) {
+        const path = `${user.id}/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('verification-docs')
+          .upload(path, file);
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: pub } = supabase.storage.from('verification-docs').getPublicUrl(path);
+        docUrl = pub.publicUrl;
+      }
+
+      const { error } = await supabase.from('merchant_claims').insert({
+        merchant_id: selectedMerchant.id,
+        requester_id: user.id,
+        verification_document_url: docUrl,
+        status: 'pending'
+      } as any);
+
+      if (error) throw error;
+
+      toast.success('Claim submitted — an admin will review it shortly.');
+      setSelectedMerchant(null);
+      setFile(null);
+      qc.invalidateQueries({ queryKey: ['my-pending-claims', user.id] });
+    } catch (err: any) {
+      toast.error(err.message.includes('uq_one_pending') 
+        ? 'This business already has a pending claim.' 
+        : err.message);
+    } finally {
+      setSubmitting(false);
     }
-    toast.success('Claim submitted — an admin will review it shortly.');
-    qc.invalidateQueries({ queryKey: ['my-pending-claims', user.id] });
   }
 
   return (
@@ -111,8 +147,8 @@ function ClaimBusiness() {
                 {isPending ? (
                   <Badge className="shrink-0 bg-yellow-500/10 text-yellow-700"><Clock className="mr-1 h-3 w-3" /> Pending</Badge>
                 ) : (
-                  <Button size="sm" onClick={() => claim(m.id)} disabled={claimingId === m.id}>
-                    {claimingId === m.id ? '…' : 'Claim this'}
+                  <Button size="sm" onClick={() => setSelectedMerchant(m)}>
+                    Claim this
                   </Button>
                 )}
               </CardContent>
@@ -127,6 +163,56 @@ function ClaimBusiness() {
           Can't find your business? Head to <span className="font-medium text-foreground">My Business</span> in the sidebar to add it from scratch.
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedMerchant} onOpenChange={(open) => !open && setSelectedMerchant(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Claim "{selectedMerchant?.name}"</DialogTitle>
+            <DialogDescription>
+              To verify your ownership, please upload a document (e.g., business license, utility bill, or official ID).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div 
+              className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-8 transition-colors hover:border-gold/50 hover:bg-gold/5"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                accept="image/*,.pdf"
+              />
+              {file ? (
+                <div className="flex items-center gap-2 text-gold">
+                  <FileText className="h-8 w-8" />
+                  <span className="text-sm font-medium">{file.name}</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Click to upload proof of ownership<br/>
+                    <span className="text-xs">(Image or PDF)</span>
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedMerchant(null)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button onClick={submitClaim} disabled={submitting || !file}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
