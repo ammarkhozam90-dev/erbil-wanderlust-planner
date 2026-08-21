@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { compressImage } from '@/lib/compress-image';
 import { ImageCropDialog } from '@/components/merchant/ImageCropDialog';
 import {
-  Link2, Link2Off, Plus, Upload, Trash2, CheckCircle2, AlertCircle, Rocket, Circle, ImageOff,
+  Link2, Link2Off, Plus, Upload, Trash2, CheckCircle2, AlertCircle, Rocket, Circle, ImageOff, ShieldCheck,
 } from 'lucide-react';
 import type {
   BusinessCategory, PriceLevel, MerchantHour, MerchantPhoto,
