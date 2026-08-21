@@ -19,10 +19,12 @@ import {
 const businessDetailQuery = (id: string) => queryOptions({
   queryKey: ["business-detail", id],
   queryFn: async () => {
-    const [{ data: business, error }, { data: photos }, { data: hours }] = await Promise.all([
+    const now = new Date().toISOString();
+    const [{ data: business, error }, { data: photos }, { data: hours }, offersResult] = await Promise.all([
       supabase.from("merchants").select("*").eq("id", id).eq("status", "approved").maybeSingle(),
       supabase.from("merchant_photos").select("*").eq("merchant_id", id).order("sort_order"),
       supabase.from("merchant_hours").select("*").eq("merchant_id", id).order("day_of_week"),
+      supabase.from("merchant_offers" as any).select("*").eq("merchant_id", id).eq("is_active", true).lte("starts_at", now).gte("ends_at", now).order("ends_at", { ascending: true }),
     ]);
     if (error) throw error;
     if (!business) throw notFound();
@@ -39,7 +41,7 @@ const businessDetailQuery = (id: string) => queryOptions({
       branches = siblings ?? [];
     }
 
-    return { business, photos: photos ?? [], hours: hours ?? [], branches };
+    return { business, photos: photos ?? [], hours: hours ?? [], branches, offers: offersResult.error ? [] : (offersResult.data ?? []) };
   },
 });
 
@@ -179,6 +181,15 @@ function ClaimBanner({ businessId, claimStatus }: { businessId: string; claimSta
   );
 }
 
+function LiveOffers({ offers }: { offers: any[] }) {
+  return (
+    <section className="mt-6 space-y-3 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/10 via-gold/5 to-transparent p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Limited-time offers</p><h2 className="mt-1 font-display text-xl font-bold">A little extra for your visit</h2></div><span className="rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold text-gold">{offers.length} available</span></div>
+      <div className="grid gap-3 md:grid-cols-2">{offers.map((offer) => <div key={offer.id} className="rounded-xl border border-gold/15 bg-background/60 p-4"><div className="flex items-start justify-between gap-3"><h3 className="font-semibold">{offer.title}</h3>{offer.discount_value != null && <Badge className="bg-gold text-background">{offer.offer_type === 'percentage' ? `${offer.discount_value}% off` : `${Number(offer.discount_value).toLocaleString()} ${offer.currency || 'IQD'}`}</Badge>}</div>{offer.description && <p className="mt-2 text-sm text-muted-foreground">{offer.description}</p>}{offer.promo_code && <p className="mt-3 rounded-lg border border-dashed border-gold/30 px-3 py-2 text-center font-mono text-xs font-bold tracking-widest text-gold">Use code: {offer.promo_code}</p>}{offer.terms && <p className="mt-2 text-[10px] text-muted-foreground">{offer.terms}</p>}</div>)}</div>
+    </section>
+  );
+}
+
 function BusinessDetail() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(businessDetailQuery(id));
@@ -233,6 +244,8 @@ function BusinessDetail() {
 
         <ClaimBanner businessId={b.id} claimStatus={(b as any).claim_status} />
 
+        {data.offers.length > 0 && <LiveOffers offers={data.offers as any[]} />}
+
         {b.description && <p className="mt-4 text-sm text-muted-foreground">{b.description}</p>}
 
         {/* Tags */}
@@ -262,11 +275,11 @@ function BusinessDetail() {
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button 
+              <Button
                 asChild
                 className="h-12 bg-green-600 text-white hover:bg-green-700 shadow-md"
               >
-                <a 
+                <a
                   href={`careem://ride?dropoff_lat=${b.latitude}&dropoff_lng=${b.longitude}&dropoff_name=${encodeURIComponent(b.name)}`}
                   target="_blank"
                   rel="noreferrer"
@@ -284,12 +297,12 @@ function BusinessDetail() {
                   Order Careem
                 </a>
               </Button>
-              <Button 
+              <Button
                 asChild
                 variant="outline"
                 className="h-12 border-yellow-400 bg-yellow-400 text-black hover:bg-yellow-500 shadow-md"
               >
-                <a 
+                <a
                   href={`baly://ride?lat=${b.latitude}&lng=${b.longitude}`}
                   target="_blank"
                   rel="noreferrer"
