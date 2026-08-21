@@ -261,4 +261,3 @@ function groupByMonth(arr: any[]) {
   });
   return Object.entries(out).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }));
 }
-</analysis>
