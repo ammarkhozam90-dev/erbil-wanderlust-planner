@@ -270,6 +270,14 @@ function BusinessDetail() {
                   href={`careem://ride?dropoff_lat=${b.latitude}&dropoff_lng=${b.longitude}&dropoff_name=${encodeURIComponent(b.name)}`}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => {
+                    void supabase.rpc('record_taxi_click' as any, {
+                      p_business_id: b.id,
+                      p_provider: 'careem',
+                    }).then(({ error }) => {
+                      if (error) console.warn('[taxi-analytics] Careem click was not recorded', error);
+                    });
+                  }}
                   className="flex items-center justify-center gap-2"
                 >
                   <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/Careem_logo.svg" alt="" className="h-5 w-5 invert" />
@@ -285,6 +293,14 @@ function BusinessDetail() {
                   href={`baly://ride?lat=${b.latitude}&lng=${b.longitude}`}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => {
+                    void supabase.rpc('record_taxi_click' as any, {
+                      p_business_id: b.id,
+                      p_provider: 'baly',
+                    }).then(({ error }) => {
+                      if (error) console.warn('[taxi-analytics] Baly click was not recorded', error);
+                    });
+                  }}
                   className="flex items-center justify-center gap-2"
                 >
                   <span className="font-black">Baly</span>
