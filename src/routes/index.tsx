@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import heroImg from "@/assets/hero-citadel.jpg";
 import toursImg from "@/assets/tours-cover.jpg";
 import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
 import { ControlBar } from "@/components/ControlBar";
 import { PlannedDay } from "@/components/PlannedDay";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
