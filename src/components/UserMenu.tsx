@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/lib/auth";
 
 export function UserMenu() {
-  const { session, profile, signOut, isAdmin } = useAuth();
+  const { session, profile, signOut, isAdmin, isMerchant } = useAuth();
   const navigate = useNavigate();
 
   if (!session) {
