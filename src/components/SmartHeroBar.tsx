@@ -35,7 +35,7 @@ export function SmartHeroBar() {
       return;
     }
     if (term.trim() && suggestions.data?.length === 0) toast('No exact match yet — we will build a plan around your preferences instead.');
-    planner.generatePlan();
+    navigate({ to: '/plan' });
   }
 
   return <div className="relative z-20 w-full max-w-5xl rounded-2xl border border-white/15 bg-black/55 p-2 shadow-2xl backdrop-blur-2xl md:rounded-3xl md:p-3">
