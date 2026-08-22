@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SharedPlansRouteImport } from './routes/shared-plans'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -27,6 +28,7 @@ import { Route as TourResetPasswordRouteImport } from './routes/tour/reset-passw
 import { Route as TourRegisterRouteImport } from './routes/tour/register'
 import { Route as TourLoginRouteImport } from './routes/tour/login'
 import { Route as TourForgotPasswordRouteImport } from './routes/tour/forgot-password'
+import { Route as SharedPlanIdRouteImport } from './routes/shared-plan/$id'
 import { Route as MerchantResetPasswordRouteImport } from './routes/merchant/reset-password'
 import { Route as MerchantForgotPasswordRouteImport } from './routes/merchant/forgot-password'
 import { Route as MerchantAuthRouteImport } from './routes/merchant/auth'
@@ -72,6 +74,11 @@ import { Route as MerchantAuthenticatedBranchesRouteImport } from './routes/merc
 import { Route as MerchantAuthenticatedAiPlanningRouteImport } from './routes/merchant/_authenticated/ai-planning'
 import { Route as AdminBusinessEditIdRouteImport } from './routes/admin/business-edit/$id'
 
+const SharedPlansRoute = SharedPlansRouteImport.update({
+  id: '/shared-plans',
+  path: '/shared-plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -160,6 +167,11 @@ const TourLoginRoute = TourLoginRouteImport.update({
 const TourForgotPasswordRoute = TourForgotPasswordRouteImport.update({
   id: '/tour/forgot-password',
   path: '/tour/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SharedPlanIdRoute = SharedPlanIdRouteImport.update({
+  id: '/shared-plan/$id',
+  path: '/shared-plan/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MerchantResetPasswordRoute = MerchantResetPasswordRouteImport.update({
@@ -412,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/shared-plans': typeof SharedPlansRoute
   '/merchant': typeof MerchantAuthenticatedRouteRouteWithChildren
   '/tour': typeof TourAuthenticatedRouteRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
@@ -437,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/merchant/auth': typeof MerchantAuthRoute
   '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
   '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
   '/tour/register': typeof TourRegisterRoute
@@ -475,6 +489,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/shared-plans': typeof SharedPlansRoute
   '/merchant': typeof MerchantAuthenticatedRouteRouteWithChildren
   '/tour': typeof TourAuthenticatedRouteRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
@@ -500,6 +515,7 @@ export interface FileRoutesByTo {
   '/merchant/auth': typeof MerchantAuthRoute
   '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
   '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
   '/tour/register': typeof TourRegisterRoute
@@ -540,6 +556,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/shared-plans': typeof SharedPlansRoute
   '/merchant/_authenticated': typeof MerchantAuthenticatedRouteRouteWithChildren
   '/tour/_authenticated': typeof TourAuthenticatedRouteRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
@@ -565,6 +582,7 @@ export interface FileRoutesById {
   '/merchant/auth': typeof MerchantAuthRoute
   '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
   '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
   '/tour/register': typeof TourRegisterRoute
@@ -606,6 +624,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/settings'
+    | '/shared-plans'
     | '/merchant'
     | '/tour'
     | '/admin/activity'
@@ -631,6 +650,7 @@ export interface FileRouteTypes {
     | '/merchant/auth'
     | '/merchant/forgot-password'
     | '/merchant/reset-password'
+    | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
     | '/tour/register'
@@ -669,6 +689,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/settings'
+    | '/shared-plans'
     | '/merchant'
     | '/tour'
     | '/admin/activity'
@@ -694,6 +715,7 @@ export interface FileRouteTypes {
     | '/merchant/auth'
     | '/merchant/forgot-password'
     | '/merchant/reset-password'
+    | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
     | '/tour/register'
@@ -733,6 +755,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/settings'
+    | '/shared-plans'
     | '/merchant/_authenticated'
     | '/tour/_authenticated'
     | '/admin/activity'
@@ -758,6 +781,7 @@ export interface FileRouteTypes {
     | '/merchant/auth'
     | '/merchant/forgot-password'
     | '/merchant/reset-password'
+    | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
     | '/tour/register'
@@ -798,6 +822,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
+  SharedPlansRoute: typeof SharedPlansRoute
   MerchantAuthenticatedRouteRoute: typeof MerchantAuthenticatedRouteRouteWithChildren
   TourAuthenticatedRouteRoute: typeof TourAuthenticatedRouteRouteWithChildren
   BusinessIdRoute: typeof BusinessIdRoute
@@ -805,6 +830,7 @@ export interface RootRouteChildren {
   MerchantAuthRoute: typeof MerchantAuthRoute
   MerchantForgotPasswordRoute: typeof MerchantForgotPasswordRoute
   MerchantResetPasswordRoute: typeof MerchantResetPasswordRoute
+  SharedPlanIdRoute: typeof SharedPlanIdRoute
   TourForgotPasswordRoute: typeof TourForgotPasswordRoute
   TourLoginRoute: typeof TourLoginRoute
   TourRegisterRoute: typeof TourRegisterRoute
@@ -815,6 +841,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/shared-plans': {
+      id: '/shared-plans'
+      path: '/shared-plans'
+      fullPath: '/shared-plans'
+      preLoaderRoute: typeof SharedPlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -939,6 +972,13 @@ declare module '@tanstack/react-router' {
       path: '/tour/forgot-password'
       fullPath: '/tour/forgot-password'
       preLoaderRoute: typeof TourForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared-plan/$id': {
+      id: '/shared-plan/$id'
+      path: '/shared-plan/$id'
+      fullPath: '/shared-plan/$id'
+      preLoaderRoute: typeof SharedPlanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant/reset-password': {
@@ -1374,6 +1414,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
+  SharedPlansRoute: SharedPlansRoute,
   MerchantAuthenticatedRouteRoute: MerchantAuthenticatedRouteRouteWithChildren,
   TourAuthenticatedRouteRoute: TourAuthenticatedRouteRouteWithChildren,
   BusinessIdRoute: BusinessIdRoute,
@@ -1381,6 +1422,7 @@ const rootRouteChildren: RootRouteChildren = {
   MerchantAuthRoute: MerchantAuthRoute,
   MerchantForgotPasswordRoute: MerchantForgotPasswordRoute,
   MerchantResetPasswordRoute: MerchantResetPasswordRoute,
+  SharedPlanIdRoute: SharedPlanIdRoute,
   TourForgotPasswordRoute: TourForgotPasswordRoute,
   TourLoginRoute: TourLoginRoute,
   TourRegisterRoute: TourRegisterRoute,
