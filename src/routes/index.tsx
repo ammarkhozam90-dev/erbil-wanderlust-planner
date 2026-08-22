@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
 
 function fluidSize(px: number) {
   const vw = (px / 19.2).toFixed(2);
-  const min = Math.max(9, Math.round(px * 0.55));
+  const min = Math.max(9, Math.round(px * 0.5));
   return `clamp(${min}px, ${vw}vw, ${px}px)`;
 }
 
@@ -112,9 +112,20 @@ function Home() {
   const featured = useQuery({
     queryKey: ["featured-businesses"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description,is_sponsored").eq("status", "approved").order("is_sponsored", { ascending: false }).order("created_at", { ascending: false }).limit(12);
-      if (error) throw error;
-      return (data ?? []).filter((business: any) => business.is_sponsored);
+      const fields = "id,name,category,city,address,cover_url,price_level,description,is_sponsored";
+      const sponsoredResult = await supabase.from("merchants").select(fields).eq("status", "approved").order("is_sponsored", { ascending: false }).order("created_at", { ascending: false }).limit(12);
+
+      if (!sponsoredResult.error) {
+        const approved = sponsoredResult.data ?? [];
+        const sponsored = approved.filter((business: any) => Boolean(business.is_sponsored));
+        return { items: sponsored.length > 0 ? sponsored : approved.slice(0, 6), sponsored: sponsored.length > 0 };
+      }
+
+      // Keep the homepage useful if an older database has not received is_sponsored yet.
+      console.warn("[homepage] Sponsored placements unavailable; using approved directory fallback", sponsoredResult.error);
+      const { data: fallback, error: fallbackError } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description").eq("status", "approved").order("created_at", { ascending: false }).limit(6);
+      if (fallbackError) throw fallbackError;
+      return { items: fallback ?? [], sponsored: false };
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -140,7 +151,7 @@ function Home() {
 
   function renderRuns(runs: any[]) {
     return (
-      <span className="inline-flex flex-wrap items-baseline">
+      <span className="inline-flex max-w-full flex-wrap justify-center items-baseline">
         {runs.map((r, i) => (
           <span key={i} className="contents">
             {r.lineBreak && <span className="basis-full" />}
@@ -163,13 +174,13 @@ function Home() {
             <img
               src={heroImg}
               alt="Erbil Citadel at sunset"
-              className="aspect-[600/500] w-full object-cover object-center transition-transform duration-[3s] group-hover:scale-105 md:aspect-[1920/750]"
+              className="aspect-[1/1] w-full object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
             {/* Floating Status Badge */}
-            <div className="absolute right-6 top-6 z-10 flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-5 py-2.5 text-white backdrop-blur-2xl sm:right-10 sm:top-10">
+            <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
                  <MapPin className="h-4 w-4 text-gold" /> Erbil
                </div>
@@ -180,17 +191,17 @@ function Home() {
                </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col justify-center gap-6 p-8 lg:p-20 ${alignClass}`}>
+            <div className={`absolute inset-0 flex flex-col justify-start gap-4 px-5 pb-5 pt-24 sm:justify-center sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}>
               <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
                 <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">{renderRuns(layout.eyebrow.runs)}</p>
-                <h1 className="font-display text-4xl leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
+                <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
                   {renderRuns(layout.headline.runs)}
                 </h1>
-                <div className="mx-auto mt-6 max-w-xl text-lg opacity-90">
+                <div className="mx-auto mt-3 max-w-xl px-2 text-sm opacity-90 sm:mt-6 sm:px-0 sm:text-lg">
                   {renderRuns(layout.subheadline.runs)}
                 </div>
 
-                <div className="mx-auto mt-10 w-full max-w-5xl"><SmartHeroBar /></div>
+                <div className="mx-auto mt-5 w-full max-w-5xl sm:mt-10"><SmartHeroBar /></div>
               </div>
             </div>
           </section>
@@ -243,9 +254,9 @@ function Home() {
           </section>
 
           {/* FEATURED BUSINESSES */}
-          {featured.data && featured.data.length > 0 && <section className="space-y-8">
-            <SectionHeader title="Sponsored for you" subtitle="Partner places selected for visibility by ErbilGo — always clearly labeled." />
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.map((business: any) => <BusinessCard key={business.id} business={business} sponsored />)}</div>
+          {featured.data?.items && featured.data.items.length > 0 && <section className="space-y-8">
+            <SectionHeader title={featured.data.sponsored ? "Sponsored for you" : "Featured for you"} subtitle={featured.data.sponsored ? "Partner places selected for visibility by ErbilGo — always clearly labeled." : "A refined selection from ErbilGo’s approved directory, refreshed for your next day out."} />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.items.map((business: any) => <BusinessCard key={business.id} business={business} sponsored={featured.data?.sponsored === true} />)}</div>
           </section>}
 
           {/* SIGNATURE EXPERIENCES - NEW SECTION */}
