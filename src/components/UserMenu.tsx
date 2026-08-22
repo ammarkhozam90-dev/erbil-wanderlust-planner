@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { User, Settings, History, LogOut, LogIn, ShieldCheck, Sparkles } from "lucide-react";
+import { User, Settings, History, LogOut, LogIn, ShieldCheck, Sparkles, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,12 @@ export function UserMenu() {
           <Link to="/profile" hash="history" className="flex items-center gap-2">
             <History className="h-4 w-4 text-gold" />
             <span>History</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/shared-plans" className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gold" />
+            <span>Shared Plans</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
