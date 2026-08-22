@@ -11,7 +11,7 @@ import { ReviewsPanel } from "@/components/ReviewsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { computeOpenState } from "@/lib/opening-status";
+import { computeOpenState, formatHoursLabel } from "@/lib/opening-status";
 import {
   MapPin, Phone, Mail, Globe, Instagram, Facebook, ExternalLink, Building2, Star,
 } from "lucide-react";
@@ -375,20 +375,24 @@ function BusinessDetail() {
 
         {/* Hours */}
         {data.hours.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-2 font-display text-lg font-bold">Opening hours</h2>
-            <div className="grid grid-cols-2 gap-1 text-sm sm:grid-cols-4">
+          <section className="mt-8 rounded-2xl border border-border/70 bg-card/40 p-4 md:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Plan your visit</p><h2 className="mt-1 font-display text-xl font-bold">Opening hours</h2></div>
+              <span className="hidden text-xs text-muted-foreground sm:inline">Local time · Erbil</span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
               {DAYS.map((d, i) => {
                 const h = data.hours.find((x: any) => x.day_of_week === i);
+                const closed = !h || h.is_closed;
                 return (
-                  <div key={d} className="text-muted-foreground">
-                    <span className="font-medium text-foreground">{d}:</span>{" "}
-                    {h?.is_24h ? "24h" : h?.is_closed ? "Closed" : h ? `${h.open_time}–${h.close_time}` : "—"}
+                  <div key={d} className={`rounded-xl border px-3 py-2.5 ${closed ? "border-border/50 bg-background/30" : "border-gold/15 bg-gold/5"}`}>
+                    <p className="text-xs font-bold text-foreground">{d}</p>
+                    <p className={`mt-1 text-[11px] leading-4 ${closed ? "text-muted-foreground" : "text-gold"}`}>{formatHoursLabel(h)}</p>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
         <BranchSelector currentId={b.id} currentName={b.name} currentBranchLabel={(b as any).branch_label} currentCity={b.city} isMain={Boolean((b as any).is_main_branch)} branches={data.branches} />
