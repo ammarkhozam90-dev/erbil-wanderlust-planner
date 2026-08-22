@@ -174,7 +174,7 @@ function Home() {
             <img
               src={heroImg}
               alt="Erbil Citadel at sunset"
-              className="aspect-[1/1] w-full object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
+              className="aspect-[4/5] w-full object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -191,7 +191,7 @@ function Home() {
                </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col justify-start gap-4 px-5 pb-5 pt-24 sm:justify-center sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}>
+            <div className={`absolute inset-0 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}>
               <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
                 <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">{renderRuns(layout.eyebrow.runs)}</p>
                 <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
