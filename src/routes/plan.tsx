@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Check, Clock3, Compass, MapPin, RefreshCw, Sparkles, Users, Wallet, Replace } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock3, Compass, MapPin, RefreshCw, Sparkles, Users, Wallet, Replace, Save, Heart } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +159,35 @@ function normalizeCategory(v: any): Category { const t = String(v ?? "").toLower
 function categoryMood(c: Category): PlannerMood[] { if (c === "Parks & Nature") return ["Relaxed", "Family", "Adventurous"]; if (c === "Restaurants") return ["Romantic", "Family", "Social"]; if (c === "Cafés") return ["Relaxed", "Productive", "Social"]; if (c === "Art & Culture" || c === "Landmarks") return ["Cultural", "Relaxed", "Adventurous"]; if (c === "Nightlife") return ["Social", "Romantic"]; return ["Relaxed", "Family", "Social"]; }
 
 function PlanResult({ plan, form, onReset, onRegenerate }: { plan: GeneratedPlan; form: PlannerInput; onReset: () => void; onRegenerate: () => void }) { 
+  const { session } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  
   const swap = () => toast.info("Swap feature is coming soon to the professional engine!");
+
+  async function saveToProfile() {
+    if (!session?.user) {
+      toast.error("Please sign in to save your plan.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("user_itineraries").insert({
+        user_id: session.user.id,
+        title: plan.title,
+        summary: plan.summary,
+        plan_data: plan,
+        is_public: false
+      });
+      if (error) throw error;
+      setSaved(true);
+      toast.success("Plan saved to your profile!");
+    } catch (err: any) {
+      toast.error(`Could not save plan: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
   
   return <section className="mx-auto max-w-5xl">
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -168,9 +196,16 @@ function PlanResult({ plan, form, onReset, onRegenerate }: { plan: GeneratedPlan
         <h1 className="font-display text-4xl font-bold sm:text-5xl">{plan.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{plan.summary}</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={onReset}><ArrowLeft className="mr-2 h-4 w-4" /> Edit answers</Button>
         <Button variant="outline" onClick={onRegenerate}><RefreshCw className="mr-2 h-4 w-4" /> Rebuild</Button>
+        <Button 
+          onClick={saveToProfile} 
+          disabled={saving || saved} 
+          className={saved ? "bg-emerald-600 text-white" : "bg-gold text-background hover:bg-gold/90"}
+        >
+          {saved ? <><Check className="mr-2 h-4 w-4" /> Saved</> : <><Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save to Profile"}</>}
+        </Button>
       </div>
     </div>
     
