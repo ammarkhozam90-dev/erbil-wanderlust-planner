@@ -79,6 +79,19 @@
   h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
 }
 
+/* Leaflet creates high internal z-index values for panes and controls. Keep the map
+   in its own low stacking context so it can never cover the sticky site chrome. */
+.leaflet-container {
+  position: relative;
+  z-index: 0 !important;
+  isolation: isolate;
+}
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1 !important;
+}
+
 @layer utilities {
   .text-gold { color: var(--gold); }
   .bg-gold { background-color: var(--gold); }
