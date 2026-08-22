@@ -5,7 +5,7 @@ import { UserMenu } from './UserMenu';
 import { NotificationBell } from './NotificationBell';
 
 const navItems = [
-  { to: '/', label: 'Plan My Day' },
+  { to: '/plan', label: 'Plan My Day' },
   { to: '/guide', label: 'Living in Erbil' },
   { to: '/offers', label: 'Offers' },
   { to: '/favorites', label: 'Favorites' },
