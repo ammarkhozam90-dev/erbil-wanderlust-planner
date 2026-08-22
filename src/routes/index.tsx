@@ -6,7 +6,6 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { SmartHeroBar } from "@/components/SmartHeroBar";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { PlannedDay } from "@/components/PlannedDay";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Sun, Clock, Map as MapIcon, ChevronRight, ArrowRight } from "lucide-react";
@@ -326,7 +325,6 @@ function Home() {
             </div>
           </section>
 
-          <PlannedDay />
         </div>
       </div>
     </div>
