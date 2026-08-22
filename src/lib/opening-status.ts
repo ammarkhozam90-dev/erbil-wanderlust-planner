@@ -11,6 +11,22 @@ export interface HourRow {
 
 export type OpenState = "open" | "closed" | "unknown";
 
+/** Keep database time values display-ready without exposing PostgreSQL seconds. */
+export function formatTimeLabel(value: string | null | undefined) {
+  if (!value) return "—";
+  const parts = String(value).trim().split(":");
+  if (parts.length < 2) return String(value).trim();
+  return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+}
+
+export function formatHoursLabel(row: Pick<HourRow, "is_closed" | "is_24h" | "open_time" | "close_time"> | null | undefined) {
+  if (!row) return "—";
+  if (row.is_24h) return "Open 24 hours";
+  if (row.is_closed) return "Closed";
+  if (!row.open_time && !row.close_time) return "—";
+  return `${formatTimeLabel(row.open_time)}–${formatTimeLabel(row.close_time)}`;
+}
+
 function toMinutes(t: string | null): number | null {
   if (!t) return null;
   const [h, m] = t.split(":").map(Number);
