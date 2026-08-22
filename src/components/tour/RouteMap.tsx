@@ -44,7 +44,7 @@ export function RouteMap({ stops }: { stops: Stop[] }) {
     }
   }, [stops]);
 
-  return <div ref={ref} className="h-96 w-full rounded-md border" />;
+  return <div ref={ref} className="relative isolate z-0 h-96 w-full overflow-hidden rounded-md border" />;
 }
 
 export function haversineKm(a: {lat:number,lng:number}, b: {lat:number,lng:number}) {
