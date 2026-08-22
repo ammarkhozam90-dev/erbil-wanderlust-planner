@@ -56,5 +56,5 @@ export function MapView({ lat, lng, label, zoom = 15, className }: MapViewProps)
     mapRef.current?.setView([lat, lng], zoom);
   }, [lat, lng, zoom]);
 
-  return <div ref={containerRef} className={className ?? 'h-64 w-full rounded-xl border border-border'} />;
+  return <div ref={containerRef} className={`relative isolate z-0 overflow-hidden ${className ?? 'h-64 w-full rounded-xl border border-border'}`} />;
 }
