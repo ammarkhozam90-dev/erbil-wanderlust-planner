@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/language";
 import { AuthProvider } from "../lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+import { Footer } from "@/components/Footer";
 
 function NotFoundComponent() {
   return (
@@ -121,6 +122,7 @@ function RootComponent() {
         <LanguageProvider>
           {/* هنا قمنا بإزالة الهيدر المضاف يدوياً ليعود الموقع لهيدره الأصلي تلقائياً */}
           <Outlet />
+          <Footer />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
