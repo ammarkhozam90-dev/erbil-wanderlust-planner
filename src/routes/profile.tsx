@@ -1,16 +1,45 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Camera, User, Mail, Phone, Globe, DollarSign, Coins, Lock,
-  Calendar, BarChart3, Heart, MapPin, Trash2, Sparkles, ShieldCheck,
-  Eye, EyeOff, Check, X, Loader2, KeyRound, Languages, Palette, Bell, CreditCard, UserMinus, Monitor, AlertCircle
+  Camera,
+  User,
+  Mail,
+  Phone,
+  Globe,
+  DollarSign,
+  Coins,
+  Lock,
+  Calendar,
+  BarChart3,
+  Heart,
+  MapPin,
+  Trash2,
+  Sparkles,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  Loader2,
+  KeyRound,
+  Languages,
+  Palette,
+  Bell,
+  CreditCard,
+  UserMinus,
+  Monitor,
+  AlertCircle,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -34,39 +63,83 @@ import { OnboardingWizard } from "@/components/OnboardingWizard";
 // Organizer portal, so a traveler's preference matches business tags
 // exactly instead of two different wordings for the same idea.
 const STYLES: TravelStyle[] = [
-  "Adventure", "Nature", "History & Culture", "Luxury", "Family", "Photography",
-  "Relaxing", "Nightlife", "Food", "Budget", "Social", "Cozy",
-  "Remote Work Focus", "Solo Explorer",
+  "Adventure",
+  "Nature",
+  "History & Culture",
+  "Luxury",
+  "Family",
+  "Photography",
+  "Relaxing",
+  "Nightlife",
+  "Food",
+  "Budget",
+  "Social",
+  "Cozy",
+  "Remote Work Focus",
+  "Solo Explorer",
 ];
 
 const INTERESTS = [
-  "Food & Cafes", "Historical Sites", "Museums", "Nature", "Shopping",
-  "Nightlife", "Family Activities", "Arts & Culture", "Photography",
-  "Sports", "Remote Work Friendly Places",
-  "Coffee & Tea Culture", "Live Music & Events", "Hiking", "Spa & Wellness",
+  "Food & Cafes",
+  "Historical Sites",
+  "Museums",
+  "Nature",
+  "Shopping",
+  "Nightlife",
+  "Family Activities",
+  "Arts & Culture",
+  "Photography",
+  "Sports",
+  "Remote Work Friendly Places",
+  "Coffee & Tea Culture",
+  "Live Music & Events",
+  "Hiking",
+  "Spa & Wellness",
 ];
 
 // Matches SUITS on the merchant side (ai-planning.tsx) exactly.
 const COMPANIONS = ["Solo", "Couple", "Family", "Friends", "Business Travelers"];
 const MOBILITY = ["High", "Moderate", "Low / Accessibility"];
 const BUDGET = ["Budget", "Mid-range", "Premium", "Luxury"];
-const DIETARY = ["Halal", "Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free", "No restrictions"];
+const DIETARY = [
+  "Halal",
+  "Vegetarian",
+  "Vegan",
+  "Pescatarian",
+  "Gluten-free",
+  "Dairy-free",
+  "No restrictions",
+];
 const PACE = ["Early Bird", "Flexible", "Night Owl"];
 const SPEED = ["Fast Explorer", "Relaxed Explorer"];
 const ENV = ["Indoor", "Outdoor", "Mixed"];
 
 const ONBOARDING_FIELDS: Array<keyof import("@/lib/auth").Profile> = [
-  "phone", "age_range", "gender", "nationality",
-  "current_city", "travel_companion", "mobility_level", "budget_preference",
+  "phone",
+  "age_range",
+  "gender",
+  "nationality",
+  "current_city",
+  "travel_companion",
+  "mobility_level",
+  "budget_preference",
 ];
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "My Profile — ErbilGo" },
-      { name: "description", content: "Manage your ErbilGo profile, travel preferences, currency settings, and saved Erbil destinations." },
+      {
+        name: "description",
+        content:
+          "Manage your ErbilGo profile, travel preferences, currency settings, and saved Erbil destinations.",
+      },
       { property: "og:title", content: "My Profile — ErbilGo" },
-      { property: "og:description", content: "Personalize your ErbilGo experience: avatar, language, currency, travel styles and saved hubs." },
+      {
+        property: "og:description",
+        content:
+          "Personalize your ErbilGo experience: avatar, language, currency, travel styles and saved hubs.",
+      },
       { property: "og:url", content: "https://erbilgo.app/profile" },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -76,7 +149,18 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { session, profile, loading, isAdmin, isMerchant, updateProfile, toggleFavorite, changePassword, signOut, deleteAccount } = useAuth();
+  const {
+    session,
+    profile,
+    loading,
+    isAdmin,
+    isMerchant,
+    updateProfile,
+    toggleFavorite,
+    changePassword,
+    signOut,
+    deleteAccount,
+  } = useAuth();
   const navigate = useNavigate();
   const currency = useStore((s) => s.currency);
   const setFilter = useStore((s) => s.setFilter);
@@ -173,7 +257,8 @@ function ProfilePage() {
         <div className="mx-auto max-w-md px-4 py-24 text-center">
           <h1 className="font-display text-4xl font-bold">Sign in to view your profile</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Access saved spots, travel preferences, and currency settings — synced across all your devices.
+            Access saved spots, travel preferences, and currency settings — synced across all your
+            devices.
           </p>
           <Button
             onClick={() => navigate({ to: "/auth" })}
@@ -361,7 +446,11 @@ function ProfilePage() {
           <div className="group relative">
             <div className="relative h-32 w-32 overflow-hidden rounded-full border-2 border-gold/60 bg-gradient-to-br from-gold/20 to-primary/10 shadow-luxury">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <span className="grid h-full w-full place-items-center font-display text-5xl font-bold text-gold">
                   {initial}
@@ -384,8 +473,18 @@ function ProfilePage() {
                 </span>
               </button>
             </div>
-            <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
-            <AvatarCropper file={cropperFile} onClose={() => setCropperFile(null)} onCropped={onAvatarCropped} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              onChange={onPickPhoto}
+              className="hidden"
+            />
+            <AvatarCropper
+              file={cropperFile}
+              onClose={() => setCropperFile(null)}
+              onCropped={onAvatarCropped}
+            />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
@@ -410,7 +509,10 @@ function ProfilePage() {
                 <span className="text-gold">{completionPct}%</span>
               </div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
-                <div className="h-full bg-gradient-to-r from-gold/80 to-gold transition-all" style={{ width: `${completionPct}%` }} />
+                <div
+                  className="h-full bg-gradient-to-r from-gold/80 to-gold transition-all"
+                  style={{ width: `${completionPct}%` }}
+                />
               </div>
             </div>
           </div>
@@ -418,52 +520,85 @@ function ProfilePage() {
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Account info */}
-          <section id="settings" className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-2">
+          <section
+            id="settings"
+            className="rounded-3xl border border-border bg-card/60 p-6 shadow-luxury lg:col-span-2"
+          >
             <h2 className="mb-5 flex items-center gap-2 font-display text-2xl font-bold">
               <User className="h-5 w-5 text-gold" /> Personal Information
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full Name" icon={<User className="h-4 w-4" />}>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </Field>
               <Field label="Email" icon={<Mail className="h-4 w-4" />}>
                 <Input type="email" value={email} disabled readOnly />
               </Field>
               <Field label="Phone Number" icon={<Phone className="h-4 w-4" />}>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
               </Field>
               <Field label="Nationality" icon={<Globe className="h-4 w-4" />}>
-                <Input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} />
+                <Input
+                  value={form.nationality}
+                  onChange={(e) => setForm({ ...form, nationality: e.target.value })}
+                />
               </Field>
               <Field label="Age Range" icon={<Calendar className="h-4 w-4" />}>
-                <Select value={form.ageRange} onValueChange={(v) => setForm({ ...form, ageRange: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select age range" /></SelectTrigger>
+                <Select
+                  value={form.ageRange}
+                  onValueChange={(v) => setForm({ ...form, ageRange: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select age range" />
+                  </SelectTrigger>
                   <SelectContent>
                     {["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"].map((a) => (
-                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                      <SelectItem key={a} value={a}>
+                        {a}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </Field>
               <Field label="Gender" icon={<User className="h-4 w-4" />}>
                 <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
                   <SelectContent>
                     {["Female", "Male", "Non-binary", "Prefer not to say"].map((g) => (
-                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </Field>
               <Field label="Current City" icon={<MapPin className="h-4 w-4" />}>
-                <Input value={form.currentCity} onChange={(e) => setForm({ ...form, currentCity: e.target.value })} />
+                <Input
+                  value={form.currentCity}
+                  onChange={(e) => setForm({ ...form, currentCity: e.target.value })}
+                />
               </Field>
               <Field label="Preferred Language" icon={<Languages className="h-4 w-4" />}>
-                <Select value={form.preferredLang} onValueChange={(v) => setForm({ ...form, preferredLang: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+                <Select
+                  value={form.preferredLang}
+                  onValueChange={(v) => setForm({ ...form, preferredLang: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
                   <SelectContent>
                     {["English", "Kurdish", "Arabic", "Turkish", "Farsi"].map((l) => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                      <SelectItem key={l} value={l}>
+                        {l}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -490,7 +625,9 @@ function ProfilePage() {
                         key={c}
                         onClick={() => useStore.getState().setCurrency(c as any)}
                         className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
-                          currency === c ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
+                          currency === c
+                            ? "border-gold bg-gold/10 text-gold"
+                            : "border-border hover:border-gold/40"
                         }`}
                       >
                         {c}
@@ -499,11 +636,18 @@ function ProfilePage() {
                   </div>
                 </Field>
                 <Field label="App Language">
-                  <Select value={form.preferredLang} onValueChange={(v) => setSingleField("preferred_lang", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={form.preferredLang}
+                    onValueChange={(v) => setSingleField("preferred_lang", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {["English", "Kurdish", "Arabic", "Turkish", "Farsi"].map((l) => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                        <SelectItem key={l} value={l}>
+                          {l}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -519,12 +663,18 @@ function ProfilePage() {
                 <div className="rounded-2xl border border-border bg-background/40 p-3 text-center">
                   <Heart className="mx-auto mb-1 h-5 w-5 text-gold" />
                   <p className="font-display text-xl font-bold">{favorites.length}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Saved</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Saved
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-background/40 p-3 text-center">
                   <BarChart3 className="mx-auto mb-1 h-5 w-5 text-gold" />
-                  <p className="font-display text-xl font-bold">{profile.itineraries_generated ?? 0}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Plans</p>
+                  <p className="font-display text-xl font-bold">
+                    {profile.itineraries_generated ?? 0}
+                  </p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Plans
+                  </p>
                 </div>
               </div>
             </section>
@@ -539,7 +689,9 @@ function ProfilePage() {
 
           <div className="space-y-10">
             <div>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Primary Travel Styles</h3>
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Primary Travel Styles
+              </h3>
               <div className="flex flex-wrap gap-3">
                 {STYLES.map((s) => {
                   const active = (profile.travel_styles ?? []).includes(s);
@@ -562,7 +714,9 @@ function ProfilePage() {
 
             <div className="grid gap-10 md:grid-cols-2">
               <div>
-                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Interests</h3>
+                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Interests
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {INTERESTS.map((i) => {
                     const active = (profile.interests ?? []).includes(i);
@@ -571,7 +725,9 @@ function ProfilePage() {
                         key={i}
                         onClick={() => toggleArrayField("interests", i)}
                         className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
-                          active ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
+                          active
+                            ? "border-gold bg-gold/10 text-gold"
+                            : "border-border hover:border-gold/40"
                         }`}
                       >
                         {i}
@@ -582,7 +738,9 @@ function ProfilePage() {
               </div>
 
               <div>
-                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dietary Preferences</h3>
+                <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Dietary Preferences
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {DIETARY.map((d) => {
                     const active = (profile.dietary_preferences ?? []).includes(d);
@@ -591,7 +749,9 @@ function ProfilePage() {
                         key={d}
                         onClick={() => toggleArrayField("dietary_preferences", d)}
                         className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
-                          active ? "border-gold bg-gold/10 text-gold" : "border-border hover:border-gold/40"
+                          active
+                            ? "border-gold bg-gold/10 text-gold"
+                            : "border-border hover:border-gold/40"
                         }`}
                       >
                         {d}
@@ -632,12 +792,18 @@ function ProfilePage() {
         </section>
 
         {/* Saved Hubs */}
-        <section id="saved" className="mt-8 rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+        <section
+          id="saved"
+          className="mt-8 rounded-3xl border border-border bg-card/60 p-6 shadow-luxury"
+        >
           <div className="mb-6 flex items-center justify-between">
             <h2 className="flex items-center gap-2 font-display text-2xl font-bold">
               <Heart className="h-5 w-5 text-gold" /> Saved Hubs
             </h2>
-            <Link to="/" className="text-xs font-semibold uppercase tracking-wider text-gold hover:underline">
+            <Link
+              to="/"
+              className="text-xs font-semibold uppercase tracking-wider text-gold hover:underline"
+            >
               Explore More →
             </Link>
           </div>
@@ -645,13 +811,22 @@ function ProfilePage() {
           {savedLocations.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {savedLocations.map((loc) => (
-                <div key={loc.id} className="group relative overflow-hidden rounded-2xl border border-border bg-background/40 p-3 transition-all hover:border-gold/40">
+                <div
+                  key={loc.id}
+                  className="group relative overflow-hidden rounded-2xl border border-border bg-background/40 p-3 transition-all hover:border-gold/40"
+                >
                   <div className="aspect-[4/3] overflow-hidden rounded-xl">
-                    <img src={loc.image} alt={loc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img
+                      src={loc.image}
+                      alt={loc.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
                   </div>
                   <div className="mt-3">
                     <h4 className="font-display font-bold">{loc.name}</h4>
-                    <p className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">{loc.category} • {loc.area}</p>
+                    <p className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">
+                      {loc.category} • {loc.area}
+                    </p>
                   </div>
                   <button
                     onClick={() => toggleFavorite(loc.id)}
@@ -685,7 +860,15 @@ function ProfilePage() {
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function Field({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -696,22 +879,52 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
   );
 }
 
-function PreferenceSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
+function PreferenceSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
-        <SelectContent>
-          {options.map((o) => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </Label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-xs text-foreground outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold/20"
+          aria-label={label}
+        >
+          <option value="" disabled>
+            Select
+          </option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+          ▾
+        </span>
+      </div>
     </div>
   );
 }
 
 function PwdInput({
-  value, onChange, show, setShow, autoComplete,
+  value,
+  onChange,
+  show,
+  setShow,
+  autoComplete,
 }: {
   value: string;
   onChange: (v: string) => void;
