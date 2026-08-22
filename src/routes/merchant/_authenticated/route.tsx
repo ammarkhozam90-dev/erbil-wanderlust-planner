@@ -72,12 +72,10 @@ function MerchantLayoutContent() {
         <div className="flex w-full">
           <MerchantSidebar />
           <div className="flex flex-1 flex-col">
-            <header className="flex h-14 items-center gap-3 border-b px-4">
-              <SidebarTrigger />
-              <h1 className="font-display text-lg font-semibold">
-                <span className="text-primary">Erbil</span>
-                <span className="text-gold">Go</span> Merchant
-              </h1>
+            <header className="sticky top-0 z-50 flex h-14 items-center border-b border-border/60 bg-background/90 px-4 backdrop-blur">
+              <SidebarTrigger aria-label="Open Merchant Portal" className="h-10 w-full justify-start gap-3 px-2 text-sm font-semibold">
+                <span><span className="text-primary">Erbil</span><span className="text-gold">Go</span> Merchant Portal</span>
+              </SidebarTrigger>
             </header>
             <main className="flex-1 p-6">
               <Outlet />
