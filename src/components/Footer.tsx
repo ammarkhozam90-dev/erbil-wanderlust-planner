@@ -37,7 +37,7 @@ export function Footer() {
           <div>
             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gold">About ErbilGo</h2>
             <nav className="mt-3 grid gap-2.5" aria-label="About links">
-              <Link to="/guide" className="w-fit text-sm text-muted-foreground transition hover:text-foreground">Our local guide</Link>
+              <Link to="/our-guide" className="w-fit text-sm text-muted-foreground transition hover:text-foreground">Our local guide</Link>
               <a href="mailto:hello@erbilgo.app" className="flex w-fit items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><Mail className="h-3.5 w-3.5" /> Contact us</a>
               <a href="mailto:partners@erbilgo.app?subject=Partner%20with%20ErbilGo" className="flex w-fit items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground">Partner with us <ArrowUpRight className="h-3.5 w-3.5" /></a>
             </nav>
