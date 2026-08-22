@@ -58,5 +58,5 @@ export function MapPicker({ lat, lng, onChange }: Props) {
     }
   }, [lat, lng]);
 
-  return <div ref={containerRef} className="h-80 w-full rounded-md border" />;
+  return <div ref={containerRef} className="relative isolate z-0 h-80 w-full overflow-hidden rounded-md border" />;
 }
