@@ -1,16 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Dialog, DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import {
-  STYLES, INTERESTS, DIETARY, COMPANIONS, PACE, BUDGET,
-} from "@/lib/preference-options";
+import { STYLES, INTERESTS, DIETARY, COMPANIONS, PACE, BUDGET } from "@/lib/preference-options";
 
 interface OnboardingWizardProps {
   open: boolean;
@@ -67,7 +63,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 
   function goPlan() {
     onDone();
-    navigate({ to: "/" });
+    navigate({ to: "/plan" });
   }
 
   return (
@@ -78,10 +74,16 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
           <div className="flex items-center gap-3 px-6 pt-6">
             <div className="flex flex-1 gap-1.5">
               {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => (
-                <div key={i} className={cn("h-1 flex-1 rounded-full", i < step ? "bg-gold" : "bg-border")} />
+                <div
+                  key={i}
+                  className={cn("h-1 flex-1 rounded-full", i < step ? "bg-gold" : "bg-border")}
+                />
               ))}
             </div>
-            <button onClick={skipAll} className="text-xs font-medium text-muted-foreground hover:text-foreground">
+            <button
+              onClick={skipAll}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
               Skip all
             </button>
           </div>
@@ -153,10 +155,16 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
                   We'll use this to put together your first perfect day in Erbil.
                 </p>
               </div>
-              <Button onClick={goPlan} className="mt-2 w-full bg-gold text-background hover:bg-gold/90">
+              <Button
+                onClick={goPlan}
+                className="mt-2 w-full bg-gold text-background hover:bg-gold/90"
+              >
                 <Sparkles className="mr-2 h-4 w-4" /> Generate my first plan
               </Button>
-              <button onClick={onDone} className="text-xs text-muted-foreground hover:text-foreground">
+              <button
+                onClick={onDone}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
                 Maybe later
               </button>
             </div>
@@ -167,12 +175,20 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
           <div className="flex items-center justify-between border-t border-border px-6 py-4">
             <button
               onClick={() => setStep((s) => Math.max(1, s - 1))}
-              className={cn("text-xs font-medium text-muted-foreground hover:text-foreground", step === 1 && "invisible")}
+              className={cn(
+                "text-xs font-medium text-muted-foreground hover:text-foreground",
+                step === 1 && "invisible",
+              )}
             >
               Back
             </button>
-            <Button size="sm" onClick={persistAndAdvance} disabled={saving} className="bg-gold text-background hover:bg-gold/90">
-              {saving ? "…" : step === TOTAL_STEPS - 1 ? "Finish" : "Continue"}
+            <Button
+              size="sm"
+              onClick={persistAndAdvance}
+              disabled={saving}
+              className="bg-gold text-background hover:bg-gold/90"
+            >
+              {saving ? "…" : step === TOTAL_STEPS - 1 ? "Generate my plan" : "Continue"}
             </Button>
           </div>
         )}
@@ -184,9 +200,17 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 /* ============================== SHARED STEP UI ============================== */
 
 function StepChips({
-  title, subtitle, options, selected, onToggle,
+  title,
+  subtitle,
+  options,
+  selected,
+  onToggle,
 }: {
-  title: string; subtitle?: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void;
+  title: string;
+  subtitle?: string;
+  options: readonly string[];
+  selected: string[];
+  onToggle: (v: string) => void;
 }) {
   return (
     <div>
@@ -199,7 +223,10 @@ function StepChips({
             <button key={o} type="button" onClick={() => onToggle(o)}>
               <Badge
                 variant={active ? "default" : "outline"}
-                className={cn("cursor-pointer px-3 py-1.5 text-sm", active && "bg-gold text-background hover:bg-gold/90")}
+                className={cn(
+                  "cursor-pointer px-3 py-1.5 text-sm",
+                  active && "bg-gold text-background hover:bg-gold/90",
+                )}
               >
                 {o}
               </Badge>
@@ -212,9 +239,15 @@ function StepChips({
 }
 
 function StepSingleChips({
-  title, options, selected, onSelect,
+  title,
+  options,
+  selected,
+  onSelect,
 }: {
-  title: string; options: readonly string[]; selected: string | null; onSelect: (v: string) => void;
+  title: string;
+  options: readonly string[];
+  selected: string | null;
+  onSelect: (v: string) => void;
 }) {
   return (
     <div>
@@ -226,7 +259,10 @@ function StepSingleChips({
             <button key={o} type="button" onClick={() => onSelect(o)}>
               <Badge
                 variant={active ? "default" : "outline"}
-                className={cn("cursor-pointer px-3 py-1.5 text-sm", active && "bg-gold text-background hover:bg-gold/90")}
+                className={cn(
+                  "cursor-pointer px-3 py-1.5 text-sm",
+                  active && "bg-gold text-background hover:bg-gold/90",
+                )}
               >
                 {o}
               </Badge>
