@@ -40,9 +40,10 @@ function AdminLayout() {
           <Header />
 
           {/* هيدر ثانوي صغير خاص بلوحة الأدمن (زر فتح/طي القائمة، موبايل بس) */}
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur md:hidden">
-            <SidebarTrigger />
-            <span className="text-sm font-semibold">Admin Panel</span>
+          <header className="sticky top-0 z-50 flex h-14 items-center border-b border-border/60 bg-background/90 px-4 backdrop-blur md:hidden">
+            <SidebarTrigger aria-label="Open Admin Panel" className="h-10 w-full justify-start gap-3 px-2 text-sm font-semibold">
+              <span>Admin Panel</span>
+            </SidebarTrigger>
           </header>
 
           <main className="flex-1 p-6">
