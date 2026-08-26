@@ -18,6 +18,12 @@ export interface CategoryDef {
 
 export const CATEGORIES: CategoryDef[] = [
   {
+    slug: "hotels",
+    title: "Hotels",
+    description: "Refined stays, boutique rooms, and trusted hotels in Erbil.",
+    enum: "hotel",
+  },
+  {
     slug: "cafes",
     title: "Cafes",
     description: "Cozy coffee shops and specialty cafes around Erbil.",
