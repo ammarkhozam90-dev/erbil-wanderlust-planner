@@ -435,11 +435,7 @@ function MyBusiness() {
     setHotelProfile((current) => ({ ...current, [key]: value }));
   }
 
-  function updateRoom<K extends keyof RoomType>(
-    roomId: string,
-    key: K,
-    value: RoomType[K],
-  ) {
+  function updateRoom<K extends keyof RoomType>(roomId: string, key: K, value: RoomType[K]) {
     setHotelProfile((current) => ({
       ...current,
       room_types: current.room_types.map((room) =>
@@ -1132,6 +1128,224 @@ function MyBusiness() {
                       These details help travelers understand the stay before they send a booking
                       request. You can leave optional fields blank while the listing is a draft.
                     </p>
+                  </div>
+
+                  <div className="space-y-5 rounded-3xl border border-gold/10 bg-card/30 p-5">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                      <div>
+                        <p className="text-sm font-semibold">Room types</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Add the categories guests can request. Prices and availability are
+                          guidance only until the hotel confirms the inquiry.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addRoom}
+                        className="shrink-0 border-gold/30 bg-transparent text-gold hover:bg-gold/10"
+                      >
+                        <Plus className="mr-2 h-4 w-4" /> Add room type
+                      </Button>
+                    </div>
+
+                    {hotelProfile.room_types.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gold/20 px-5 py-8 text-center">
+                        <p className="text-sm font-medium">No room types added yet</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Start with your most common room category, such as Deluxe King or Family
+                          Suite.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        {hotelProfile.room_types.map((room, index) => (
+                          <div
+                            key={room.id}
+                            className="space-y-5 rounded-2xl border border-gold/10 bg-background/30 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs font-bold uppercase tracking-wider text-gold">
+                                Room type {index + 1}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeRoom(room.id)}
+                                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={`Remove room type ${index + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <div className="grid gap-5 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Room name
+                                </Label>
+                                <Input
+                                  value={room.name}
+                                  onChange={(event) =>
+                                    updateRoom(room.id, "name", event.target.value)
+                                  }
+                                  placeholder="Deluxe King Room"
+                                  className="h-12 border-gold/10 bg-card focus-visible:ring-gold"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Bed configuration
+                                </Label>
+                                <Input
+                                  value={room.bed_type}
+                                  onChange={(event) =>
+                                    updateRoom(room.id, "bed_type", event.target.value)
+                                  }
+                                  placeholder="1 king bed"
+                                  className="h-12 border-gold/10 bg-card focus-visible:ring-gold"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Room description
+                              </Label>
+                              <Textarea
+                                value={room.description}
+                                onChange={(event) =>
+                                  updateRoom(room.id, "description", event.target.value)
+                                }
+                                placeholder="Quiet room with a city view, workspace, and private bathroom."
+                                rows={3}
+                                className="border-gold/10 bg-card focus-visible:ring-gold"
+                              />
+                            </div>
+
+                            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Size (m²)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={room.room_size_sqm ?? ""}
+                                  onChange={(event) =>
+                                    updateRoom(
+                                      room.id,
+                                      "room_size_sqm",
+                                      event.target.value ? Number(event.target.value) : null,
+                                    )
+                                  }
+                                  placeholder="32"
+                                  className="h-12 border-gold/10 bg-card focus-visible:ring-gold"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Max guests
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={room.max_guests}
+                                  onChange={(event) =>
+                                    updateRoom(
+                                      room.id,
+                                      "max_guests",
+                                      Math.max(1, Number(event.target.value) || 1),
+                                    )
+                                  }
+                                  className="h-12 border-gold/10 bg-card focus-visible:ring-gold"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Rooms available
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={room.available_units ?? ""}
+                                  onChange={(event) =>
+                                    updateRoom(
+                                      room.id,
+                                      "available_units",
+                                      event.target.value ? Number(event.target.value) : null,
+                                    )
+                                  }
+                                  placeholder="Optional"
+                                  className="h-12 border-gold/10 bg-card focus-visible:ring-gold"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  From price / night
+                                </Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={room.price_from ?? ""}
+                                    onChange={(event) =>
+                                      updateRoom(
+                                        room.id,
+                                        "price_from",
+                                        event.target.value ? Number(event.target.value) : null,
+                                      )
+                                    }
+                                    placeholder="Optional"
+                                    className="h-12 min-w-0 border-gold/10 bg-card focus-visible:ring-gold"
+                                  />
+                                  <Select
+                                    value={room.currency}
+                                    onValueChange={(value) =>
+                                      updateRoom(room.id, "currency", value)
+                                    }
+                                  >
+                                    <SelectTrigger className="h-12 w-[78px] border-gold/10 bg-card">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="USD">USD</SelectItem>
+                                      <SelectItem value="IQD">IQD</SelectItem>
+                                      <SelectItem value="EUR">EUR</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+
+                            <MultiPick
+                              label="Room amenities"
+                              options={ROOM_AMENITY_OPTIONS}
+                              value={room.amenities}
+                              onChange={(value) => updateRoom(room.id, "amenities", value)}
+                            />
+
+                            <label className="flex items-center justify-between gap-4 rounded-2xl border border-gold/10 bg-card/40 p-4">
+                              <span>
+                                <span className="block text-sm font-semibold">Accessible room</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Mark this category only if it meets the property’s accessibility
+                                  standard.
+                                </span>
+                              </span>
+                              <Switch
+                                checked={room.accessible}
+                                onCheckedChange={(value) =>
+                                  updateRoom(room.id, "accessible", value)
+                                }
+                                className="data-[state=checked]:bg-gold"
+                              />
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-3">
