@@ -16,9 +16,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ErbilGo — AI Day Planner for Erbil, Kurdistan" },
-      { name: "description", content: "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers." },
+      {
+        name: "description",
+        content:
+          "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers.",
+      },
       { property: "og:title", content: "ErbilGo — Plan your perfect day in Erbil" },
-      { property: "og:description", content: "AI-driven luxury travel planner for the heart of Kurdistan." },
+      {
+        property: "og:description",
+        content: "AI-driven luxury travel planner for the heart of Kurdistan.",
+      },
       { property: "og:url", content: "https://erbilgo.app/" },
     ],
     links: [{ rel: "canonical", href: "https://erbilgo.app/" }],
@@ -33,14 +40,15 @@ function fluidSize(px: number) {
 }
 
 const CATEGORY_SLUGS: Record<string, string> = {
-  "Cafés": "cafes",
-  "Restaurants": "restaurants",
+  Hotels: "hotels",
+  Cafés: "cafes",
+  Restaurants: "restaurants",
   "Things to Do": "things-to-do",
-  "Landmarks": "landmarks",
+  Landmarks: "landmarks",
   "Parks & Nature": "parks",
-  "Nightlife": "nightlife",
+  Nightlife: "nightlife",
   "Art & Culture": "art-culture",
-  "Shopping": "shopping",
+  Shopping: "shopping",
 };
 
 const ITINERARIES = [
@@ -50,7 +58,8 @@ const ITINERARIES = [
     story: "A journey through time from the oldest settlement to Islamic heritage.",
     duration: "4-6 Hours",
     stops: 5,
-    image: "https://images.unsplash.com/photo-1628153400283-49141042780e?auto=format&fit=crop&q=80&w=800",
+    image:
+      "https://images.unsplash.com/photo-1628153400283-49141042780e?auto=format&fit=crop&q=80&w=800",
     color: "from-amber-900/90",
   },
   {
@@ -59,7 +68,8 @@ const ITINERARIES = [
     story: "Escape the city to majestic mountains and fresh waterfalls.",
     duration: "8-10 Hours",
     stops: 4,
-    image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&q=80&w=800",
+    image:
+      "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&q=80&w=800",
     color: "from-emerald-900/90",
   },
   {
@@ -68,14 +78,21 @@ const ITINERARIES = [
     story: "Discover the modern, luxury side where tradition meets modernity.",
     duration: "5-7 Hours",
     stops: 4,
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&q=80&w=800",
+    image:
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&q=80&w=800",
     color: "from-blue-900/90",
   },
 ];
 
 const DEFAULT_LAYOUT = {
   align: "left",
-  eyebrow: { runs: [{ text: "Welcome", color: "#D4AF37", fontSize: 12 }, { text: "to", color: "#D4AF37", fontSize: 12 }, { text: "Kurdistan", color: "#D4AF37", fontSize: 12 }] },
+  eyebrow: {
+    runs: [
+      { text: "Welcome", color: "#D4AF37", fontSize: 12 },
+      { text: "to", color: "#D4AF37", fontSize: 12 },
+      { text: "Kurdistan", color: "#D4AF37", fontSize: 12 },
+    ],
+  },
   headline: {
     runs: [
       { text: "EXPLORE", color: "#F5F0E6", fontSize: 46, bold: true },
@@ -84,7 +101,15 @@ const DEFAULT_LAYOUT = {
       { text: "WITHIN", color: "#F5F0E6", fontSize: 46, bold: true },
     ],
   },
-  subheadline: { runs: [{ text: "AI-powered personalized plans for residents, tourists, families, couples and remote workers.", color: "#E5DFD0", fontSize: 16 }] },
+  subheadline: {
+    runs: [
+      {
+        text: "AI-powered personalized plans for residents, tourists, families, couples and remote workers.",
+        color: "#E5DFD0",
+        fontSize: 16,
+      },
+    ],
+  },
   buttons: [
     { label: "Generate My Plan", style: "primary", size: "md" },
     { label: "Surprise Me", style: "secondary", size: "md" },
@@ -112,17 +137,34 @@ function Home() {
     queryKey: ["featured-businesses"],
     queryFn: async () => {
       const fields = "id,name,category,city,address,cover_url,price_level,description,is_sponsored";
-      const sponsoredResult = await supabase.from("merchants").select(fields).eq("status", "approved").order("is_sponsored", { ascending: false }).order("created_at", { ascending: false }).limit(12);
+      const sponsoredResult = await supabase
+        .from("merchants")
+        .select(fields)
+        .eq("status", "approved")
+        .order("is_sponsored", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(12);
 
       if (!sponsoredResult.error) {
         const approved = sponsoredResult.data ?? [];
         const sponsored = approved.filter((business: any) => Boolean(business.is_sponsored));
-        return { items: sponsored.length > 0 ? sponsored : approved.slice(0, 6), sponsored: sponsored.length > 0 };
+        return {
+          items: sponsored.length > 0 ? sponsored : approved.slice(0, 6),
+          sponsored: sponsored.length > 0,
+        };
       }
 
       // Keep the homepage useful if an older database has not received is_sponsored yet.
-      console.warn("[homepage] Sponsored placements unavailable; using approved directory fallback", sponsoredResult.error);
-      const { data: fallback, error: fallbackError } = await supabase.from("merchants").select("id,name,category,city,address,cover_url,price_level,description").eq("status", "approved").order("created_at", { ascending: false }).limit(6);
+      console.warn(
+        "[homepage] Sponsored placements unavailable; using approved directory fallback",
+        sponsoredResult.error,
+      );
+      const { data: fallback, error: fallbackError } = await supabase
+        .from("merchants")
+        .select("id,name,category,city,address,cover_url,price_level,description")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .limit(6);
       if (fallbackError) throw fallbackError;
       return { items: fallback ?? [], sponsored: false };
     },
@@ -132,7 +174,9 @@ function Home() {
   const weather = useQuery({
     queryKey: ["erbil-weather"],
     queryFn: async () => {
-      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=36.19&longitude=44.01&current_weather=true");
+      const res = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=36.19&longitude=44.01&current_weather=true",
+      );
       const json = await res.json();
       return json.current_weather as { temperature: number } | undefined;
     },
@@ -145,7 +189,11 @@ function Home() {
 
   function coverFor(categoryName: string) {
     const custom = covers.data?.find((c) => c.category === categoryName)?.image_url;
-    return custom || LOCATIONS.find((l) => l.category === categoryName)?.image;
+    if (custom) return custom;
+    if (categoryName === "Hotels") {
+      return "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=85&w=1000";
+    }
+    return LOCATIONS.find((l) => l.category === categoryName)?.image;
   }
 
   function renderRuns(runs: any[]) {
@@ -154,7 +202,16 @@ function Home() {
         {runs.map((r, i) => (
           <span key={i} className="contents">
             {r.lineBreak && <span className="basis-full" />}
-            <span style={{ color: r.color, fontSize: fluidSize(r.fontSize), fontWeight: r.bold ? 700 : 400, marginRight: "0.3em" }}>{r.text}</span>
+            <span
+              style={{
+                color: r.color,
+                fontSize: fluidSize(r.fontSize),
+                fontWeight: r.bold ? 700 : 400,
+                marginRight: "0.3em",
+              }}
+            >
+              {r.text}
+            </span>
           </span>
         ))}
       </span>
@@ -167,7 +224,6 @@ function Home() {
 
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-16 lg:space-y-24">
-
           {/* HERO SECTION - LUXURY REDESIGN */}
           <section className="group relative overflow-hidden rounded-[2.5rem] shadow-luxury">
             <img
@@ -180,19 +236,23 @@ function Home() {
 
             {/* Floating Status Badge */}
             <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
-               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
-                 <MapPin className="h-4 w-4 text-gold" /> Erbil
-               </div>
-               <div className="h-4 w-px bg-white/20" />
-               <div className="flex items-center gap-2 text-xs font-bold sm:text-sm">
-                 <Sun className="h-4 w-4 text-yellow-400" />
-                 {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
-               </div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
+                <MapPin className="h-4 w-4 text-gold" /> Erbil
+              </div>
+              <div className="h-4 w-px bg-white/20" />
+              <div className="flex items-center gap-2 text-xs font-bold sm:text-sm">
+                <Sun className="h-4 w-4 text-yellow-400" />
+                {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
+              </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}>
+            <div
+              className={`absolute inset-0 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}
+            >
               <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
-                <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">{renderRuns(layout.eyebrow.runs)}</p>
+                <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">
+                  {renderRuns(layout.eyebrow.runs)}
+                </p>
                 <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
                   {renderRuns(layout.headline.runs)}
                 </h1>
@@ -200,7 +260,9 @@ function Home() {
                   {renderRuns(layout.subheadline.runs)}
                 </div>
 
-                <div className="mx-auto mt-5 w-full max-w-5xl sm:mt-10"><SmartHeroBar /></div>
+                <div className="mx-auto mt-5 w-full max-w-5xl sm:mt-10">
+                  <SmartHeroBar />
+                </div>
               </div>
             </div>
           </section>
@@ -223,7 +285,12 @@ function Home() {
                     alt={it.title}
                     className="h-full w-full object-cover transition duration-1000 group-hover:scale-110"
                   />
-                  <div className={cn("absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-90 transition-opacity group-hover:opacity-100", it.color)} />
+                  <div
+                    className={cn(
+                      "absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-90 transition-opacity group-hover:opacity-100",
+                      it.color,
+                    )}
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
                   <div className="absolute inset-x-0 bottom-0 p-8 space-y-4">
@@ -253,31 +320,60 @@ function Home() {
           </section>
 
           {/* FEATURED BUSINESSES */}
-          {featured.data?.items && featured.data.items.length > 0 && <section className="space-y-8">
-            <SectionHeader title={featured.data.sponsored ? "Sponsored for you" : "Featured for you"} subtitle={featured.data.sponsored ? "Partner places selected for visibility by ErbilGo — always clearly labeled." : "A refined selection from ErbilGo’s approved directory, refreshed for your next day out."} />
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.data.items.map((business: any) => <BusinessCard key={business.id} business={business} sponsored={featured.data?.sponsored === true} />)}</div>
-          </section>}
+          {featured.data?.items && featured.data.items.length > 0 && (
+            <section className="space-y-8">
+              <SectionHeader
+                title={featured.data.sponsored ? "Sponsored for you" : "Featured for you"}
+                subtitle={
+                  featured.data.sponsored
+                    ? "Partner places selected for visibility by ErbilGo — always clearly labeled."
+                    : "A refined selection from ErbilGo’s approved directory, refreshed for your next day out."
+                }
+              />
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {featured.data.items.map((business: any) => (
+                  <BusinessCard
+                    key={business.id}
+                    business={business}
+                    sponsored={featured.data?.sponsored === true}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* SIGNATURE EXPERIENCES - NEW SECTION */}
           <section className="rounded-[3rem] bg-gold/5 border border-gold/10 p-8 md:p-16">
             <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="flex-1 space-y-6">
-                <Badge className="bg-gold text-background font-bold uppercase tracking-widest px-4 py-1.5">Signature Experience</Badge>
-                <h2 className="font-display text-4xl md:text-5xl font-bold leading-tight">The Citadel Sunset Dinner</h2>
-                <p className="text-lg text-muted-foreground leading-relaxed">Experience Erbil's heritage from a private terrace overlooking the 5,000-year-old citadel. A curated 7-course traditional Kurdish feast paired with modern luxury.</p>
+                <Badge className="bg-gold text-background font-bold uppercase tracking-widest px-4 py-1.5">
+                  Signature Experience
+                </Badge>
+                <h2 className="font-display text-4xl md:text-5xl font-bold leading-tight">
+                  The Citadel Sunset Dinner
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  Experience Erbil's heritage from a private terrace overlooking the 5,000-year-old
+                  citadel. A curated 7-course traditional Kurdish feast paired with modern luxury.
+                </p>
                 <div className="flex items-center gap-6 pt-4">
                   <div className="flex flex-col">
                     <span className="text-2xl font-bold text-gold">4.9</span>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Rating</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Rating
+                    </span>
                   </div>
                   <div className="h-10 w-px bg-gold/20" />
                   <div className="flex flex-col">
                     <span className="text-2xl font-bold text-gold">1.2k+</span>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Visitors</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Visitors
+                    </span>
                   </div>
                 </div>
                 <Button className="h-14 px-8 bg-gold text-background font-bold rounded-2xl hover:bg-gold/90 transition-all group">
-                  Book This Experience <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  Book This Experience{" "}
+                  <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
               </div>
               <div className="flex-1 relative">
@@ -302,29 +398,48 @@ function Home() {
                 <Link
                   key={c.name}
                   to="/category/$slug"
-                  params={{ slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-") }}
+                  params={{
+                    slug: CATEGORY_SLUGS[c.name] ?? c.name.toLowerCase().replace(/\s+/g, "-"),
+                  }}
                   className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[2rem] border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block"
                 >
-                  <img src={coverFor(c.name)} alt={c.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+                  <img
+                    src={coverFor(c.name)}
+                    alt={c.name}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute inset-x-0 bottom-0 p-6">
                     <div className="mb-2 h-0.5 w-8 bg-gold transition-all duration-500 group-hover:w-16" />
-                    <p className="font-display text-xl font-bold leading-tight text-white group-hover:text-gold transition-colors">{c.name}</p>
+                    <p className="font-display text-xl font-bold leading-tight text-white group-hover:text-gold transition-colors">
+                      {c.name}
+                    </p>
                   </div>
                 </Link>
               ))}
 
-              <Link to="/tours" className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[2rem] border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block">
-                <img src={covers.data?.find((c) => c.category === "Organized Tours")?.image_url || toursImg} alt="Organized Tours" className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-110" />
+              <Link
+                to="/tours"
+                className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[2rem] border border-border/40 shadow-sm transition-all hover:shadow-luxury hover:border-gold/30 block"
+              >
+                <img
+                  src={
+                    covers.data?.find((c) => c.category === "Organized Tours")?.image_url ||
+                    toursImg
+                  }
+                  alt="Organized Tours"
+                  className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-110"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute inset-x-0 bottom-0 p-6">
                   <div className="mb-2 h-0.5 w-8 bg-gold transition-all duration-500 group-hover:w-16" />
-                  <p className="font-display text-xl font-bold leading-tight text-white group-hover:text-gold transition-colors">Organized Tours</p>
+                  <p className="font-display text-xl font-bold leading-tight text-white group-hover:text-gold transition-colors">
+                    Organized Tours
+                  </p>
                 </div>
               </Link>
             </div>
           </section>
-
         </div>
       </div>
     </div>
@@ -332,7 +447,54 @@ function Home() {
 }
 
 function BusinessCard({ business, sponsored = false }: { business: any; sponsored?: boolean }) {
-  return <Link to="/business/$id" params={{ id: business.id }} className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-gold/30 hover:shadow-luxury"><div className="relative aspect-[16/10] overflow-hidden bg-muted">{business.cover_url ? <img src={business.cover_url} alt={business.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-muted-foreground">ErbilGo</div>}<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />{sponsored && <Badge className="absolute left-3 top-3 border border-white/20 bg-black/35 text-white backdrop-blur-md">Sponsored</Badge>}<FavoriteButton merchantId={business.id} className="absolute right-3 top-3" /><div className="absolute bottom-3 left-4 right-4"><h3 className="font-display text-xl font-bold text-white">{business.name}</h3><p className="mt-1 text-xs capitalize text-white/75">{business.category}{business.city ? ` · ${business.city}` : ''}</p></div></div><div className="p-4"><div className="flex items-center justify-between gap-3"><Badge variant="outline" className="capitalize">{business.category}</Badge>{business.price_level && <span className="text-xs text-muted-foreground">{business.price_level}</span>}</div>{business.address && <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{business.address}</p>}</div></Link>;
+  return (
+    <Link
+      to="/business/$id"
+      params={{ id: business.id }}
+      className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-gold/30 hover:shadow-luxury"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+        {business.cover_url ? (
+          <img
+            src={business.cover_url}
+            alt={business.name}
+            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            ErbilGo
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+        {sponsored && (
+          <Badge className="absolute left-3 top-3 border border-white/20 bg-black/35 text-white backdrop-blur-md">
+            Sponsored
+          </Badge>
+        )}
+        <FavoriteButton merchantId={business.id} className="absolute right-3 top-3" />
+        <div className="absolute bottom-3 left-4 right-4">
+          <h3 className="font-display text-xl font-bold text-white">{business.name}</h3>
+          <p className="mt-1 text-xs capitalize text-white/75">
+            {business.category}
+            {business.city ? ` · ${business.city}` : ""}
+          </p>
+        </div>
+      </div>
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <Badge variant="outline" className="capitalize">
+            {business.category}
+          </Badge>
+          {business.price_level && (
+            <span className="text-xs text-muted-foreground">{business.price_level}</span>
+          )}
+        </div>
+        {business.address && (
+          <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{business.address}</p>
+        )}
+      </div>
+    </Link>
+  );
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
