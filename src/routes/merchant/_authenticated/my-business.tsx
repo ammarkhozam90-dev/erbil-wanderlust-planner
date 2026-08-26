@@ -152,6 +152,15 @@ const HOTEL_STEP = {
   description: "Tell travelers what to expect from their stay",
 } as const;
 
+type RoomPhoto = {
+  id: string;
+  merchant_id: string;
+  room_type_id: string;
+  url: string;
+  storage_path: string;
+  sort_order: number;
+};
+
 type RoomType = {
   id: string;
   name: string;
@@ -352,6 +361,21 @@ function MyBusiness() {
     },
   });
 
+  const roomPhotosQ = useQuery({
+    queryKey: ["hotel-room-photos", m?.id],
+    enabled: Boolean(m?.id && isHotel),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hotel_room_photos" as any)
+        .select("*")
+        .eq("merchant_id", m!.id)
+        .order("sort_order")
+        .order("created_at");
+      if (error) throw error;
+      return (data ?? []) as RoomPhoto[];
+    },
+  });
+
   const hoursQ = useQuery({
     queryKey: ["merchant-hours", m?.id],
     enabled: !!m?.id,
@@ -525,7 +549,7 @@ function MyBusiness() {
       const { error: hotelError } = await supabase.from("hotel_profiles" as any).upsert(
         {
           ...hotelProfile,
-          room_types: hotelProfile.room_types.map(({ id: _id, ...room }) => room),
+          room_types: hotelProfile.room_types,
           merchant_id: form.id,
         },
         { onConflict: "merchant_id" },
@@ -574,6 +598,62 @@ function MyBusiness() {
       }
     }
     toast.success("Uploaded");
+  }
+
+  async function uploadRoomPhotos(roomTypeId: string, files: FileList | null) {
+    if (!files?.length || !m?.id || !user?.id) return;
+    const selectedFiles = Array.from(files);
+    const existingCount =
+      roomPhotosQ.data?.filter((photo) => photo.room_type_id === roomTypeId).length ?? 0;
+
+    try {
+      const rows: Omit<RoomPhoto, "id">[] = [];
+      for (const [index, file] of selectedFiles.entries()) {
+        let toUpload: Blob;
+        try {
+          toUpload = await compressImage(file, { maxSizeKB: 350, maxDimension: 1800 });
+        } catch {
+          toUpload = file;
+        }
+        const path = `${user.id}/${m.id}/rooms/${roomTypeId}/${Date.now()}-${index}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("merchant-media")
+          .upload(path, toUpload, { contentType: "image/jpeg", upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: publicUrl } = supabase.storage.from("merchant-media").getPublicUrl(path);
+        rows.push({
+          merchant_id: m.id,
+          room_type_id: roomTypeId,
+          url: publicUrl.publicUrl,
+          storage_path: path,
+          sort_order: existingCount + index,
+        });
+      }
+
+      const { error: insertError } = await supabase.from("hotel_room_photos" as any).insert(rows);
+      if (insertError) throw insertError;
+      await qc.invalidateQueries({ queryKey: ["hotel-room-photos", m.id] });
+      toast.success(`${rows.length} room photo${rows.length === 1 ? "" : "s"} uploaded`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Could not upload room photos.");
+    }
+  }
+
+  async function deleteRoomPhoto(photo: RoomPhoto) {
+    try {
+      const { error } = await supabase
+        .from("hotel_room_photos" as any)
+        .delete()
+        .eq("id", photo.id);
+      if (error) throw error;
+      if (photo.storage_path) {
+        await supabase.storage.from("merchant-media").remove([photo.storage_path]);
+      }
+      await qc.invalidateQueries({ queryKey: ["hotel-room-photos", m?.id] });
+      toast.success("Room photo removed");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Could not remove room photo.");
+    }
   }
 
   async function uploadVerificationProof(file: File) {
@@ -1325,6 +1405,62 @@ function MyBusiness() {
                               value={room.amenities}
                               onChange={(value) => updateRoom(room.id, "amenities", value)}
                             />
+
+                            <div className="space-y-3 rounded-2xl border border-dashed border-gold/20 bg-card/20 p-4">
+                              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                                <div>
+                                  <p className="text-sm font-semibold">Room gallery</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    Upload multiple photos of this room. JPG, PNG, or WebP up to 5
+                                    MB each.
+                                  </p>
+                                </div>
+                                <label
+                                  htmlFor={`room-photo-${room.id}`}
+                                  className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-gold/30 px-4 text-xs font-bold text-gold transition hover:bg-gold/10"
+                                >
+                                  <Upload className="mr-2 h-4 w-4" /> Add photos
+                                </label>
+                                <input
+                                  id={`room-photo-${room.id}`}
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  multiple
+                                  className="sr-only"
+                                  onChange={(event) => {
+                                    void uploadRoomPhotos(room.id, event.target.files);
+                                    event.currentTarget.value = "";
+                                  }}
+                                />
+                              </div>
+                              {(roomPhotosQ.data?.filter((photo) => photo.room_type_id === room.id)
+                                .length ?? 0) > 0 && (
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                  {roomPhotosQ.data
+                                    ?.filter((photo) => photo.room_type_id === room.id)
+                                    .map((photo) => (
+                                      <div
+                                        key={photo.id}
+                                        className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-gold/10 bg-muted"
+                                      >
+                                        <img
+                                          src={photo.url}
+                                          alt={`${room.name || "Room"} gallery`}
+                                          className="h-full w-full object-cover"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => void deleteRoomPhoto(photo)}
+                                          className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white opacity-100 transition hover:bg-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                                          aria-label="Remove room photo"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
 
                             <label className="flex items-center justify-between gap-4 rounded-2xl border border-gold/10 bg-card/40 p-4">
                               <span>
