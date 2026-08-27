@@ -26,7 +26,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="mx-auto hidden items-center gap-8 md:flex">
+        <nav className="absolute left-1/2 hidden h-16 -translate-x-1/2 items-center gap-8 md:flex">
           {navItems.map((item) => {
             const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
             return (
