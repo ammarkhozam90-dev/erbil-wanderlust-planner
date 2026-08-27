@@ -51,7 +51,7 @@ export function SmartHeroBar() {
   }
 
   return (
-    <div className="relative z-20 w-full max-w-5xl rounded-2xl border border-white/15 bg-black/55 p-2 shadow-2xl backdrop-blur-2xl md:rounded-3xl md:p-3">
+    <div className="relative z-[100] w-full max-w-5xl rounded-2xl border border-white/15 bg-black/55 p-2 shadow-2xl backdrop-blur-2xl md:rounded-3xl md:p-3">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1">
           <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 md:px-4 md:py-3">
@@ -68,7 +68,7 @@ export function SmartHeroBar() {
             <Search className="hidden h-4 w-4 text-white/40 sm:block" />
           </div>
           {focused && term.trim().length >= 1 && (
-            <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-gold/20 bg-card/95 p-2 shadow-2xl backdrop-blur-xl">
+            <div className="absolute left-0 right-0 top-full z-[200] mt-2 overflow-hidden rounded-2xl border border-gold/20 bg-card/95 p-2 shadow-2xl backdrop-blur-xl">
               {suggestions.isLoading ? (
                 <p className="px-3 py-3 text-xs text-muted-foreground">Finding places…</p>
               ) : suggestions.data?.length ? (
