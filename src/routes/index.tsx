@@ -225,14 +225,14 @@ function Home() {
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-16 lg:space-y-24">
           {/* HERO SECTION - LUXURY REDESIGN */}
-          <section className="group relative overflow-hidden rounded-[2.5rem] shadow-luxury">
+          <section className="group relative overflow-visible rounded-[2.5rem] shadow-luxury">
             <img
               src={heroImg}
               alt="Erbil Citadel at sunset"
-              className="aspect-[4/5] w-full object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
+              className="aspect-[4/5] w-full rounded-[2.5rem] object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
             {/* Floating Status Badge */}
             <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
