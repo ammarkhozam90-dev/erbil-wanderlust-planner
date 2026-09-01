@@ -229,7 +229,7 @@ function Home() {
             <img
               src={heroImg}
               alt="Erbil Citadel at sunset"
-              className="aspect-[4/5] w-full rounded-[2.5rem] object-cover object-center transition-transform duration-[3s] group-hover:scale-105 sm:aspect-[4/3] md:aspect-[1920/750]"
+              className="aspect-[4/5] w-full rounded-[2.5rem] object-cover object-center sm:aspect-[4/3] md:aspect-[1920/750]"
             />
             <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
             <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-t from-black/60 via-transparent to-transparent" />
