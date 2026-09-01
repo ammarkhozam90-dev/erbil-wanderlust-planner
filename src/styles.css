@@ -92,6 +92,29 @@
   z-index: 1 !important;
 }
 
+@keyframes hero-drift {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.035) translate3d(-0.35%, -0.25%, 0);
+  }
+}
+
+.hero-image-motion {
+  animation: hero-drift 18s ease-in-out infinite alternate;
+  clip-path: inset(0 round 2.5rem);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-image-motion {
+    animation: none;
+    transform: none;
+  }
+}
+
 @layer utilities {
   .text-gold { color: var(--gold); }
   .bg-gold { background-color: var(--gold); }
