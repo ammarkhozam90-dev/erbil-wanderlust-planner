@@ -225,43 +225,47 @@ function Home() {
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-16 lg:space-y-24">
           {/* HERO SECTION - LUXURY REDESIGN */}
-          <section className="group relative overflow-visible rounded-[2.5rem] shadow-luxury">
-            <img
-              src={heroImg}
-              alt="Erbil Citadel at sunset"
-              className="hero-image-motion aspect-[4/5] w-full rounded-[2.5rem] object-cover object-center sm:aspect-[4/3] md:aspect-[1920/750]"
-            />
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-            {/* Floating Status Badge */}
-            <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
-                <MapPin className="h-4 w-4 text-gold" /> Erbil
-              </div>
-              <div className="h-4 w-px bg-white/20" />
-              <div className="flex items-center gap-2 text-xs font-bold sm:text-sm">
-                <Sun className="h-4 w-4 text-yellow-400" />
-                {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
-              </div>
+          <section className="group relative isolate overflow-visible rounded-[2.5rem] shadow-luxury">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2.5rem]">
+              <img
+                src={heroImg}
+                alt="Erbil Citadel at sunset"
+                className="hero-image-motion h-full w-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
 
-            <div
-              className={`absolute inset-0 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}
-            >
-              <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
-                <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">
-                  {renderRuns(layout.eyebrow.runs)}
-                </p>
-                <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
-                  {renderRuns(layout.headline.runs)}
-                </h1>
-                <div className="mx-auto mt-3 max-w-xl px-2 text-sm opacity-90 sm:mt-6 sm:px-0 sm:text-lg">
-                  {renderRuns(layout.subheadline.runs)}
+            <div className="relative z-10 aspect-[4/5] sm:aspect-[4/3] md:aspect-[1920/750]">
+              {/* Floating Status Badge */}
+              <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
+                  <MapPin className="h-4 w-4 text-gold" /> Erbil
                 </div>
+                <div className="h-4 w-px bg-white/20" />
+                <div className="flex items-center gap-2 text-xs font-bold sm:text-sm">
+                  <Sun className="h-4 w-4 text-yellow-400" />
+                  {weather.data ? `${Math.round(weather.data.temperature)}°C` : "…"}
+                </div>
+              </div>
 
-                <div className="mx-auto mt-5 w-full max-w-5xl sm:mt-10">
-                  <SmartHeroBar />
+              <div
+                className={`absolute inset-0 z-20 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}
+              >
+                <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
+                  <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">
+                    {renderRuns(layout.eyebrow.runs)}
+                  </p>
+                  <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
+                    {renderRuns(layout.headline.runs)}
+                  </h1>
+                  <div className="mx-auto mt-3 max-w-xl px-2 text-sm opacity-90 sm:mt-6 sm:px-0 sm:text-lg">
+                    {renderRuns(layout.subheadline.runs)}
+                  </div>
+
+                  <div className="relative z-[100] mx-auto mt-5 w-full max-w-5xl sm:mt-10">
+                    <SmartHeroBar />
+                  </div>
                 </div>
               </div>
             </div>
