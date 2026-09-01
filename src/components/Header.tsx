@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { ChevronDown, Heart } from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -14,6 +15,7 @@ const navItems = [
 
 export function Header() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl">
@@ -92,23 +94,36 @@ export function Header() {
             {item.label}
           </Link>
         ))}
-        <details className="relative shrink-0">
-          <summary className="flex cursor-pointer list-none items-center gap-1 whitespace-nowrap text-xs font-medium text-muted-foreground marker:hidden">
-            Categories <ChevronDown className="h-3 w-3" />
-          </summary>
-          <div className="absolute right-0 top-7 z-50 w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl">
-            {CATEGORIES.map((category) => (
-              <Link
-                key={category.slug}
-                to="/category/$slug"
-                params={{ slug: category.slug }}
-                className={`block rounded-xl px-3 py-2.5 text-left text-xs transition-colors hover:bg-gold/10 hover:text-gold ${pathname === `/category/${category.slug}` ? "bg-gold/10 text-gold" : "text-muted-foreground"}`}
-              >
-                {category.title}
-              </Link>
-            ))}
-          </div>
-        </details>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileCategoriesOpen((open) => !open)}
+            className={`flex items-center gap-1 whitespace-nowrap text-xs font-medium transition-colors ${pathname.startsWith("/category/") ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            aria-expanded={mobileCategoriesOpen}
+            aria-haspopup="menu"
+          >
+            Categories
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${mobileCategoriesOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {mobileCategoriesOpen && (
+            <div className="absolute right-0 top-7 z-[100] w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl">
+              {CATEGORIES.map((category) => (
+                <Link
+                  key={category.slug}
+                  to="/category/$slug"
+                  params={{ slug: category.slug }}
+                  onClick={() => setMobileCategoriesOpen(false)}
+                  className={`block rounded-xl px-3 py-2.5 text-left text-xs transition-colors hover:bg-gold/10 hover:text-gold ${pathname === `/category/${category.slug}` ? "bg-gold/10 text-gold" : "text-muted-foreground"}`}
+                  role="menuitem"
+                >
+                  {category.title}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
     </header>
   );
