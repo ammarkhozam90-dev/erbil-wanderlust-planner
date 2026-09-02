@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Download, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/compress-image";
 
 export const Route = createFileRoute("/admin/import")({ component: BulkImport });
 
@@ -16,6 +17,9 @@ const PRICE_LEVELS = ["$", "$$", "$$$", "$$$$"];
 interface Row {
   raw: Record<string, string>;
   errors: string[];
+  mode?: "new" | "update";
+  existingId?: string;
+  missingFields?: string[];
 }
 
 type MediaKind = "logo" | "cover" | "gallery";
@@ -89,6 +93,47 @@ function parseJsonArray(v: string | undefined): unknown[] {
 
 function parseBoolean(v: string | undefined): boolean {
   return ["true", "1", "yes", "y"].includes((v ?? "").trim().toLowerCase());
+}
+
+function normalizeBusinessName(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\\s+/g, " ")
+    .toLocaleLowerCase();
+}
+
+function isMissingValue(value: unknown): boolean {
+  return value == null || (typeof value === "string" && value.trim() === "") || (Array.isArray(value) && value.length === 0);
+}
+
+function merchantPayload(r: Record<string, string>) {
+  return {
+    description: r.description || null,
+    phone: r.phone || null,
+    email: r.email || null,
+    website: r.website || null,
+    address: r.address || null,
+    city: r.city || null,
+    latitude: r.latitude ? Number(r.latitude) : null,
+    longitude: r.longitude ? Number(r.longitude) : null,
+    instagram: r.instagram || null,
+    facebook: r.facebook || null,
+    tiktok: r.tiktok || null,
+    whatsapp: r.whatsapp || null,
+    mood_tags: splitList(r.mood_tags),
+    best_visit_time: splitList(r.best_visit_time),
+    avg_duration_minutes: r.avg_duration_minutes ? Number(r.avg_duration_minutes) : null,
+    price_level: r.price_level || null,
+    suitability: splitList(r.suitability),
+    transportation: splitList(r.transportation),
+    features: splitList(r.features),
+    dietary_options: splitList(r.dietary_options),
+  };
+}
+
+function missingMerchantFields(existing: Record<string, unknown>, candidate: Record<string, unknown>): string[] {
+  return Object.keys(candidate).filter((field) => !isMissingValue(candidate[field]) && isMissingValue(existing[field]));
 }
 
 function validateRow(r: Record<string, string>): string[] {
