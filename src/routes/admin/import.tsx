@@ -99,12 +99,33 @@ function normalizeBusinessName(value: unknown): string {
   return String(value ?? "")
     .normalize("NFKC")
     .trim()
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .toLocaleLowerCase();
 }
 
 function isMissingValue(value: unknown): boolean {
-  return value == null || (typeof value === "string" && value.trim() === "") || (Array.isArray(value) && value.length === 0);
+  return (
+    value == null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+async function loadAllBusinesses() {
+  const businesses: Record<string, unknown>[] = [];
+  const pageSize = 1000;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("merchants")
+      .select("*")
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    businesses.push(...((data ?? []) as Record<string, unknown>[]));
+    if (!data || data.length < pageSize) return businesses;
+    from += pageSize;
+  }
 }
 
 function merchantPayload(r: Record<string, string>) {
@@ -132,8 +153,13 @@ function merchantPayload(r: Record<string, string>) {
   };
 }
 
-function missingMerchantFields(existing: Record<string, unknown>, candidate: Record<string, unknown>): string[] {
-  return Object.keys(candidate).filter((field) => !isMissingValue(candidate[field]) && isMissingValue(existing[field]));
+function missingMerchantFields(
+  existing: Record<string, unknown>,
+  candidate: Record<string, unknown>,
+): string[] {
+  return Object.keys(candidate).filter(
+    (field) => !isMissingValue(candidate[field]) && isMissingValue(existing[field]),
+  );
 }
 
 function validateRow(r: Record<string, string>): string[] {
@@ -206,7 +232,12 @@ function BulkImport() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ ok: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+  } | null>(null);
   const [mediaImporting, setMediaImporting] = useState(false);
   const [mediaResult, setMediaResult] = useState<{ ok: number; failed: number } | null>(null);
 
@@ -216,9 +247,26 @@ function BulkImport() {
     setFileName(file.name);
     setResult(null);
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const { rows: parsed } = parseCsv(String(reader.result));
-      setRows(parsed.map((raw) => ({ raw, errors: validateRow(raw) })));
+      const existingBusinesses = await loadAllBusinesses();
+      const byName = new Map(
+        existingBusinesses.map((business) => [normalizeBusinessName(business.name), business]),
+      );
+      setRows(
+        parsed.map((raw) => {
+          const errors = validateRow(raw);
+          const existing = byName.get(normalizeBusinessName(raw.name));
+          const candidate = merchantPayload(raw) as Record<string, unknown>;
+          return {
+            raw,
+            errors,
+            mode: existing ? "update" : "new",
+            existingId: existing ? String(existing.id) : undefined,
+            missingFields: existing ? missingMerchantFields(existing, candidate) : undefined,
+          };
+        }),
+      );
     };
     reader.readAsText(file);
     e.target.value = "";
@@ -328,87 +376,176 @@ function BulkImport() {
 
   async function runImport() {
     setImporting(true);
-    let ok = 0,
-      failed = 0;
-    const { data: u } = await supabase.auth.getUser();
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    let failed = 0;
 
-    for (const row of rows) {
-      if (row.errors.length > 0) {
-        failed++;
-        continue;
-      }
-      const r = row.raw;
-      const { data: inserted, error } = await supabase
-        .from("merchants")
-        .insert({
-          owner_id: null,
-          claim_status: "unclaimed",
-          status: "approved",
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: u.user?.id,
-          name: r.name,
-          category: r.category,
-          categories: [r.category],
-          description: r.description || null,
-          phone: r.phone || null,
-          email: r.email || null,
-          website: r.website || null,
-          address: r.address || null,
-          city: r.city || null,
-          latitude: r.latitude ? Number(r.latitude) : null,
-          longitude: r.longitude ? Number(r.longitude) : null,
-          instagram: r.instagram || null,
-          facebook: r.facebook || null,
-          tiktok: r.tiktok || null,
-          whatsapp: r.whatsapp || null,
-          mood_tags: splitList(r.mood_tags),
-          best_visit_time: splitList(r.best_visit_time),
-          avg_duration_minutes: r.avg_duration_minutes ? Number(r.avg_duration_minutes) : null,
-          price_level: r.price_level || null,
-          suitability: splitList(r.suitability),
-          transportation: splitList(r.transportation),
-          features: splitList(r.features),
-          dietary_options: splitList(r.dietary_options),
-        } as any)
-        .select("id")
-        .single();
-      if (error || !inserted) {
-        failed++;
-        continue;
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const existingBusinesses = await loadAllBusinesses();
+
+      const byName = new Map<string, Record<string, unknown>>();
+      for (const business of existingBusinesses ?? []) {
+        const key = normalizeBusinessName(business.name);
+        if (key && !byName.has(key)) byName.set(key, business as Record<string, unknown>);
       }
 
-      if (r.category.trim() === "hotel") {
-        const { error: hotelError } = await supabase.from("hotel_profiles" as any).upsert(
-          {
-            merchant_id: inserted.id,
-            star_rating: r.hotel_star_rating ? Number(r.hotel_star_rating) : null,
-            check_in_time: r.hotel_check_in_time || null,
-            check_out_time: r.hotel_check_out_time || null,
-            amenities: splitList(r.hotel_amenities),
-            breakfast_available: parseBoolean(r.breakfast_available),
-            airport_transfer_available: parseBoolean(r.airport_transfer_available),
-            parking_available: parseBoolean(r.parking_available),
-            cancellation_policy: r.cancellation_policy || null,
-            affiliate_booking_url: r.affiliate_booking_url || null,
-            whatsapp_booking_enabled: parseBoolean(r.whatsapp_booking_enabled),
-            room_types: parseJsonArray(r.room_types_json),
-          },
-          { onConflict: "merchant_id" },
-        );
-        if (hotelError) {
-          await supabase.from("merchants").delete().eq("id", inserted.id);
+      const hotelIds = (existingBusinesses ?? [])
+        .filter((business) => normalizeBusinessName(business.category) === "hotel")
+        .map((business) => business.id);
+      const hotelProfilesByMerchant = new Map<string, Record<string, unknown>>();
+      if (hotelIds.length > 0) {
+        const { data: profiles, error: profileError } = await supabase
+          .from("hotel_profiles" as any)
+          .select("*")
+          .in("merchant_id", hotelIds);
+        if (profileError) throw profileError;
+        for (const profile of profiles ?? []) {
+          hotelProfilesByMerchant.set(profile.merchant_id, profile as Record<string, unknown>);
+        }
+      }
+
+      for (const row of rows) {
+        if (row.errors.length > 0) {
           failed++;
           continue;
         }
-      }
-      ok++;
-    }
 
-    setImporting(false);
-    setResult({ ok, failed });
-    qc.invalidateQueries({ queryKey: ["admin-businesses"] });
-    if (ok > 0) toast.success(`Imported ${ok} listing(s)`);
-    if (failed > 0) toast.error(`${failed} row(s) failed`);
+        const r = row.raw;
+        const key = normalizeBusinessName(r.name);
+        const existing = byName.get(key);
+        const candidate = merchantPayload(r) as Record<string, unknown>;
+
+        if (existing) {
+          const updates = Object.fromEntries(
+            missingMerchantFields(existing, candidate).map((field) => [field, candidate[field]]),
+          );
+          if (Object.keys(updates).length > 0) {
+            const { error: updateError } = await supabase
+              .from("merchants")
+              .update(updates as never)
+              .eq("id", String(existing.id));
+            if (updateError) {
+              failed++;
+              continue;
+            }
+            updated++;
+          } else {
+            skipped++;
+          }
+
+          if (r.category.trim() === "hotel") {
+            const existingProfile = hotelProfilesByMerchant.get(String(existing.id));
+            const hotelCandidate = {
+              star_rating: r.hotel_star_rating ? Number(r.hotel_star_rating) : null,
+              check_in_time: r.hotel_check_in_time || null,
+              check_out_time: r.hotel_check_out_time || null,
+              amenities: splitList(r.hotel_amenities),
+              breakfast_available: r.breakfast_available
+                ? parseBoolean(r.breakfast_available)
+                : null,
+              airport_transfer_available: r.airport_transfer_available
+                ? parseBoolean(r.airport_transfer_available)
+                : null,
+              parking_available: r.parking_available ? parseBoolean(r.parking_available) : null,
+              cancellation_policy: r.cancellation_policy || null,
+              affiliate_booking_url: r.affiliate_booking_url || null,
+              whatsapp_booking_enabled: r.whatsapp_booking_enabled
+                ? parseBoolean(r.whatsapp_booking_enabled)
+                : null,
+              room_types: parseJsonArray(r.room_types_json),
+            };
+            const hotelUpdates = existingProfile
+              ? Object.fromEntries(
+                  missingMerchantFields(
+                    existingProfile,
+                    hotelCandidate as Record<string, unknown>,
+                  ).map((field) => [field, hotelCandidate[field as keyof typeof hotelCandidate]]),
+                )
+              : hotelCandidate;
+            if (Object.keys(hotelUpdates).length > 0) {
+              const { error: hotelError } = await supabase
+                .from("hotel_profiles" as any)
+                .upsert(
+                  { merchant_id: existing.id, ...hotelUpdates },
+                  { onConflict: "merchant_id" },
+                );
+              if (hotelError) {
+                failed++;
+                continue;
+              }
+            }
+          }
+          continue;
+        }
+
+        const { data: inserted, error } = await supabase
+          .from("merchants")
+          .insert({
+            owner_id: null,
+            claim_status: "unclaimed",
+            status: "approved",
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: u.user?.id,
+            name: r.name,
+            category: r.category,
+            categories: [r.category],
+            ...candidate,
+          } as never)
+          .select("id, name, category")
+          .single();
+        if (error || !inserted) {
+          failed++;
+          continue;
+        }
+
+        const insertedRecord = inserted as Record<string, unknown>;
+        byName.set(key, insertedRecord);
+        if (r.category.trim() === "hotel") {
+          const { error: hotelError } = await supabase.from("hotel_profiles" as any).upsert(
+            {
+              merchant_id: inserted.id,
+              star_rating: r.hotel_star_rating ? Number(r.hotel_star_rating) : null,
+              check_in_time: r.hotel_check_in_time || null,
+              check_out_time: r.hotel_check_out_time || null,
+              amenities: splitList(r.hotel_amenities),
+              breakfast_available: parseBoolean(r.breakfast_available),
+              airport_transfer_available: parseBoolean(r.airport_transfer_available),
+              parking_available: parseBoolean(r.parking_available),
+              cancellation_policy: r.cancellation_policy || null,
+              affiliate_booking_url: r.affiliate_booking_url || null,
+              whatsapp_booking_enabled: parseBoolean(r.whatsapp_booking_enabled),
+              room_types: parseJsonArray(r.room_types_json),
+            },
+            { onConflict: "merchant_id" },
+          );
+          if (hotelError) {
+            await supabase.from("merchants").delete().eq("id", inserted.id);
+            failed++;
+            continue;
+          }
+        }
+        created++;
+      }
+
+      setResult({ created, updated, skipped, failed });
+      qc.invalidateQueries({ queryKey: ["admin-businesses"] });
+      if (created > 0) toast.success(`Created ${created} new listing${created === 1 ? "" : "s"}`);
+      if (updated > 0)
+        toast.success(
+          `Filled missing data in ${updated} existing listing${updated === 1 ? "" : "s"}`,
+        );
+      if (skipped > 0)
+        toast(
+          `Skipped ${skipped} existing listing${skipped === 1 ? "" : "s"} with no missing data`,
+        );
+      if (failed > 0) toast.error(`${failed} row${failed === 1 ? "" : "s"} failed`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Could not import businesses.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -543,11 +680,19 @@ function BulkImport() {
                     {rows.map((r, i) => (
                       <tr key={i} className="border-t border-border">
                         <td className="p-2">
-                          {r.errors.length === 0 ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          ) : (
+                          {r.errors.length > 0 ? (
                             <span className="flex items-center gap-1 text-destructive">
                               <AlertCircle className="h-4 w-4" /> {r.errors.join("; ")}
+                            </span>
+                          ) : r.mode === "update" ? (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <AlertCircle className="h-4 w-4" />
+                              Existing — fills {r.missingFields?.length ?? 0} missing field
+                              {r.missingFields?.length === 1 ? "" : "s"} only
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle2 className="h-4 w-4" /> New listing
                             </span>
                           )}
                         </td>
@@ -566,9 +711,18 @@ function BulkImport() {
               </Button>
 
               {result && (
-                <p className="text-sm text-muted-foreground">
-                  Done — {result.ok} imported, {result.failed} failed.
-                </p>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>
+                    Completed — {result.created} created, {result.updated} updated with missing
+                    data, {result.skipped} existing rows skipped, {result.failed} failed.
+                  </p>
+                  {result.skipped > 0 && (
+                    <p className="text-amber-600">
+                      Existing businesses were not duplicated. Only empty fields were eligible for
+                      updates.
+                    </p>
+                  )}
+                </div>
               )}
             </>
           )}
