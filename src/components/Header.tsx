@@ -84,7 +84,7 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="flex items-center justify-center gap-6 overflow-x-auto border-t border-border/40 px-4 py-2 md:hidden">
+      <nav className="relative z-[100] flex flex-wrap items-center justify-center gap-x-6 gap-y-2 overflow-visible border-t border-border/40 px-4 py-2 md:hidden">
         {navItems.map((item) => (
           <Link
             key={item.to}
@@ -108,7 +108,7 @@ export function Header() {
             />
           </button>
           {mobileCategoriesOpen && (
-            <div className="absolute right-0 top-7 z-[100] w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl">
+            <div className="absolute right-1 top-full z-[200] mt-2 w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl">
               {CATEGORIES.map((category) => (
                 <Link
                   key={category.slug}
