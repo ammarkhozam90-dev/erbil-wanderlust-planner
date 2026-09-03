@@ -634,7 +634,9 @@ function BulkImport() {
                 accept="image/*"
                 multiple
                 className="hidden"
-                onClick={(event) => event.currentTarget.setAttribute("webkitdirectory", "")}
+                ref={(node) => {
+                  node?.setAttribute("webkitdirectory", "");
+                }}
                 onChange={onMediaFiles}
               />
             </label>
