@@ -212,13 +212,23 @@ function mediaClassification(file: File): { businessKey: string; kind: MediaKind
   const fileName = parts[parts.length - 1] ?? file.name;
   const stem = fileName.replace(/\.[^.]+$/, "");
   const pathWithoutFile = parts.slice(0, -1);
-  const folderKind = pathWithoutFile[pathWithoutFile.length - 1]?.toLowerCase();
-  const folderBusiness = pathWithoutFile.find(
-    (part) => !["gallery", "photos"].includes(part.toLowerCase()),
-  );
+  const mediaFolderIndex = pathWithoutFile.map((part) => part.toLowerCase()).lastIndexOf("logo");
+  const coverFolderIndex = pathWithoutFile.map((part) => part.toLowerCase()).lastIndexOf("cover");
+  const galleryFolderIndex = pathWithoutFile
+    .map((part) => part.toLowerCase())
+    .lastIndexOf("gallery");
+  const candidates = [
+    { index: mediaFolderIndex, kind: "logo" as const },
+    { index: coverFolderIndex, kind: "cover" as const },
+    { index: galleryFolderIndex, kind: "gallery" as const },
+  ].filter(({ index }) => index > 0);
+  const matched = candidates.sort((a, b) => b.index - a.index)[0];
 
-  if (["logo", "cover", "gallery"].includes(folderKind ?? "") && folderBusiness) {
-    return { businessKey: folderBusiness.trim(), kind: folderKind as MediaKind };
+  if (matched) {
+    return {
+      businessKey: pathWithoutFile[matched.index - 1].trim(),
+      kind: matched.kind,
+    };
   }
 
   const match = stem.match(/^(.+?)__(logo|cover|gallery)(?:__\d+)?$/i);
@@ -240,6 +250,7 @@ function BulkImport() {
   } | null>(null);
   const [mediaImporting, setMediaImporting] = useState(false);
   const [mediaResult, setMediaResult] = useState<{ ok: number; failed: number } | null>(null);
+  const [unclassifiedMedia, setUnclassifiedMedia] = useState<string[]>([]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -274,12 +285,23 @@ function BulkImport() {
 
   function onMediaFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const classified = files.flatMap((file) => {
+    const classified: MediaFile[] = [];
+    const rejected: string[] = [];
+
+    for (const file of files) {
       const classification = mediaClassification(file);
-      return classification ? [{ file, ...classification }] : [];
-    });
+      if (classification) classified.push({ file, ...classification });
+      else rejected.push(file.webkitRelativePath || file.name);
+    }
+
     setMediaFiles(classified);
+    setUnclassifiedMedia(rejected);
     setMediaResult(null);
+    if (classified.length === 0 && rejected.length > 0) {
+      toast.error(
+        "No images could be classified. Use a business folder with logo, cover, or gallery inside it.",
+      );
+    }
     e.target.value = "";
   }
 
@@ -592,17 +614,37 @@ function BulkImport() {
             <code>Erbil Rotana/gallery/lobby.jpg</code>. You can also use filenames such as
             <code> Erbil Rotana__gallery__1.jpg</code>.
           </div>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
-            <Upload className="h-4 w-4" /> Choose image folder or files
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onClick={(event) => event.currentTarget.setAttribute("webkitdirectory", "")}
-              onChange={onMediaFiles}
-            />
-          </label>
+          <div className="flex flex-wrap gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
+              <Upload className="h-4 w-4" /> Choose image folder
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onClick={(event) => event.currentTarget.setAttribute("webkitdirectory", "")}
+                onChange={onMediaFiles}
+              />
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
+              <Upload className="h-4 w-4" /> Choose image files
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={onMediaFiles}
+              />
+            </label>
+          </div>
+          {unclassifiedMedia.length > 0 && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
+              <strong>{unclassifiedMedia.length} file(s) were not classified.</strong> Use a folder
+              structure such as
+              <code className="mx-1">Business Name/gallery/photo.jpg</code> or a filename such as
+              <code className="mx-1">Business Name__gallery__1.jpg</code>.
+            </div>
+          )}
           {mediaFiles.length > 0 && (
             <>
               <div className="flex items-center gap-3 text-sm">
