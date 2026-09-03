@@ -206,7 +206,9 @@ function validateRow(r: Record<string, string>): string[] {
 }
 
 function mediaClassification(file: File): { businessKey: string; kind: MediaKind } | null {
-  if (!file.type.startsWith("image/")) return null;
+  const isImage =
+    file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|avif|heic|heif)$/i.test(file.name);
+  if (!isImage) return null;
   const relativePath = file.webkitRelativePath || file.name;
   const parts = relativePath.split("/").filter(Boolean);
   const fileName = parts[parts.length - 1] ?? file.name;
@@ -232,8 +234,18 @@ function mediaClassification(file: File): { businessKey: string; kind: MediaKind
   }
 
   const match = stem.match(/^(.+?)__(logo|cover|gallery)(?:__\d+)?$/i);
-  if (!match) return null;
-  return { businessKey: match[1].trim(), kind: match[2].toLowerCase() as MediaKind };
+  if (match) {
+    return { businessKey: match[1].trim(), kind: match[2].toLowerCase() as MediaKind };
+  }
+
+  // Also support natural filenames such as “Cafe Barbera Erbil cover.jpg”
+  // and “Cafe Barbera Erbil gallery 1.jpg”.
+  const naturalMatch = stem.match(/^(.+?)[\s_-]+(logo|cover|gallery)(?:[\s_-]+\d+)?$/i);
+  if (!naturalMatch) return null;
+  return {
+    businessKey: naturalMatch[1].trim().replace(/[\s_-]+$/, ""),
+    kind: naturalMatch[2].toLowerCase() as MediaKind,
+  };
 }
 
 function BulkImport() {
@@ -639,8 +651,9 @@ function BulkImport() {
           </div>
           {unclassifiedMedia.length > 0 && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
-              <strong>{unclassifiedMedia.length} file(s) were not classified.</strong> Use a folder
-              structure such as
+              <strong>{unclassifiedMedia.length} file(s) were not classified.</strong> The files
+              were read, but their names do not include a business name plus logo, cover, or
+              gallery. Use a folder structure such as
               <code className="mx-1">Business Name/gallery/photo.jpg</code> or a filename such as
               <code className="mx-1">Business Name__gallery__1.jpg</code>.
             </div>
