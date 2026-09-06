@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/compress-image";
+import { compressImage, extractMerchantMediaPath } from "@/lib/compress-image";
 import { ImageCropDialog } from "@/components/merchant/ImageCropDialog";
 import {
   Plus,
@@ -567,7 +567,10 @@ function MyBusiness() {
     const previousUrl = kind === "logo" ? m!.logo_url : kind === "cover" ? m!.cover_url : null;
     let toUpload: Blob;
     try {
-      toUpload = await compressImage(file, { maxSizeKB: 250, maxDimension: 1920 });
+      toUpload = await compressImage(file, {
+        maxSizeKB: 250,
+        maxDimension: kind === "logo" ? 600 : 1920,
+      });
     } catch {
       toUpload = file;
     }
@@ -589,11 +592,8 @@ function MyBusiness() {
         .update({ [`${kind}_url`]: url })
         .eq("id", m!.id);
       qc.invalidateQueries({ queryKey: ["my-merchants", user!.id] });
-      const marker = "/storage/v1/object/public/merchant-media/";
-      if (previousUrl?.includes(marker)) {
-        const oldPath = decodeURIComponent(
-          previousUrl.slice(previousUrl.indexOf(marker) + marker.length),
-        );
+      const oldPath = extractMerchantMediaPath(previousUrl);
+      if (oldPath && oldPath !== path) {
         await supabase.storage.from("merchant-media").remove([oldPath]);
       }
     }
@@ -611,7 +611,7 @@ function MyBusiness() {
       for (const [index, file] of selectedFiles.entries()) {
         let toUpload: Blob;
         try {
-          toUpload = await compressImage(file, { maxSizeKB: 350, maxDimension: 1800 });
+          toUpload = await compressImage(file, { maxSizeKB: 250, maxDimension: 1800 });
         } catch {
           toUpload = file;
         }
