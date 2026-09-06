@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Download, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/compress-image";
+import { compressImage, extractMerchantMediaPath } from "@/lib/compress-image";
 
 export const Route = createFileRoute("/admin/import")({ component: BulkImport });
 
@@ -28,6 +28,10 @@ type MediaFile = {
   file: File;
   businessKey: string;
   kind: MediaKind;
+};
+
+type FileSystemDirectoryPickerWindow = Window & {
+  showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
 };
 
 // Minimal CSV parser — handles quoted fields containing commas, without
@@ -263,6 +267,7 @@ function BulkImport() {
   const [mediaImporting, setMediaImporting] = useState(false);
   const [mediaResult, setMediaResult] = useState<{ ok: number; failed: number } | null>(null);
   const [unclassifiedMedia, setUnclassifiedMedia] = useState<string[]>([]);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -295,8 +300,7 @@ function BulkImport() {
     e.target.value = "";
   }
 
-  function onMediaFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
+  function processMediaFiles(files: File[]) {
     const classified: MediaFile[] = [];
     const rejected: string[] = [];
 
@@ -314,7 +318,48 @@ function BulkImport() {
         "No images could be classified. Use a business folder with logo, cover, or gallery inside it.",
       );
     }
+  }
+
+  function onMediaFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    processMediaFiles(Array.from(e.target.files ?? []));
     e.target.value = "";
+  }
+
+  async function readDirectory(
+    directory: FileSystemDirectoryHandle,
+    parentPath = "",
+  ): Promise<File[]> {
+    const files: File[] = [];
+    for await (const entry of directory.values()) {
+      const relativePath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+      if (entry.kind === "file") {
+        const file = await entry.getFile();
+        Object.defineProperty(file, "webkitRelativePath", { value: relativePath });
+        files.push(file);
+      } else {
+        files.push(...(await readDirectory(entry, relativePath)));
+      }
+    }
+    return files;
+  }
+
+  async function chooseImageFolder() {
+    const pickerWindow = window as FileSystemDirectoryPickerWindow;
+    if (!pickerWindow.showDirectoryPicker) {
+      folderInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const directory = await pickerWindow.showDirectoryPicker();
+      const files = await readDirectory(directory);
+      processMediaFiles(files);
+      if (files.length === 0) toast.error("The selected folder does not contain any files.");
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        toast.error(error?.message ?? "Could not read the selected folder.");
+      }
+    }
   }
 
   const validCount = rows.filter((r) => r.errors.length === 0).length;
@@ -328,7 +373,7 @@ function BulkImport() {
     try {
       const { data: businesses, error: businessesError } = await supabase
         .from("merchants")
-        .select("id, name")
+        .select("id, name, logo_url, cover_url")
         .eq("status", "approved");
       if (businessesError) throw businessesError;
 
@@ -354,7 +399,10 @@ function BulkImport() {
           try {
             let toUpload: Blob = media.file;
             try {
-              toUpload = await compressImage(media.file, { maxSizeKB: 350, maxDimension: 1920 });
+              toUpload = await compressImage(media.file, {
+                maxSizeKB: 250,
+                maxDimension: media.kind === "logo" ? 600 : 1920,
+              });
             } catch {
               // Keep the original image when client-side compression cannot decode it.
             }
@@ -375,6 +423,11 @@ function BulkImport() {
                 .update({ [`${media.kind}_url`]: publicUrl.publicUrl })
                 .eq("id", business.id);
               if (updateError) throw updateError;
+              const previousUrl = media.kind === "logo" ? business.logo_url : business.cover_url;
+              const oldPath = extractMerchantMediaPath(previousUrl);
+              if (oldPath && oldPath !== path) {
+                await supabase.storage.from("merchant-media").remove([oldPath]);
+              }
             } else {
               galleryRows.push({
                 merchant_id: business.id,
@@ -627,19 +680,17 @@ function BulkImport() {
             <code> Erbil Rotana__gallery__1.jpg</code>.
           </div>
           <div className="flex flex-wrap gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
-              <Upload className="h-4 w-4" /> Choose image folder
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                ref={(node) => {
-                  node?.setAttribute("webkitdirectory", "");
-                }}
-                onChange={onMediaFiles}
-              />
-            </label>
+            <Button type="button" variant="outline" onClick={() => void chooseImageFolder()}>
+              <Upload className="mr-2 h-4 w-4" /> Choose image folder
+            </Button>
+            <input
+              ref={folderInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={onMediaFiles}
+            />
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm hover:bg-accent">
               <Upload className="h-4 w-4" /> Choose image files
               <input
