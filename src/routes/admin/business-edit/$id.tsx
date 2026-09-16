@@ -284,6 +284,11 @@ function EditBusiness() {
         .update({ [`${kind}_url`]: data.publicUrl })
         .eq("id", id);
       if (updateErr) return toast.error(updateErr.message);
+      const imageField = `${kind}_url` as "logo_url" | "cover_url";
+      setForm((current: any) => ({ ...current, [imageField]: data.publicUrl }));
+      qc.setQueryData(["admin-edit-business", id], (current: any) =>
+        current ? { ...current, [imageField]: data.publicUrl } : current,
+      );
       const oldPath = extractMerchantMediaPath(previousUrl);
       if (oldPath && oldPath !== path) {
         await supabase.storage.from("merchant-media").remove([oldPath]);
