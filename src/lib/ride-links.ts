@@ -32,12 +32,19 @@ export function getRideAppUrls(
   pickup?: Coordinates,
 ) {
   const config = PROVIDER_CONFIG[provider];
-  // Careem/Baly do not publish a stable public booking path. Opening a
-  // guessed path (for example `careem://ride?...`) makes current Android
-  // builds start and immediately terminate. Launch only the verified app
-  // root; destination prefill requires an official partner deep link/API
-  // (see launchGoogleMapsForHandoff below for the one Careem does support).
-  const appUrl = `${config.scheme}://`;
+  const lat = formatCoordinate(destination.latitude);
+  const lng = formatCoordinate(destination.longitude);
+  const name = encodeURIComponent(destinationName);
+
+  // EXPERIMENTAL: Careem/Baly do not publish an official deep-link spec
+  // for a specific dropoff. This is the pattern some developers report
+  // working; it is NOT confirmed by Careem/Baly documentation. If the app
+  // opens and immediately closes (same failure as before), the automatic
+  // fallback below detects it and redirects to Google Maps within ~1.8s
+  // instead of leaving the user on a broken/blank screen.
+  const appUrl =
+    `${config.scheme}://ride?dropoff_latitude=${lat}&dropoff_longitude=${lng}` +
+    `&dropoff_address=${name}`;
 
   // FIX: the old intent URL had no `scheme=` and no
   // `S.browser_fallback_url=`. Without those two fields Chrome can't match
@@ -47,14 +54,15 @@ export function getRideAppUrls(
   // `S.browser_fallback_url` is what Chrome opens when the app is missing
   // (instead of guessing).
   const androidIntentUrl =
-    `intent://launch#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
+    `intent://ride?dropoff_latitude=${lat}&dropoff_longitude=${lng}&dropoff_address=${name}` +
+    `#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
     `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
 
   const mapsFallbackUrl =
     pickup == null
-      ? `https://www.google.com/maps/search/?api=1&query=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}`
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
       : `https://www.google.com/maps/dir/?api=1&origin=${formatCoordinate(pickup.latitude)},${formatCoordinate(pickup.longitude)}` +
-        `&destination=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}&travelmode=driving`;
+        `&destination=${lat},${lng}&travelmode=driving`;
 
   return { appUrl, androidIntentUrl, mapsFallbackUrl };
 }
