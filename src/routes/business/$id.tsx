@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState, formatHoursLabel } from "@/lib/opening-status";
 import {
   launchRideApp,
-  launchGoogleMapsForHandoff,
+  copyDestinationText,
   getCurrentPosition,
   type RideProvider,
 } from "@/lib/ride-links";
@@ -511,15 +511,18 @@ function BusinessDetail() {
       // too. If they deny/timeout, we still proceed with destination only.
       const pickup = await getCurrentPosition().catch(() => undefined);
 
-      if (provider === "careem") {
-        // Confirmed on-device: Careem's app crashes on a guessed deep link
-        // with dropoff params, and it has no public one that works. Google
-        // Maps has an official Careem handoff (a Careem icon on the
-        // directions screen) that transfers the destination automatically
-        // -- this is the only reliable way to get it into Careem.
-        launchGoogleMapsForHandoff(destination, pickup);
-      } else {
-        launchRideApp(provider, destination, b.name, pickup);
+      // Neither app accepts a destination via deep link (confirmed on
+      // device: Careem crashes on it, Baly doesn't match it). Copy the
+      // address so the user can paste it once the app opens, then launch
+      // the app itself -- guaranteed to open via ACTION_MAIN, no deep-link
+      // guessing involved.
+      const copied = await copyDestinationText(
+        b.address ? `${b.name}, ${b.address}` : b.name,
+      );
+      launchRideApp(provider, destination, b.name, pickup);
+
+      if (copied) {
+        toast.success("Address copied — paste it as your destination in the app.");
       }
 
       void supabase
@@ -690,8 +693,8 @@ function BusinessDetail() {
               </Button>
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">
-              Careem opens via Google Maps with the destination set — tap the Careem icon there
-              to hand it off. Baly opens directly; choose your destination inside it.
+              The address is copied to your clipboard — paste it as your destination once the
+              app opens.
             </p>
           </div>
         )}
