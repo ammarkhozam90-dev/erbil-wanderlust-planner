@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState, formatHoursLabel } from "@/lib/opening-status";
-import { getCurrentPosition, launchRideApp, type RideProvider } from "@/lib/ride-links";
+import { launchRideApp, type RideProvider } from "@/lib/ride-links";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -501,11 +501,8 @@ function BusinessDetail() {
     if (b.latitude == null || b.longitude == null) return;
 
     try {
-      toast("Allow location access so we can set your pickup point.");
-      const pickup = await getCurrentPosition();
       launchRideApp(
         provider,
-        pickup,
         { latitude: Number(b.latitude), longitude: Number(b.longitude) },
         b.name,
       );
@@ -518,12 +515,8 @@ function BusinessDetail() {
           if (error) console.warn(`[taxi-analytics] ${provider} click was not recorded`, error);
         });
     } catch (error) {
-      const code = error && typeof error === "object" && "code" in error ? error.code : null;
-      if (code === 1) {
-        toast.error("Location access was denied. Please allow it and try again.");
-      } else {
-        toast.error("We could not get your current location. Please try again.");
-      }
+      console.warn(`[taxi] Could not open ${provider}`, error);
+      toast.error(`Could not open ${provider}. Please try again.`);
     }
   };
 
