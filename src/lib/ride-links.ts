@@ -35,9 +35,20 @@ export function getRideAppUrls(
   // Careem/Baly do not publish a stable public booking path. Opening a
   // guessed path (for example `careem://ride?...`) makes current Android
   // builds start and immediately terminate. Launch only the verified app
-  // root; destination prefill requires an official partner deep link/API.
+  // root; destination prefill requires an official partner deep link/API
+  // (see launchGoogleMapsForHandoff below for the one Careem does support).
   const appUrl = `${config.scheme}://`;
-  const androidIntentUrl = `intent://#Intent;package=${config.androidPackage};end`;
+
+  // FIX: the old intent URL had no `scheme=` and no
+  // `S.browser_fallback_url=`. Without those two fields Chrome can't match
+  // the installed app to the intent, so it defaults to opening the Play
+  // Store listing for the package -- even when the app IS installed. Both
+  // fields are required: `scheme` lets Android resolve the right activity,
+  // `S.browser_fallback_url` is what Chrome opens when the app is missing
+  // (instead of guessing).
+  const androidIntentUrl =
+    `intent://launch#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
+    `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
 
   const mapsFallbackUrl =
     pickup == null
@@ -74,6 +85,10 @@ export function isAndroid() {
   return /Android/i.test(navigator.userAgent);
 }
 
+export function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 /**
  * Opens the provider with destination only. The provider app is responsible
  * for resolving the user's current location. If its private deep-link route
@@ -107,4 +122,41 @@ export function launchRideApp(
       window.location.href = urls.mapsFallbackUrl;
     }
   }, 1800);
+}
+
+/**
+ * Opens native Google Maps turn-by-turn directions to `destination`, with
+ * the user's current location as origin. Google Maps has an official,
+ * documented Careem integration: a Careem icon on the directions screen
+ * that transfers the pickup/dropoff straight into the Careem app. This is
+ * currently the only reliable way to hand Careem a specific destination --
+ * there is no public Careem deep-link route that does it directly. Baly has
+ * no known equivalent integration, so this is only wired up for Careem.
+ */
+export function launchGoogleMapsForHandoff(
+  destination: Coordinates,
+  pickup?: Coordinates,
+) {
+  const dest = `${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}`;
+  const origin = pickup
+    ? `${formatCoordinate(pickup.latitude)},${formatCoordinate(pickup.longitude)}`
+    : "";
+  const webUrl =
+    `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}` +
+    `&travelmode=driving&dir_action=navigate`;
+
+  if (isIOS()) {
+    // Native app if installed; falls through to the web URL otherwise.
+    window.location.href = `comgooglemaps://?daddr=${dest}&directionsmode=driving`;
+    window.setTimeout(() => {
+      window.location.href = webUrl;
+    }, 800);
+    return;
+  }
+
+  // Android: the https Maps URL itself already opens the native app when
+  // it's installed (Android's app-link verification handles this), and
+  // falls back to the browser automatically when it isn't -- no manual
+  // fallback chain needed here.
+  window.location.href = webUrl;
 }
