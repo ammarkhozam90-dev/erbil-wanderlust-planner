@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState, formatHoursLabel } from "@/lib/opening-status";
+import { getCurrentPosition, launchRideApp, type RideProvider } from "@/lib/ride-links";
+import { toast } from "sonner";
 import {
   MapPin,
   Phone,
@@ -495,6 +497,36 @@ function BusinessDetail() {
   const open = computeOpenState(data.hours as any);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  const requestRide = async (provider: RideProvider) => {
+    if (b.latitude == null || b.longitude == null) return;
+
+    try {
+      toast("Allow location access so we can set your pickup point.");
+      const pickup = await getCurrentPosition();
+      launchRideApp(
+        provider,
+        pickup,
+        { latitude: Number(b.latitude), longitude: Number(b.longitude) },
+        b.name,
+      );
+      void supabase
+        .rpc("record_taxi_click" as any, {
+          p_business_id: b.id,
+          p_provider: provider,
+        })
+        .then(({ error }) => {
+          if (error) console.warn(`[taxi-analytics] ${provider} click was not recorded`, error);
+        });
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? error.code : null;
+      if (code === 1) {
+        toast.error("Location access was denied. Please allow it and try again.");
+      } else {
+        toast.error("We could not get your current location. Please try again.");
+      }
+    }
+  };
+
   const mapsHref =
     b.latitude != null && b.longitude != null
       ? `https://www.google.com/maps/search/?api=1&query=${b.latitude},${b.longitude}`
@@ -622,57 +654,30 @@ function BusinessDetail() {
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button asChild className="h-12 bg-green-600 text-white hover:bg-green-700 shadow-md">
-                <a
-                  href={`careem://ride?dropoff_lat=${b.latitude}&dropoff_lng=${b.longitude}&dropoff_name=${encodeURIComponent(b.name)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => {
-                    void supabase
-                      .rpc("record_taxi_click" as any, {
-                        p_business_id: b.id,
-                        p_provider: "careem",
-                      })
-                      .then(({ error }) => {
-                        if (error)
-                          console.warn("[taxi-analytics] Careem click was not recorded", error);
-                      });
-                  }}
-                  className="flex items-center justify-center gap-2"
-                >
+              <Button
+                type="button"
+                className="h-12 bg-green-600 text-white shadow-md hover:bg-green-700"
+                onClick={() => void requestRide("careem")}
+              >
+                <span className="flex items-center justify-center gap-2">
                   <img
                     src="https://upload.wikimedia.org/wikipedia/commons/b/b8/Careem_logo.svg"
                     alt=""
                     className="h-5 w-5 invert"
                   />
                   Order Careem
-                </a>
+                </span>
               </Button>
               <Button
-                asChild
+                type="button"
                 variant="outline"
                 className="h-12 border-yellow-400 bg-yellow-400 text-black hover:bg-yellow-500 shadow-md"
+                onClick={() => void requestRide("baly")}
               >
-                <a
-                  href={`baly://ride?lat=${b.latitude}&lng=${b.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => {
-                    void supabase
-                      .rpc("record_taxi_click" as any, {
-                        p_business_id: b.id,
-                        p_provider: "baly",
-                      })
-                      .then(({ error }) => {
-                        if (error)
-                          console.warn("[taxi-analytics] Baly click was not recorded", error);
-                      });
-                  }}
-                  className="flex items-center justify-center gap-2"
-                >
+                <span className="flex items-center justify-center gap-2">
                   <span className="font-black">Baly</span>
                   Order Baly
-                </a>
+                </span>
               </Button>
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">
