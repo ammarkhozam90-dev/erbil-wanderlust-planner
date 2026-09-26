@@ -12,7 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { computeOpenState, formatHoursLabel } from "@/lib/opening-status";
-import { launchRideApp, getCurrentPosition, type RideProvider } from "@/lib/ride-links";
+import {
+  launchRideApp,
+  launchGoogleMapsForHandoff,
+  getCurrentPosition,
+  type RideProvider,
+} from "@/lib/ride-links";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -506,7 +511,16 @@ function BusinessDetail() {
       // too. If they deny/timeout, we still proceed with destination only.
       const pickup = await getCurrentPosition().catch(() => undefined);
 
-      launchRideApp(provider, destination, b.name, pickup);
+      if (provider === "careem") {
+        // Confirmed on-device: Careem's app crashes on a guessed deep link
+        // with dropoff params, and it has no public one that works. Google
+        // Maps has an official Careem handoff (a Careem icon on the
+        // directions screen) that transfers the destination automatically
+        // -- this is the only reliable way to get it into Careem.
+        launchGoogleMapsForHandoff(destination, pickup);
+      } else {
+        launchRideApp(provider, destination, b.name, pickup);
+      }
 
       void supabase
         .rpc("record_taxi_click" as any, {
@@ -676,8 +690,8 @@ function BusinessDetail() {
               </Button>
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">
-              The app opens with the destination already set. If it doesn't open on your phone,
-              you'll be taken to Google Maps directions instead.
+              Careem opens via Google Maps with the destination set — tap the Careem icon there
+              to hand it off. Baly opens directly; choose your destination inside it.
             </p>
           </div>
         )}
