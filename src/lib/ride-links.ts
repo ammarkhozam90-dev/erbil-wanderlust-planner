@@ -7,15 +7,27 @@ type Coordinates = {
 
 const PROVIDER_CONFIG: Record<
   RideProvider,
-  { scheme: string; androidPackage: string; fallbackUrl: string }
+  { scheme: string; entryPath: string; androidPackage: string; fallbackUrl: string }
 > = {
   careem: {
     scheme: "careem",
+    // CONFIRMED ON-DEVICE: `careem://ride` (this exact host) is a real,
+    // registered entry point -- the app opened when we hit it before. It
+    // then crashed because we also appended dropoff_latitude/longitude/
+    // address query params it didn't expect. Hitting the same host with NO
+    // query params should open the Rides screen without those bad inputs.
+    entryPath: "ride",
     androidPackage: "com.careem.acma",
     fallbackUrl: "https://www.careem.com/",
   },
   baly: {
     scheme: "baly",
+    // UNCONFIRMED GUESS: bare `baly://` and ACTION_MAIN/LAUNCHER both
+    // failed to match on-device (see launchRideApp comment). "home" is an
+    // unverified guess at a registered host -- if it also falls through to
+    // baly.iq, there is currently no known entry point we can hit from the
+    // web without Baly's own deep-link documentation.
+    entryPath: "home",
     androidPackage: "app.baly.passenger",
     fallbackUrl: "https://baly.iq/",
   },
@@ -35,20 +47,14 @@ export function getRideAppUrls(
   const lat = formatCoordinate(destination.latitude);
   const lng = formatCoordinate(destination.longitude);
 
-  // CONFIRMED ON-DEVICE (Android): neither app can be relied on to match a
-  // custom-scheme deep link from the web -- Careem's app opened then
-  // crashed on guessed dropoff params, and Baly's app failed to match even
-  // a bare `baly://` (no host/path), falling straight to its website even
-  // though installed. Neither publishes a documented scheme, so instead of
-  // guessing a URI path, we launch the app the way the OS launcher itself
-  // does: ACTION_MAIN / CATEGORY_LAUNCHER by package name. This ignores
-  // deep-link matching entirely (so it can't crash or mismatch) and opens
-  // the app's home screen, exactly like tapping its icon.
-  const appUrl = `${config.scheme}://`;
+  // See PROVIDER_CONFIG.entryPath comments: careem's "ride" host is
+  // confirmed to match; baly's "home" host is an unverified guess. No
+  // query params on either -- that's what crashed Careem last time.
+  const appUrl = `${config.scheme}://${config.entryPath}`;
 
   const androidIntentUrl =
-    `intent://#Intent;action=android.intent.action.MAIN;` +
-    `category=android.intent.category.LAUNCHER;package=${config.androidPackage};` +
+    `intent://${config.entryPath}#Intent;scheme=${config.scheme};` +
+    `package=${config.androidPackage};` +
     `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
 
   const mapsFallbackUrl =
@@ -121,6 +127,15 @@ export function launchRideApp(
   const url = isAndroid() ? urls.androidIntentUrl : urls.appUrl;
   let wasHidden = false;
   let returnedToBrowser = false;
+  // FIX (double-fallback bug): when the intent's own
+  // S.browser_fallback_url kicks in, Chrome navigates the SAME tab to it --
+  // that's a normal in-page navigation, not an app switch, so
+  // visibilitychange never fires "hidden". Without this flag, our own
+  // 1800ms timer would then fire a SECOND redirect on top of that page
+  // (what sent Careem's own fallback page on to Google Maps). `pagehide`
+  // fires exactly when this kind of in-tab navigation starts, so we use it
+  // to cancel our timer instead of double-redirecting.
+  let navigatedAway = false;
 
   const onVisibilityChange = () => {
     if (document.visibilityState === "hidden") {
@@ -129,13 +144,22 @@ export function launchRideApp(
       returnedToBrowser = true;
     }
   };
+  const onPageHide = () => {
+    navigatedAway = true;
+  };
 
   document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("pagehide", onPageHide, { once: true });
   window.location.href = url;
 
   window.setTimeout(() => {
     document.removeEventListener("visibilitychange", onVisibilityChange);
-    if (document.visibilityState === "visible" && (!wasHidden || returnedToBrowser)) {
+    window.removeEventListener("pagehide", onPageHide);
+    if (
+      !navigatedAway &&
+      document.visibilityState === "visible" &&
+      (!wasHidden || returnedToBrowser)
+    ) {
       window.location.href = urls.mapsFallbackUrl;
     }
   }, 1800);
