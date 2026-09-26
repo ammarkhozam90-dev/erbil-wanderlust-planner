@@ -21,21 +21,23 @@ const PROVIDER_CONFIG: Record<
   },
 };
 
-function queryString(pickup: Coordinates, destination: Coordinates, destinationName: string) {
-  const params = new URLSearchParams({
-    pickup_latitude: pickup.latitude.toFixed(6),
-    pickup_longitude: pickup.longitude.toFixed(6),
-    dropoff_latitude: destination.latitude.toFixed(6),
-    dropoff_longitude: destination.longitude.toFixed(6),
-    dropoff_name: destinationName,
-    // Keep the short aliases for older provider builds that still read them.
-    pickup_lat: pickup.latitude.toFixed(6),
-    pickup_lng: pickup.longitude.toFixed(6),
-    dropoff_lat: destination.latitude.toFixed(6),
-    dropoff_lng: destination.longitude.toFixed(6),
-  });
+function formatCoordinate(value: number) {
+  return value.toFixed(6);
+}
 
-  return params.toString();
+function queryString(pickup: Coordinates, destination: Coordinates, destinationName: string) {
+  return new URLSearchParams({
+    pickup_latitude: formatCoordinate(pickup.latitude),
+    pickup_longitude: formatCoordinate(pickup.longitude),
+    dropoff_latitude: formatCoordinate(destination.latitude),
+    dropoff_longitude: formatCoordinate(destination.longitude),
+    dropoff_name: destinationName,
+    // Keep the short aliases for provider versions that still read them.
+    pickup_lat: formatCoordinate(pickup.latitude),
+    pickup_lng: formatCoordinate(pickup.longitude),
+    dropoff_lat: formatCoordinate(destination.latitude),
+    dropoff_lng: formatCoordinate(destination.longitude),
+  }).toString();
 }
 
 export function getRideAppUrls(
@@ -46,16 +48,23 @@ export function getRideAppUrls(
 ) {
   const config = PROVIDER_CONFIG[provider];
   const query = queryString(pickup, destination, destinationName);
-  const appUrl = `${config.scheme}://ride?${query}`;
 
-  // Android's intent URL gives Chrome a native-app fallback without leaving
-  // the user on an empty custom-scheme page when the app is not installed.
-  const androidIntentUrl = `intent://ride?${query}#Intent;scheme=${config.scheme};package=${config.androidPackage};S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
+  // Do not use the unsupported `://ride` route. On current Android builds it
+  // opens the app and immediately closes because that internal route is not a
+  // public contract. The app root is safer; the provider can then use its own
+  // current-location and destination picker.
+  const appUrl = `${config.scheme}://?${query}`;
+  const androidIntentUrl = `intent://#Intent;scheme=${config.scheme};package=${config.androidPackage};end`;
+  const mapsFallbackUrl =
+    `https://www.google.com/maps/dir/?api=1&origin=${formatCoordinate(pickup.latitude)},${formatCoordinate(pickup.longitude)}` +
+    `&destination=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}` +
+    "&travelmode=driving";
 
   return {
     appUrl,
     androidIntentUrl,
-    fallbackUrl: config.fallbackUrl,
+    providerFallbackUrl: config.fallbackUrl,
+    mapsFallbackUrl,
   };
 }
 
@@ -86,9 +95,9 @@ export function isAndroid() {
 }
 
 /**
- * Opens the provider app without leaving the browser on a broken custom-scheme
- * page. The fallback runs only while the document remains visible, so it will
- * not race a successfully opened native app.
+ * Opens the provider app without relying on its private ride screen. If the
+ * app is missing or immediately exits, the user gets a working route in Maps
+ * containing both the current pickup and the business destination.
  */
 export function launchRideApp(
   provider: RideProvider,
@@ -98,20 +107,26 @@ export function launchRideApp(
 ) {
   const urls = getRideAppUrls(provider, pickup, destination, destinationName);
   const url = isAndroid() ? urls.androidIntentUrl : urls.appUrl;
-  let appOpened = false;
+  let wasHidden = false;
+  let returnedToBrowser = false;
 
-  const markOpened = () => {
-    appOpened = true;
-    window.removeEventListener("visibilitychange", markOpened);
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      wasHidden = true;
+    } else if (wasHidden) {
+      returnedToBrowser = true;
+    }
   };
-  window.addEventListener("visibilitychange", markOpened, { once: true });
 
+  document.addEventListener("visibilitychange", onVisibilityChange);
   window.location.href = url;
 
   window.setTimeout(() => {
-    window.removeEventListener("visibilitychange", markOpened);
-    if (!appOpened && document.visibilityState === "visible") {
-      window.location.href = urls.fallbackUrl;
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    // If the native app stayed open, the page remains hidden. If it crashed,
+    // closed, or was not installed, return the user to a usable route.
+    if (document.visibilityState === "visible" && (!wasHidden || returnedToBrowser)) {
+      window.location.href = urls.mapsFallbackUrl;
     }
-  }, 1400);
+  }, 1800);
 }
