@@ -25,16 +25,12 @@ function formatCoordinate(value: number) {
   return value.toFixed(6);
 }
 
-function queryString(pickup: Coordinates, destination: Coordinates, destinationName: string) {
+function destinationQuery(destination: Coordinates, destinationName: string) {
   return new URLSearchParams({
-    pickup_latitude: formatCoordinate(pickup.latitude),
-    pickup_longitude: formatCoordinate(pickup.longitude),
     dropoff_latitude: formatCoordinate(destination.latitude),
     dropoff_longitude: formatCoordinate(destination.longitude),
     dropoff_name: destinationName,
-    // Keep the short aliases for provider versions that still read them.
-    pickup_lat: formatCoordinate(pickup.latitude),
-    pickup_lng: formatCoordinate(pickup.longitude),
+    // Backward-compatible aliases used by some older provider builds.
     dropoff_lat: formatCoordinate(destination.latitude),
     dropoff_lng: formatCoordinate(destination.longitude),
   }).toString();
@@ -42,30 +38,24 @@ function queryString(pickup: Coordinates, destination: Coordinates, destinationN
 
 export function getRideAppUrls(
   provider: RideProvider,
-  pickup: Coordinates,
   destination: Coordinates,
   destinationName: string,
+  pickup?: Coordinates,
 ) {
   const config = PROVIDER_CONFIG[provider];
-  const query = queryString(pickup, destination, destinationName);
+  const query = destinationQuery(destination, destinationName);
+  const appUrl = `${config.scheme}://ride?${query}`;
+  const androidIntentUrl =
+    `intent://ride?${query}#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
+    `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
 
-  // Do not use the unsupported `://ride` route. On current Android builds it
-  // opens the app and immediately closes because that internal route is not a
-  // public contract. The app root is safer; the provider can then use its own
-  // current-location and destination picker.
-  const appUrl = `${config.scheme}://?${query}`;
-  const androidIntentUrl = `intent://#Intent;scheme=${config.scheme};package=${config.androidPackage};end`;
   const mapsFallbackUrl =
-    `https://www.google.com/maps/dir/?api=1&origin=${formatCoordinate(pickup.latitude)},${formatCoordinate(pickup.longitude)}` +
-    `&destination=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}` +
-    "&travelmode=driving";
+    pickup == null
+      ? `https://www.google.com/maps/search/?api=1&query=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}`
+      : `https://www.google.com/maps/dir/?api=1&origin=${formatCoordinate(pickup.latitude)},${formatCoordinate(pickup.longitude)}` +
+        `&destination=${formatCoordinate(destination.latitude)},${formatCoordinate(destination.longitude)}&travelmode=driving`;
 
-  return {
-    appUrl,
-    androidIntentUrl,
-    providerFallbackUrl: config.fallbackUrl,
-    mapsFallbackUrl,
-  };
+  return { appUrl, androidIntentUrl, mapsFallbackUrl };
 }
 
 export function getCurrentPosition(): Promise<Coordinates> {
@@ -95,17 +85,17 @@ export function isAndroid() {
 }
 
 /**
- * Opens the provider app without relying on its private ride screen. If the
- * app is missing or immediately exits, the user gets a working route in Maps
- * containing both the current pickup and the business destination.
+ * Opens the provider with destination only. The provider app is responsible
+ * for resolving the user's current location. If its private deep-link route
+ * is unavailable, the user receives a working Google Maps route instead.
  */
 export function launchRideApp(
   provider: RideProvider,
-  pickup: Coordinates,
   destination: Coordinates,
   destinationName: string,
+  pickup?: Coordinates,
 ) {
-  const urls = getRideAppUrls(provider, pickup, destination, destinationName);
+  const urls = getRideAppUrls(provider, destination, destinationName, pickup);
   const url = isAndroid() ? urls.androidIntentUrl : urls.appUrl;
   let wasHidden = false;
   let returnedToBrowser = false;
@@ -123,8 +113,6 @@ export function launchRideApp(
 
   window.setTimeout(() => {
     document.removeEventListener("visibilitychange", onVisibilityChange);
-    // If the native app stayed open, the page remains hidden. If it crashed,
-    // closed, or was not installed, return the user to a usable route.
     if (document.visibilityState === "visible" && (!wasHidden || returnedToBrowser)) {
       window.location.href = urls.mapsFallbackUrl;
     }
