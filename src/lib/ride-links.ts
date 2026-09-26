@@ -25,17 +25,6 @@ function formatCoordinate(value: number) {
   return value.toFixed(6);
 }
 
-function destinationQuery(destination: Coordinates, destinationName: string) {
-  return new URLSearchParams({
-    dropoff_latitude: formatCoordinate(destination.latitude),
-    dropoff_longitude: formatCoordinate(destination.longitude),
-    dropoff_name: destinationName,
-    // Backward-compatible aliases used by some older provider builds.
-    dropoff_lat: formatCoordinate(destination.latitude),
-    dropoff_lng: formatCoordinate(destination.longitude),
-  }).toString();
-}
-
 export function getRideAppUrls(
   provider: RideProvider,
   destination: Coordinates,
@@ -43,11 +32,12 @@ export function getRideAppUrls(
   pickup?: Coordinates,
 ) {
   const config = PROVIDER_CONFIG[provider];
-  const query = destinationQuery(destination, destinationName);
-  const appUrl = `${config.scheme}://ride?${query}`;
-  const androidIntentUrl =
-    `intent://ride?${query}#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
-    `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
+  // Careem/Baly do not publish a stable public booking path. Opening a
+  // guessed path (for example `careem://ride?...`) makes current Android
+  // builds start and immediately terminate. Launch only the verified app
+  // root; destination prefill requires an official partner deep link/API.
+  const appUrl = `${config.scheme}://`;
+  const androidIntentUrl = `intent://#Intent;package=${config.androidPackage};end`;
 
   const mapsFallbackUrl =
     pickup == null
