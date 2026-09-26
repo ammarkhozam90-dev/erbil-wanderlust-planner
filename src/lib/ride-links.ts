@@ -34,28 +34,17 @@ export function getRideAppUrls(
   const config = PROVIDER_CONFIG[provider];
   const lat = formatCoordinate(destination.latitude);
   const lng = formatCoordinate(destination.longitude);
-  const name = encodeURIComponent(destinationName);
 
-  // EXPERIMENTAL: Careem/Baly do not publish an official deep-link spec
-  // for a specific dropoff. This is the pattern some developers report
-  // working; it is NOT confirmed by Careem/Baly documentation. If the app
-  // opens and immediately closes (same failure as before), the automatic
-  // fallback below detects it and redirects to Google Maps within ~1.8s
-  // instead of leaving the user on a broken/blank screen.
-  const appUrl =
-    `${config.scheme}://ride?dropoff_latitude=${lat}&dropoff_longitude=${lng}` +
-    `&dropoff_address=${name}`;
+  // CONFIRMED ON-DEVICE (Android): passing dropoff_latitude/longitude/
+  // address on the custom scheme crashes Careem (app opens then closes
+  // immediately) and fails to match any activity in Baly (Chrome falls
+  // straight through to S.browser_fallback_url even though the app is
+  // installed). Neither app has a public/registered deep-link path for an
+  // external destination, so we only ever launch the bare scheme.
+  const appUrl = `${config.scheme}://`;
 
-  // FIX: the old intent URL had no `scheme=` and no
-  // `S.browser_fallback_url=`. Without those two fields Chrome can't match
-  // the installed app to the intent, so it defaults to opening the Play
-  // Store listing for the package -- even when the app IS installed. Both
-  // fields are required: `scheme` lets Android resolve the right activity,
-  // `S.browser_fallback_url` is what Chrome opens when the app is missing
-  // (instead of guessing).
   const androidIntentUrl =
-    `intent://ride?dropoff_latitude=${lat}&dropoff_longitude=${lng}&dropoff_address=${name}` +
-    `#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
+    `intent://#Intent;scheme=${config.scheme};package=${config.androidPackage};` +
     `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl)};end`;
 
   const mapsFallbackUrl =
