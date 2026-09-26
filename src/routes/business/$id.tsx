@@ -658,7 +658,7 @@ function BusinessDetail() {
                     alt=""
                     className="h-5 w-5 invert"
                   />
-                  Order Careem
+                  Open Careem
                 </span>
               </Button>
               <Button
@@ -669,12 +669,12 @@ function BusinessDetail() {
               >
                 <span className="flex items-center justify-center gap-2">
                   <span className="font-black">Baly</span>
-                  Order Baly
+                  Open Baly
                 </span>
               </Button>
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">
-              Note: App must be installed on your mobile device.
+              The app opens separately. Choose your current location and destination inside it.
             </p>
           </div>
         )}
