@@ -15,7 +15,7 @@ const items = [
   { title: 'Dashboard',        url: '/tour/dashboard',    icon: LayoutDashboard },
   { title: 'My Tours',         url: '/tour/tours',        icon: Map },
   { title: 'Gallery',          url: '/tour/gallery',      icon: Images },
-  { title: 'Route Planner',    url: '/tour/route',        icon: Route },
+  { title: 'Route Planner',    url: '/tour/route-planner',        icon: Route },
   { title: 'Pricing',          url: '/tour/pricing',      icon: DollarSign },
   { title: 'Availability',     url: '/tour/availability', icon: CalendarCheck },
   { title: 'Preview',          url: '/tour/preview',      icon: Eye },
