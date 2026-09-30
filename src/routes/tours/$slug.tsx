@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { supabase } from '@/integrations/supabase/client';
+import { Header } from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RouteMap } from '@/components/tour/RouteMap';
@@ -40,7 +41,9 @@ function PublicTour() {
   const { tour, destinations, photos, organizer } = Route.useLoaderData();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
       <nav className="text-sm text-muted-foreground">
         <Link to="/" className="hover:underline">Home</Link> /{' '}
         <Link to="/tours" className="hover:underline">Organized Tours</Link> /{' '}
@@ -112,6 +115,7 @@ function PublicTour() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
