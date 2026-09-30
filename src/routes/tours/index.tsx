@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Header } from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,9 @@ function ToursIndex() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
       <nav className="text-sm text-muted-foreground">
         <Link to="/" className="hover:underline">Home</Link> / Explore Erbil / <span className="text-foreground">Organized Tours</span>
       </nav>
@@ -75,6 +78,7 @@ function ToursIndex() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
