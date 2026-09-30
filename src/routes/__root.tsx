@@ -82,6 +82,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "ErbilGo" },
+      // Chrome's built-in "Translate this page" rewrites the DOM directly,
+      // which then fights with React's own re-renders and crashes things
+      // like this Select dropdown (removeChild errors). Turn off the
+      // auto-translate prompt until real i18n is built — see also the
+      // translate="no" on <html> below, which blocks it even if someone
+      // forces translation manually via right-click.
+      { name: "google", content: "notranslate" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ErbilGo" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -101,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" translate="no" className="notranslate">
       <head>
         <HeadContent />
       </head>
