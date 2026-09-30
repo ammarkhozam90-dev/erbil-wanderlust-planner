@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -18,6 +20,9 @@ import { toast } from 'sonner';
 import { logActivity } from '@/components/admin/log-activity';
 import { Pencil, Star } from 'lucide-react';
 import type { Merchant } from '@/integrations/supabase/types-local';
+import { CATEGORIES } from '@/lib/categories';
+import { BusinessCard } from '@/components/category/BusinessCard';
+import type { BusinessListItem } from '@/lib/business-queries';
 
 export const Route = createFileRoute('/admin/businesses')({ component: Businesses });
 
@@ -27,15 +32,23 @@ function Businesses() {
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
+  const [catSlug, setCatSlug] = useState<string>('all');
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  const activeCategory = useMemo(() => CATEGORIES.find((c) => c.slug === catSlug), [catSlug]);
 
   const list = useQuery({
-    queryKey: ['admin-businesses', q, page],
+    queryKey: ['admin-businesses', q, page, catSlug],
     queryFn: async () => {
       let query = supabase.from('merchants')
         .select('*', { count: 'exact' })
         .order('updated_at', { ascending: false })
         .range(page * PAGE, page * PAGE + PAGE - 1);
       if (q.trim()) query = query.ilike('name', `%${q.trim()}%`);
+      // Same filter logic the public /category/$slug pages use, so "Cafes"
+      // here shows exactly the businesses that actually appear there.
+      if (activeCategory?.enum) query = query.contains('categories', [activeCategory.enum]);
+      if (activeCategory?.moodAny?.length) query = query.overlaps('mood_tags', activeCategory.moodAny);
       const { data, error, count } = await query;
       if (error) throw error;
       return { rows: (data ?? []) as Merchant[], count: count ?? 0 };
@@ -100,7 +113,16 @@ function Businesses() {
           <h1 className="font-display text-3xl font-bold">Businesses</h1>
           <p className="text-sm text-muted-foreground">{list.data?.count ?? 0} total</p>
         </div>
-        <Input placeholder="Search by name…" value={q} onChange={(e) => { setPage(0); setQ(e.target.value); }} className="max-w-xs" />
+        <div className="flex flex-wrap gap-3">
+          <Select value={catSlug} onValueChange={(v) => { setPage(0); setCatSlug(v); }}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {CATEGORIES.map((c) => <SelectItem key={c.slug} value={c.slug}>{c.title}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input placeholder="Search by name…" value={q} onChange={(e) => { setPage(0); setQ(e.target.value); }} className="max-w-xs" />
+        </div>
       </div>
 
       <Card>
@@ -122,7 +144,15 @@ function Businesses() {
               ))}
               {list.data?.rows.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.name || '—'}</TableCell>
+                  <TableCell className="font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewId(m.id)}
+                      className="underline decoration-dotted underline-offset-4 hover:text-primary"
+                    >
+                      {m.name || '—'}
+                    </button>
+                  </TableCell>
                   <TableCell className="capitalize">{m.category}</TableCell>
                   <TableCell><Badge variant="outline" className="capitalize">{m.status}</Badge></TableCell>
                   <TableCell className="text-xs text-muted-foreground">{fmt(m.created_at)}</TableCell>
@@ -165,7 +195,50 @@ function Businesses() {
         <span className="text-sm text-muted-foreground">Page {page + 1} of {totalPages}</span>
         <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
       </div>
+
+      {previewId && <BusinessPreviewModal id={previewId} onClose={() => setPreviewId(null)} />}
     </div>
+  );
+}
+
+// A floating preview of the public business card, opened by clicking a
+// business's name in the table. Built directly on the Radix primitives
+// (rather than the shared <Dialog>) so the blurred overlay here doesn't
+// change the look of every other dialog in the app.
+function BusinessPreviewModal({ id, onClose }: { id: string; onClose: () => void }) {
+  const preview = useQuery({
+    queryKey: ['admin-business-preview', id],
+    queryFn: async () => {
+      const [{ data: merchant, error }, { data: hours }] = await Promise.all([
+        supabase.from('merchants').select('*').eq('id', id).maybeSingle(),
+        supabase.from('merchant_hours').select('*').eq('merchant_id', id).order('day_of_week'),
+      ]);
+      if (error) throw error;
+      return { ...(merchant as Merchant), merchant_hours: hours ?? [] } as BusinessListItem;
+    },
+  });
+
+  return (
+    <DialogPrimitive.Root open onOpenChange={(open) => !open && onClose()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+        <DialogPrimitive.Content
+          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+          aria-describedby={undefined}
+        >
+          <DialogPrimitive.Title className="sr-only">
+            {preview.data?.name || 'Business preview'}
+          </DialogPrimitive.Title>
+          {preview.isLoading ? (
+            <Skeleton className="h-80 w-full rounded-lg" />
+          ) : preview.data ? (
+            <BusinessCard business={preview.data} />
+          ) : (
+            <Card><CardContent className="p-6 text-sm text-muted-foreground">Could not load this business.</CardContent></Card>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
