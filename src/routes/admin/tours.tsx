@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Check, X, Plus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TOUR_CATEGORIES, CURRENCIES, DURATION_OPTIONS, DIFFICULTY, TRANSPORTATION_TYPES } from '@/lib/tour-constants';
+import { MapPicker } from '@/components/merchant/MapPicker';
 import type { Tour, TourStatus, TourDestination, TourPhoto } from '@/integrations/supabase/tour-types';
 
 export const Route = createFileRoute('/admin/tours')({ ssr: false, component: AdminTours });
@@ -248,19 +249,41 @@ function TourWizard({ initialTour, adminUserId, onClose }:
 
   // --- step 2: itinerary ------------------------------------------------
   const [stops, setStops] = useState<TourDestination[]>([]);
+  type StopDraft = { name: string; description: string; visit_duration_min: number | null; latitude: number | null; longitude: number | null; showMap: boolean };
+  const blankDraft: StopDraft = { name: '', description: '', visit_duration_min: null, latitude: null, longitude: null, showMap: false };
+  // A stop being typed but not saved yet. Shown automatically for the very
+  // first stop (nothing to click yet) and opened by "+ Add next
+  // destination" for every stop after that.
+  const [draftStop, setDraftStop] = useState<StopDraft | null>(null);
+
   async function loadStops() {
     if (!t.id) return;
     const { data } = await supabase.from('tour_destinations').select('*').eq('tour_id', t.id).order('sort_order');
-    setStops((data ?? []) as TourDestination[]);
+    const rows = (data ?? []) as TourDestination[];
+    setStops(rows);
+    if (rows.length === 0) setDraftStop((d) => d ?? { ...blankDraft });
   }
   useEffect(() => { if (step === 1) loadStops(); }, [step, t.id]);
 
-  async function addStop() {
-    if (!t.id) return;
-    const { data, error } = await supabase.from('tour_destinations')
-      .insert({ tour_id: t.id, sort_order: stops.length, name: '' }).select('*').single();
+  function startDraftStop() {
+    setDraftStop({ ...blankDraft });
+  }
+  function cancelDraftStop() {
+    // Only offered once there's at least one saved stop — the very first
+    // one always needs a name before you can move on.
+    setDraftStop(null);
+  }
+  async function saveDraftStop() {
+    if (!t.id || !draftStop) return;
+    if (!draftStop.name.trim()) return toast.error('Give this stop a name first');
+    const { data, error } = await supabase.from('tour_destinations').insert({
+      tour_id: t.id, sort_order: stops.length, name: draftStop.name,
+      description: draftStop.description, visit_duration_min: draftStop.visit_duration_min,
+      latitude: draftStop.latitude, longitude: draftStop.longitude,
+    }).select('*').single();
     if (error) return toast.error(error.message);
     setStops((p) => [...p, data as TourDestination]);
+    setDraftStop(null);
   }
   function editStopLocal(id: string, patch: Partial<TourDestination>) {
     setStops((p) => p.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -268,9 +291,11 @@ function TourWizard({ initialTour, adminUserId, onClose }:
   async function saveStop(s: TourDestination) {
     await supabase.from('tour_destinations').update({
       name: s.name, description: s.description, visit_duration_min: s.visit_duration_min,
+      latitude: s.latitude, longitude: s.longitude,
     }).eq('id', s.id);
   }
   async function removeStop(id: string) {
+    if (stops.length <= 1) return; // keep at least one stop
     await supabase.from('tour_destinations').delete().eq('id', id);
     setStops((p) => p.filter((s) => s.id !== id));
   }
@@ -450,34 +475,97 @@ function TourWizard({ initialTour, adminUserId, onClose }:
             <Card>
               <CardHeader><CardTitle>Itinerary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                {stops.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No stops yet — add the first destination below.</p>
+                {stops.length === 0 && !draftStop && (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
                 )}
+
                 {stops.map((s, i) => (
                   <div key={s.id} className="space-y-2 rounded-lg border p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">Stop {i + 1}</span>
-                      <Button size="sm" variant="ghost" onClick={() => removeStop(s.id)}>Remove</Button>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Stop {i + 1}{i === 0 && <span className="ml-1">(required)</span>}
+                      </span>
+                      {stops.length > 1 && (
+                        <Button size="sm" variant="ghost" onClick={() => removeStop(s.id)}>Remove</Button>
+                      )}
                     </div>
                     <Input placeholder="Destination name (e.g. Shaqlawa Bazaar)" value={s.name}
                       onChange={(e) => editStopLocal(s.id, { name: e.target.value })}
                       onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
-                    <Textarea rows={2} placeholder="What happens here?" value={s.description}
+                    <Textarea rows={2} placeholder="What happens here? (optional)" value={s.description}
                       onChange={(e) => editStopLocal(s.id, { description: e.target.value })}
                       onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
                     <div className="w-40">
-                      <Label className="text-xs">Time here (minutes)</Label>
+                      <Label className="text-xs">Time here, minutes (optional)</Label>
                       <Input type="number" value={s.visit_duration_min ?? ''}
                         onChange={(e) => editStopLocal(s.id, { visit_duration_min: e.target.value ? +e.target.value : null })}
                         onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
                     </div>
+                    {s.latitude != null && s.longitude != null ? (
+                      <p className="text-xs text-muted-foreground">
+                        📍 {s.latitude.toFixed(4)}, {s.longitude.toFixed(4)}
+                        <button type="button" className="ml-2 underline" onClick={() => editStopLocal(s.id, { latitude: null, longitude: null })}>
+                          remove pin
+                        </button>
+                      </p>
+                    ) : (
+                      <details>
+                        <summary className="cursor-pointer text-xs text-muted-foreground">Pick location on map (optional)</summary>
+                        <div className="mt-2 h-56 overflow-hidden rounded-lg border">
+                          <MapPicker lat={s.latitude} lng={s.longitude}
+                            onChange={(lat, lng) => { editStopLocal(s.id, { latitude: lat, longitude: lng }); saveStop({ ...s, latitude: lat, longitude: lng }); }} />
+                        </div>
+                      </details>
+                    )}
                   </div>
                 ))}
-                <Button variant="outline" onClick={addStop} className="gap-2">
+
+                {draftStop && (
+                  <div className="space-y-2 rounded-lg border border-dashed p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Stop {stops.length + 1}{stops.length === 0 && <span className="ml-1">(required)</span>}
+                      </span>
+                      {stops.length > 0 && (
+                        <Button size="sm" variant="ghost" onClick={cancelDraftStop}>Cancel</Button>
+                      )}
+                    </div>
+                    <Input autoFocus placeholder="Destination name (e.g. Shaqlawa Bazaar)" value={draftStop.name}
+                      onChange={(e) => setDraftStop({ ...draftStop, name: e.target.value })} />
+                    <Textarea rows={2} placeholder="What happens here? (optional)" value={draftStop.description}
+                      onChange={(e) => setDraftStop({ ...draftStop, description: e.target.value })} />
+                    <div className="w-40">
+                      <Label className="text-xs">Time here, minutes (optional)</Label>
+                      <Input type="number" value={draftStop.visit_duration_min ?? ''}
+                        onChange={(e) => setDraftStop({ ...draftStop, visit_duration_min: e.target.value ? +e.target.value : null })} />
+                    </div>
+                    {draftStop.latitude != null && draftStop.longitude != null ? (
+                      <p className="text-xs text-muted-foreground">
+                        📍 {draftStop.latitude.toFixed(4)}, {draftStop.longitude.toFixed(4)}
+                        <button type="button" className="ml-2 underline" onClick={() => setDraftStop({ ...draftStop, latitude: null, longitude: null })}>
+                          remove pin
+                        </button>
+                      </p>
+                    ) : (
+                      <details>
+                        <summary className="cursor-pointer text-xs text-muted-foreground">Pick location on map (optional)</summary>
+                        <div className="mt-2 h-56 overflow-hidden rounded-lg border">
+                          <MapPicker lat={draftStop.latitude} lng={draftStop.longitude}
+                            onChange={(lat, lng) => setDraftStop({ ...draftStop, latitude: lat, longitude: lng })} />
+                        </div>
+                      </details>
+                    )}
+                    <Button onClick={saveDraftStop} className="gap-2">
+                      <Plus className="h-4 w-4" /> Save this stop
+                    </Button>
+                  </div>
+                )}
+
+                <Button variant="outline" onClick={startDraftStop} disabled={!!draftStop || stops.length === 0} className="gap-2">
                   <Plus className="h-4 w-4" /> Add next destination
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  For a map view and reordering stops by drag, use the organizer toolkit at
+                  For reordering stops by drag on a full map, use the organizer toolkit at
                   <code> /tour/route-planner</code> once this tour is saved.
                 </p>
               </CardContent>
@@ -583,6 +671,10 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                       {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Controls whether this is visible on the public site. "Publish" below sets it to
+                    approved for you — you only need this dropdown to save as pending/rejected instead.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -597,7 +689,7 @@ function TourWizard({ initialTour, adminUserId, onClose }:
             {step === 0 && <Button onClick={saveBasics} disabled={saving} className="gap-1">
               {saving ? 'Saving…' : 'Save & Continue'} <ArrowRight className="h-4 w-4" />
             </Button>}
-            {step === 1 && <Button onClick={() => setStep(2)} className="gap-1">
+            {step === 1 && <Button onClick={() => setStep(2)} disabled={stops.length === 0} className="gap-1">
               Continue <ArrowRight className="h-4 w-4" />
             </Button>}
             {step === 2 && <Button onClick={() => setStep(3)} className="gap-1">
