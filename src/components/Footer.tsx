@@ -84,7 +84,7 @@ export function Footer() {
               Help visitors discover the businesses and experiences that make Erbil special.
             </p>
             <Link
-              to="/auth"
+              to="/merchant/auth"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold transition hover:text-primary"
             >
               Share your business <ArrowUpRight className="h-3.5 w-3.5" />
