@@ -25,14 +25,26 @@ import type { BusinessCategory, MerchantHour } from "@/integrations/supabase/typ
 
 export const Route = createFileRoute("/admin/business-edit/$id")({ component: EditBusiness });
 
-const CATEGORIES: BusinessCategory[] = [
-  "restaurant",
-  "cafe",
-  "hotel",
-  "attraction",
-  "shop",
-  "activity",
-  "other",
+// The 6 categories actually browsable on the public site (see the
+// CATEGORIES array in src/lib/categories.ts). Some map straight to the
+// `categories` enum column; Nightlife and Art & Culture are matched by
+// `mood_tags` instead (Nightlife has no enum at all in categories.ts, so
+// it only needs the mood tag). The mood tag values here are the exact
+// lowercase strings categories.ts filters on; they don't come from the
+// human-readable MOODS list further down this page, since e.g. "Nightlife"
+// (capitalized) never matched the lowercase "nightlife" filter.
+const SITE_CATEGORIES: {
+  key: string;
+  label: string;
+  categoryEnum: BusinessCategory | null;
+  moodTag: string | null;
+}[] = [
+  { key: "hotels", label: "Hotels", categoryEnum: "hotel", moodTag: null },
+  { key: "cafes", label: "Cafés", categoryEnum: "cafe", moodTag: null },
+  { key: "restaurants", label: "Restaurants", categoryEnum: "restaurant", moodTag: null },
+  { key: "nightlife", label: "Nightlife", categoryEnum: null, moodTag: "nightlife" },
+  { key: "art-culture", label: "Art & Culture", categoryEnum: "attraction", moodTag: "culture" },
+  { key: "shopping", label: "Shopping", categoryEnum: "shop", moodTag: null },
 ];
 const FEATURE_OPTIONS = [
   "WiFi",
@@ -91,6 +103,55 @@ function emptyHours(): MerchantHour[] {
     open_time: "09:00",
     close_time: "22:00",
   })) as MerchantHour[];
+}
+
+function SiteCategoryPicker({
+  value,
+  moodValue,
+  onChange,
+}: {
+  value: BusinessCategory[];
+  moodValue: string[];
+  onChange: (categories: BusinessCategory[], moodTags: string[]) => void;
+}) {
+  function isOn(sc: (typeof SITE_CATEGORIES)[number]) {
+    const catOk = !sc.categoryEnum || value.includes(sc.categoryEnum);
+    const moodOk = !sc.moodTag || moodValue.includes(sc.moodTag);
+    return catOk && moodOk;
+  }
+  function toggle(sc: (typeof SITE_CATEGORIES)[number]) {
+    const turningOn = !isOn(sc);
+    let categories = value;
+    let moodTags = moodValue;
+    if (sc.categoryEnum) {
+      categories = turningOn
+        ? Array.from(new Set([...categories, sc.categoryEnum]))
+        : categories.filter((c) => c !== sc.categoryEnum);
+    }
+    if (sc.moodTag) {
+      moodTags = turningOn
+        ? Array.from(new Set([...moodTags, sc.moodTag]))
+        : moodTags.filter((m) => m !== sc.moodTag);
+    }
+    onChange(categories, moodTags);
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {SITE_CATEGORIES.map((sc) => {
+        const active = isOn(sc);
+        return (
+          <button key={sc.key} type="button" onClick={() => toggle(sc)}>
+            <Badge
+              variant={active ? "default" : "outline"}
+              className={cn("cursor-pointer px-3 py-1.5 text-sm", active && "bg-primary")}
+            >
+              {sc.label}
+            </Badge>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function MultiPick({
@@ -181,17 +242,6 @@ function EditBusiness() {
 
   function update(key: string, value: unknown) {
     setForm((f: any) => ({ ...f, [key]: value }));
-  }
-
-  function toggleCategory(c: BusinessCategory) {
-    setForm((f: any) => {
-      const current: BusinessCategory[] = f.categories ?? [];
-      if (current.includes(c)) {
-        if (current.length === 1) return f;
-        return { ...f, categories: current.filter((x: string) => x !== c) };
-      }
-      return { ...f, categories: [...current, c] };
-    });
   }
 
   async function saveBasics() {
@@ -335,10 +385,12 @@ function EditBusiness() {
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Categories</Label>
-            <MultiPick
-              options={CATEGORIES}
+            <SiteCategoryPicker
               value={form.categories ?? []}
-              onChange={(v) => setForm((f: any) => ({ ...f, categories: v }))}
+              moodValue={form.mood_tags ?? []}
+              onChange={(categories, mood_tags) =>
+                setForm((f: any) => ({ ...f, categories, mood_tags }))
+              }
             />
           </div>
           <div className="space-y-2">
