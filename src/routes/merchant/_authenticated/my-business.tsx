@@ -51,15 +51,44 @@ export const Route = createFileRoute("/merchant/_authenticated/my-business")({
   component: MyBusiness,
 });
 
-const CATEGORIES: BusinessCategory[] = [
-  "restaurant",
-  "cafe",
-  "hotel",
-  "attraction",
-  "shop",
-  "activity",
-  "other",
+// The 6 categories actually browsable on the public site (see the
+// CATEGORIES array in src/lib/categories.ts). Some map straight to the
+// `categories` enum column; Nightlife and Art & Culture are matched by
+// `mood_tags` instead (Nightlife has no enum at all in categories.ts, so
+// it only needs the mood tag). Keep these exact lowercase mood tag values —
+// they're what categories.ts filters on, not the human-readable MOODS
+// labels used elsewhere on this page.
+const SITE_CATEGORIES: {
+  key: string;
+  label: string;
+  categoryEnum: BusinessCategory | null;
+  moodTag: string | null;
+}[] = [
+  { key: "hotels", label: "Hotels", categoryEnum: "hotel", moodTag: null },
+  { key: "cafes", label: "Cafés", categoryEnum: "cafe", moodTag: null },
+  { key: "restaurants", label: "Restaurants", categoryEnum: "restaurant", moodTag: null },
+  { key: "nightlife", label: "Nightlife", categoryEnum: null, moodTag: "nightlife" },
+  { key: "art-culture", label: "Art & Culture", categoryEnum: "attraction", moodTag: "culture" },
+  { key: "shopping", label: "Shopping", categoryEnum: "shop", moodTag: null },
 ];
+
+function isSiteCategoryOn(
+  sc: (typeof SITE_CATEGORIES)[number],
+  categories: BusinessCategory[],
+  moodTags: string[],
+) {
+  const catOk = !sc.categoryEnum || categories.includes(sc.categoryEnum);
+  const moodOk = !sc.moodTag || moodTags.includes(sc.moodTag);
+  return catOk && moodOk;
+}
+
+// Used for the "at least one category" checks below — those used to read
+// form.categories.length directly, which breaks for Nightlife (it writes
+// only a mood tag, no categories enum), so count *site* categories instead.
+function selectedSiteCategoryCount(categories: BusinessCategory[], moodTags: string[]) {
+  return SITE_CATEGORIES.filter((sc) => isSiteCategoryOn(sc, categories, moodTags)).length;
+}
+
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MOODS = [
   "Adventure",
@@ -482,14 +511,23 @@ function MyBusiness() {
     }));
   }
 
-  function toggleCategory(c: BusinessCategory) {
+  function toggleSiteCategory(sc: (typeof SITE_CATEGORIES)[number]) {
     setForm((f: any) => {
-      const current: BusinessCategory[] = f.categories ?? [];
-      if (current.includes(c)) {
-        if (current.length === 1) return f;
-        return { ...f, categories: current.filter((x) => x !== c) };
-      }
-      return { ...f, categories: [...current, c] };
+      const categories: BusinessCategory[] = f.categories ?? [];
+      const moodTags: string[] = f.mood_tags ?? [];
+      const turningOn = !isSiteCategoryOn(sc, categories, moodTags);
+      if (!turningOn && selectedSiteCategoryCount(categories, moodTags) === 1) return f; // keep at least one
+      const nextCategories = sc.categoryEnum
+        ? turningOn
+          ? Array.from(new Set([...categories, sc.categoryEnum]))
+          : categories.filter((c) => c !== sc.categoryEnum)
+        : categories;
+      const nextMoodTags = sc.moodTag
+        ? turningOn
+          ? Array.from(new Set([...moodTags, sc.moodTag]))
+          : moodTags.filter((m) => m !== sc.moodTag)
+        : moodTags;
+      return { ...f, categories: nextCategories, mood_tags: nextMoodTags };
     });
   }
 
@@ -685,7 +723,7 @@ function MyBusiness() {
 
   const checks = [
     { id: "name", label: "Name", ok: !!form.name?.trim(), step: 0 },
-    { id: "cat", label: "Category", ok: !!form.categories?.length, step: 0 },
+    { id: "cat", label: "Category", ok: selectedSiteCategoryCount(form.categories ?? [], form.mood_tags ?? []) > 0, step: 0 },
     { id: "loc", label: "Location", ok: form.latitude != null && form.longitude != null, step: 1 },
     { id: "phone", label: "Phone", ok: !!form.phone?.trim(), step: 0 },
     { id: "logo", label: "Logo", ok: !!m?.logo_url, step: 3 },
@@ -695,7 +733,8 @@ function MyBusiness() {
   async function goNext() {
     if (
       activeStepId === "basic" &&
-      (!form.name?.trim() || !form.phone?.trim() || !form.categories?.length)
+      (!form.name?.trim() || !form.phone?.trim() ||
+        selectedSiteCategoryCount(form.categories ?? [], form.mood_tags ?? []) === 0)
     ) {
       setAttemptedSubmit(true);
       return toast.error("Please complete the basic identity before continuing.");
@@ -857,32 +896,32 @@ function MyBusiness() {
                       Category
                     </Label>
                     <div className="flex flex-wrap gap-2">
-                      {CATEGORIES.map((c) => {
-                        const active = (form.categories ?? []).includes(c);
+                      {SITE_CATEGORIES.map((sc) => {
+                        const active = isSiteCategoryOn(sc, form.categories ?? [], form.mood_tags ?? []);
                         return (
                           <button
-                            key={c}
+                            key={sc.key}
                             type="button"
-                            onClick={() => toggleCategory(c)}
+                            onClick={() => toggleSiteCategory(sc)}
                             className="transition-transform active:scale-95"
                           >
                             <Badge
                               variant={active ? "default" : "outline"}
                               className={cn(
-                                "cursor-pointer px-4 py-2 text-xs capitalize transition-all",
+                                "cursor-pointer px-4 py-2 text-xs transition-all",
                                 active
                                   ? "bg-gold text-background border-transparent"
                                   : "hover:border-gold/50",
                               )}
                             >
-                              {c}
+                              {sc.label}
                             </Badge>
                           </button>
                         );
                       })}
                     </div>
                     <FieldError
-                      show={attemptedSubmit && !form.categories?.length}
+                      show={attemptedSubmit && selectedSiteCategoryCount(form.categories ?? [], form.mood_tags ?? []) === 0}
                       message="Select at least one category"
                     />
                   </div>
