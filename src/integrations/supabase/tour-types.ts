@@ -94,4 +94,5 @@ export interface TourAvailability {
   max_bookings: number | null;
   is_fully_booked: boolean;
   is_recurring: boolean;
+  start_time: string | null;
 }
