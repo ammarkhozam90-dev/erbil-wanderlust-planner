@@ -1,7 +1,7 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Map, Images, Route, DollarSign,
-  CalendarCheck, Eye, Send, LogOut,
+  CalendarCheck, Eye, Send, LogOut, ClipboardList,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -18,6 +18,7 @@ const items = [
   { title: 'Route Planner',    url: '/tour/route-planner',        icon: Route },
   { title: 'Pricing',          url: '/tour/pricing',      icon: DollarSign },
   { title: 'Availability',     url: '/tour/availability', icon: CalendarCheck },
+  { title: 'Bookings',         url: '/tour/bookings',     icon: ClipboardList },
   { title: 'Preview',          url: '/tour/preview',      icon: Eye },
   { title: 'Submit for Review',url: '/tour/submit',       icon: Send },
 ];
