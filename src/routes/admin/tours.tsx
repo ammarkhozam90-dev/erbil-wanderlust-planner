@@ -15,8 +15,8 @@ import { toast } from 'sonner';
 import { Check, X, Plus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TOUR_CATEGORIES, CURRENCIES, DURATION_OPTIONS, DIFFICULTY, TRANSPORTATION_TYPES } from '@/lib/tour-constants';
-import { MapPicker } from '@/components/merchant/MapPicker';
-import type { Tour, TourStatus, TourDestination, TourPhoto } from '@/integrations/supabase/tour-types';
+import { LocationPicker } from '@/components/tour/LocationPicker';
+import type { Tour, TourStatus, TourDestination, TourPhoto, TourAvailability } from '@/integrations/supabase/tour-types';
 
 export const Route = createFileRoute('/admin/tours')({ ssr: false, component: AdminTours });
 
@@ -346,10 +346,37 @@ function TourWizard({ initialTour, adminUserId, onClose }:
     const { error } = await supabase.from('tours').update({
       destination: t.destination, transportation_type: t.transportation_type,
       included: t.included, not_included: t.not_included, requirements: t.requirements,
+      meeting_point: t.meeting_point, meeting_lat: t.meeting_lat, meeting_lng: t.meeting_lng,
     }).eq('id', t.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     setStep(4);
+  }
+
+  const isBus = t.transportation_type === 'Bus';
+
+  // Schedule (which date(s) this tour runs, and what time it leaves).
+  const [availRows, setAvailRows] = useState<TourAvailability[]>([]);
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('');
+  async function loadAvailability() {
+    if (!t.id) return;
+    const { data } = await supabase.from('tour_availability').select('*').eq('tour_id', t.id).order('specific_date');
+    setAvailRows((data ?? []) as TourAvailability[]);
+  }
+  useEffect(() => { if (step === 3) loadAvailability(); }, [step, t.id]);
+  async function addSchedule() {
+    if (!t.id || !schedDate) return toast.error('Pick a date first');
+    const { error } = await supabase.from('tour_availability').insert({
+      tour_id: t.id, specific_date: schedDate, start_time: schedTime || null, is_recurring: false,
+    });
+    if (error) return toast.error(error.message);
+    setSchedDate(''); setSchedTime('');
+    loadAvailability();
+  }
+  async function removeSchedule(id: string) {
+    await supabase.from('tour_availability').delete().eq('id', id);
+    setAvailRows((p) => p.filter((r) => r.id !== id));
   }
 
   // --- step 5: pricing & publish -----------------------------------------
@@ -511,8 +538,8 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     ) : (
                       <details>
                         <summary className="cursor-pointer text-xs text-muted-foreground">Pick location on map (optional)</summary>
-                        <div className="mt-2 h-56 overflow-hidden rounded-lg border">
-                          <MapPicker lat={s.latitude} lng={s.longitude}
+                        <div className="mt-2">
+                          <LocationPicker lat={s.latitude} lng={s.longitude}
                             onChange={(lat, lng) => { editStopLocal(s.id, { latitude: lat, longitude: lng }); saveStop({ ...s, latitude: lat, longitude: lng }); }} />
                         </div>
                       </details>
@@ -549,8 +576,8 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     ) : (
                       <details>
                         <summary className="cursor-pointer text-xs text-muted-foreground">Pick location on map (optional)</summary>
-                        <div className="mt-2 h-56 overflow-hidden rounded-lg border">
-                          <MapPicker lat={draftStop.latitude} lng={draftStop.longitude}
+                        <div className="mt-2">
+                          <LocationPicker lat={draftStop.latitude} lng={draftStop.longitude}
                             onChange={(lat, lng) => setDraftStop({ ...draftStop, latitude: lat, longitude: lng })} />
                         </div>
                       </details>
@@ -617,6 +644,15 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     </SelectContent>
                   </Select>
                 </div>
+                {isBus && (
+                  <div className="space-y-2 rounded-lg border p-4">
+                    <Label>Bus pickup point</Label>
+                    <Input value={t.meeting_point ?? ''} onChange={(e) => set('meeting_point', e.target.value)}
+                      placeholder="e.g. 60m Street parking, next to the mall" />
+                    <LocationPicker lat={t.meeting_lat ?? null} lng={t.meeting_lng ?? null}
+                      onChange={(lat, lng) => { set('meeting_lat', lat); set('meeting_lng', lng); }} />
+                  </div>
+                )}
                 <div>
                   <Label>What's included</Label>
                   <TagInput value={t.included ?? []} onChange={(v) => set('included', v)} placeholder="e.g. Lunch, transport…" />
@@ -633,6 +669,39 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     This is where hiking/nature-trail prep tips like "wear proper shoes" go — shown to guests before booking.
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 3 && (
+            <Card>
+              <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <Label>Date</Label>
+                    <Input type="date" value={schedDate} onChange={(e) => setSchedDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>{isBus ? 'Bus departure time' : 'Start time'}</Label>
+                    <Input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} />
+                  </div>
+                  <Button type="button" variant="outline" onClick={addSchedule}>Add date</Button>
+                </div>
+                {availRows.length > 0 && (
+                  <ul className="divide-y">
+                    {availRows.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between py-2 text-sm">
+                        <span>{r.specific_date}{r.start_time ? ` • ${r.start_time}` : ''}</span>
+                        <Button size="sm" variant="ghost" onClick={() => removeSchedule(r.id)}>Remove</Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  For a weekly recurring schedule instead of one-off dates, use
+                  <code> /tour/availability</code> once this tour is saved.
+                </p>
               </CardContent>
             </Card>
           )}
