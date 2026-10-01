@@ -11,8 +11,11 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
+    // See ui/select.tsx — same Google Translate vs. Radix DOM-update crash;
+    // tab switching re-renders this subtree the same way a Select does.
+    translate="no"
     className={cn(
-      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+      "notranslate inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
       className,
     )}
     {...props}
