@@ -299,6 +299,18 @@ function TourWizard({ initialTour, adminUserId, onClose }:
     await supabase.from('tour_destinations').delete().eq('id', id);
     setStops((p) => p.filter((s) => s.id !== id));
   }
+  const [stopUploading, setStopUploading] = useState<string | null>(null);
+  async function uploadStopImage(stopId: string, f: File) {
+    if (!t.id) return;
+    setStopUploading(stopId);
+    const key = `${adminUserId}/${t.id}/stop-${stopId}-${Date.now()}-${f.name}`;
+    const { error } = await supabase.storage.from('tour-media').upload(key, f, { upsert: true });
+    if (error) { setStopUploading(null); return toast.error(error.message); }
+    const { data } = supabase.storage.from('tour-media').getPublicUrl(key);
+    await supabase.from('tour_destinations').update({ image_url: data.publicUrl }).eq('id', stopId);
+    editStopLocal(stopId, { image_url: data.publicUrl });
+    setStopUploading(null);
+  }
 
   // --- step 3: photos ---------------------------------------------------
   const [photos, setPhotos] = useState<TourPhoto[]>([]);
@@ -347,6 +359,7 @@ function TourWizard({ initialTour, adminUserId, onClose }:
       destination: t.destination, transportation_type: t.transportation_type,
       included: t.included, not_included: t.not_included, requirements: t.requirements,
       meeting_point: t.meeting_point, meeting_lat: t.meeting_lat, meeting_lng: t.meeting_lng,
+      accommodation_type: t.accommodation_type, accommodation_notes: t.accommodation_notes,
     }).eq('id', t.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -354,6 +367,7 @@ function TourWizard({ initialTour, adminUserId, onClose }:
   }
 
   const isBus = t.transportation_type === 'Bus';
+  const isMultiDay = t.duration_type === '2_days' || t.duration_type === '3_days' || t.duration_type === 'custom';
 
   // Schedule (which date(s) this tour runs, and what time it leaves).
   const [availRows, setAvailRows] = useState<TourAvailability[]>([]);
@@ -519,7 +533,7 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     <Input placeholder="Destination name (e.g. Shaqlawa Bazaar)" value={s.name}
                       onChange={(e) => editStopLocal(s.id, { name: e.target.value })}
                       onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
-                    <Textarea rows={2} placeholder="What happens here? (optional)" value={s.description}
+                    <Textarea rows={4} placeholder="Tell guests what happens here — what they'll see, do, or try (optional)" value={s.description}
                       onChange={(e) => editStopLocal(s.id, { description: e.target.value })}
                       onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
                     <div className="w-40">
@@ -527,6 +541,12 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                       <Input type="number" value={s.visit_duration_min ?? ''}
                         onChange={(e) => editStopLocal(s.id, { visit_duration_min: e.target.value ? +e.target.value : null })}
                         onBlur={() => saveStop(stops.find((x) => x.id === s.id)!)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Photo of this stop (optional)</Label>
+                      {s.image_url && <img src={s.image_url} alt="" className="h-28 w-full rounded object-cover" />}
+                      <Input type="file" accept="image/*" disabled={stopUploading === s.id}
+                        onChange={(e) => e.target.files?.[0] && uploadStopImage(s.id, e.target.files[0])} />
                     </div>
                     {s.latitude != null && s.longitude != null ? (
                       <p className="text-xs text-muted-foreground">
@@ -585,6 +605,7 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                     <Button onClick={saveDraftStop} className="gap-2">
                       <Plus className="h-4 w-4" /> Save this stop
                     </Button>
+                    <p className="text-xs text-muted-foreground">You can add a photo for this stop right after saving it.</p>
                   </div>
                 )}
 
@@ -651,6 +672,32 @@ function TourWizard({ initialTour, adminUserId, onClose }:
                       placeholder="e.g. 60m Street parking, next to the mall" />
                     <LocationPicker lat={t.meeting_lat ?? null} lng={t.meeting_lng ?? null}
                       onChange={(lat, lng) => { set('meeting_lat', lat); set('meeting_lng', lng); }} />
+                    <p className="text-xs text-muted-foreground">
+                      The departure time for this pickup is set below, in the Schedule card — one tour can
+                      have several dates, each with its own time.
+                    </p>
+                  </div>
+                )}
+                {isMultiDay && (
+                  <div className="space-y-2 rounded-lg border p-4">
+                    <Label>Overnight stay</Label>
+                    <Select value={t.accommodation_type ?? ''} onValueChange={(v) => set('accommodation_type', v)}>
+                      <SelectTrigger><SelectValue placeholder="Where do guests sleep?" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hotel">Hotel</SelectItem>
+                        <SelectItem value="guesthouse">Guesthouse</SelectItem>
+                        <SelectItem value="camping">Camping / tents</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Textarea rows={2} value={t.accommodation_notes ?? ''} onChange={(e) => set('accommodation_notes', e.target.value)}
+                      placeholder={t.accommodation_type === 'camping'
+                        ? 'e.g. Tents and sleeping bags provided by us'
+                        : 'e.g. 3-star hotel in Shaqlawa, breakfast included'} />
+                    <p className="text-xs text-muted-foreground">
+                      If guests need to bring their own sleeping gear (sleeping bag, pillow…), add those as
+                      tags in "What to bring" below so they show up clearly before booking.
+                    </p>
                   </div>
                 )}
                 <div>
@@ -675,7 +722,14 @@ function TourWizard({ initialTour, adminUserId, onClose }:
 
           {step === 3 && (
             <Card>
-              <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Schedule</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Add one entry per date this tour actually runs — e.g. every Friday in October. Guests
+                  can only book a date that's listed here, so one date is enough for a one-off trip, and
+                  several if it repeats.
+                </p>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <div>
