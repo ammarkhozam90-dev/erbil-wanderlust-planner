@@ -25,6 +25,8 @@ function Availability() {
   const [rows, setRows] = useState<TourAvailability[]>([]);
   const [specific, setSpecific] = useState('');
   const [maxB, setMaxB] = useState('');
+  const [time, setTime] = useState('');
+  const [recurTime, setRecurTime] = useState('');
 
   async function reload() {
     if (!tour) return;
@@ -39,7 +41,7 @@ function Availability() {
     if (checked && !existing) {
       await supabase.from('tour_availability').insert({
         tour_id: tour.id, day_of_week: day, is_recurring: true,
-        max_bookings: maxB ? +maxB : null,
+        max_bookings: maxB ? +maxB : null, start_time: recurTime || null,
       });
     } else if (!checked && existing) {
       await supabase.from('tour_availability').delete().eq('id', existing.id);
@@ -51,7 +53,7 @@ function Availability() {
     if (!tour || !specific) return;
     await supabase.from('tour_availability').insert({
       tour_id: tour.id, specific_date: specific, is_recurring: false,
-      max_bookings: maxB ? +maxB : null,
+      max_bookings: maxB ? +maxB : null, start_time: time || null,
     });
     setSpecific('');
     reload();
@@ -78,6 +80,10 @@ function Availability() {
               </label>
             );
           })}
+          <div className="w-32">
+            <Label className="text-xs">Start time</Label>
+            <Input type="time" value={recurTime} onChange={(e) => setRecurTime(e.target.value)} />
+          </div>
         </CardContent>
       </Card>
 
@@ -86,13 +92,14 @@ function Availability() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div><Label>Date</Label><Input type="date" value={specific} onChange={(e) => setSpecific(e.target.value)} /></div>
+            <div><Label>Start time</Label><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
             <div><Label>Max bookings</Label><Input type="number" value={maxB} onChange={(e) => setMaxB(e.target.value)} /></div>
             <Button onClick={addSpecific}>Add</Button>
           </div>
           <ul className="divide-y">
             {rows.filter((r) => !r.is_recurring).map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2">
-                <span>{r.specific_date} {r.max_bookings != null && `• max ${r.max_bookings}`}</span>
+                <span>{r.specific_date} {r.start_time && `• ${r.start_time}`} {r.max_bookings != null && `• max ${r.max_bookings}`}</span>
                 <div className="flex gap-2">
                   <Button size="sm" variant={r.is_fully_booked ? 'destructive' : 'outline'} onClick={() => toggleFull(r)}>
                     {r.is_fully_booked ? 'Fully booked' : 'Available'}
