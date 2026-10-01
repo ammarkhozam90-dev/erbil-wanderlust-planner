@@ -58,6 +58,8 @@ export interface Tour {
   submitted_at: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
+  accommodation_type: string | null;
+  accommodation_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,4 +97,20 @@ export interface TourAvailability {
   is_fully_booked: boolean;
   is_recurring: boolean;
   start_time: string | null;
+}
+
+export type TourBookingStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface TourBooking {
+  id: string;
+  tour_id: string;
+  availability_id: string | null;
+  full_name: string;
+  phone: string;
+  email: string | null;
+  adults: number;
+  children: number;
+  notes: string | null;
+  status: TourBookingStatus;
+  created_at: string;
 }
