@@ -41,6 +41,23 @@ export interface PlannerInput {
   dayOfWeek?: number;
   indoorPreference?: "any" | "indoor" | "outdoor";
   mobility?: "any" | "easy" | "active";
+  /** v2: optional extra moods (visitor can pick up to 2 more). */
+  extraMoods?: PlannerMood[];
+  /** v2: slow = fewer, longer stops · fast = more, shorter stops. */
+  pace?: "slow" | "normal" | "fast";
+  /** v2: preferred food styles, e.g. "kurdish", "seafood", "vegetarian". */
+  foodPreferences?: string[];
+  /** v2: things to avoid, e.g. "crowded", "loud", "smoking", "stairs". */
+  avoid?: string[];
+  /** v2: one category the visitor wants guaranteed in the plan. */
+  mustInclude?: Category | null;
+}
+
+/** v2: why a place scored the way it did. Used to build the "Why we picked this" line. */
+export interface ScoreBreakdown {
+  total: number;
+  matchPercent: number;
+  reasons: string[];
 }
 
 export interface PlannerCandidate extends Location {
@@ -64,6 +81,10 @@ export interface PlanStop {
   startHour: number;
   endHour: number;
   reason: string;
+  /** v2: 0-100 match score shown as a badge. */
+  matchPercent?: number;
+  /** v2: short bullet reasons, e.g. ["Matches your romantic mood", "5 min from previous stop"]. */
+  reasons?: string[];
   estimatedCostUSD: number;
   distanceKmFromPrevious?: number;
   travelMinutesFromPrevious?: number;
@@ -92,6 +113,28 @@ export const PLANNER_WEIGHTS = {
   dietary_match: 10,
   feature_match: 8,
   sponsored_bonus: 5,
+  food_match: 12,
+  avoid_penalty: 30,
+};
+
+/** Whole-word tokens, so "bar" never matches "barista" and "mall" never matches "small". */
+const AVOID_TOKENS: Record<string, string[]> = {
+  crowded: ["crowded", "busy", "mall", "bazaar", "market", "souq"],
+  loud: ["loud", "live music", "nightlife", "club", "bar", "pub"],
+  smoking: ["shisha", "hookah", "smoking", "argila", "nargile"],
+  stairs: ["hike", "climb", "stairs", "mountain"],
+};
+
+/** Prefix keywords per food style, so "dessert" matches "desserts" and "kebab" counts as grill. */
+const FOOD_KEYWORDS: Record<string, string[]> = {
+  kurdish: ["kurdish", "kurd"],
+  arabic: ["arabic", "arab", "levantine", "lebanese", "syrian"],
+  turkish: ["turkish", "turk"],
+  grill: ["grill", "bbq", "barbecue", "kebab", "kabab"],
+  seafood: ["seafood", "fish"],
+  "fast food": ["fast food", "burger", "pizza", "shawarma"],
+  vegetarian: ["vegetarian", "vegan"],
+  desserts: ["dessert", "sweet", "bakery", "ice cream", "kunafa"],
 };
 
 const BUDGET_LIMITS: Record<PlannerBudget, number> = {
@@ -132,6 +175,41 @@ function normalize(value: string | null | undefined) {
   return String(value ?? "")
     .trim()
     .toLowerCase();
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Whole-word match (optional plural s/es). */
+function hasWord(text: string, token: string) {
+  const t = normalize(token);
+  if (!t) return false;
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(t)}(s|es)?($|[^a-z0-9])`).test(text);
+}
+
+/** Word-start match that allows suffixes ("dessert" matches "desserts"). */
+function hasPrefix(text: string, token: string) {
+  const t = normalize(token);
+  if (!t) return false;
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(t)}`).test(text);
+}
+
+function activeMoods(input: PlannerInput): PlannerMood[] {
+  return Array.from(new Set<PlannerMood>([input.mood, ...(input.extraMoods ?? [])]));
+}
+
+/** Score is shown relative to what was actually reachable for this visitor's answers, not a fixed ceiling. */
+function reachableMax(input: PlannerInput, candidate: PlannerCandidate) {
+  const w = PLANNER_WEIGHTS;
+  let max =
+    w.mood_match + w.interest_match + w.companion_match + w.budget_fit + w.rating_bonus + w.distance_efficiency;
+  if (input.budget === "Balanced") max += 5;
+  if (input.profile?.favorites?.length) max += w.favorite_match;
+  if (input.profile?.dietary_preferences?.length) max += w.dietary_match;
+  if ((input.profile?.interests?.length ?? 0) + (input.profile?.travel_styles?.length ?? 0) > 0) max += w.feature_match;
+  if (input.foodPreferences?.length && ["Restaurants", "Cafés"].includes(candidate.category)) max += w.food_match;
+  return max;
 }
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -186,93 +264,115 @@ function travelMinutes(distanceKm: number | undefined) {
   return Math.min(45, Math.max(10, Math.round(distanceKm * 6)));
 }
 
-function scoreCandidate(
+function scoreBreakdown(
   candidate: PlannerCandidate,
   input: PlannerInput,
   previous?: PlannerCandidate,
-) {
-  const moodTokens = MOOD_ALIASES[input.mood].map(normalize);
-  const moodCategories = MOOD_CATEGORIES[input.mood];
+): ScoreBreakdown {
+  const moods = activeMoods(input);
+  const moodTokens = moods.flatMap((m) => MOOD_ALIASES[m]).map(normalize);
+  const moodCategories = moods.flatMap((m) => MOOD_CATEGORIES[m]);
   const companions = COMPANION_ALIASES[input.companion];
-  const text = [
-    candidate.name,
-    candidate.description,
-    candidate.category,
-    candidate.area,
-    ...(candidate.tags ?? []),
-  ]
+  const text = [candidate.name, candidate.description, candidate.category, candidate.area, ...(candidate.tags ?? [])]
     .map(normalize)
     .join(" ");
+  const reasons: string[] = [];
   let score = 0;
 
-  if (
-    candidate.mood.some((value) => moodTokens.includes(normalize(value))) ||
-    moodTokens.some((token) => text.includes(token))
-  ) {
+  const moodHit = moods.find(
+    (m) =>
+      candidate.mood.some((v) => MOOD_ALIASES[m].map(normalize).includes(normalize(v))) ||
+      MOOD_ALIASES[m].map(normalize).some((t) => text.includes(t)),
+  );
+  if (moodHit || moodTokens.some((t) => text.includes(t))) {
     score += PLANNER_WEIGHTS.mood_match;
+    reasons.push(`Matches your ${(moodHit ?? input.mood).toLowerCase()} mood`);
   }
 
-  if (input.interests.includes(candidate.category)) score += PLANNER_WEIGHTS.interest_match;
-  else if (moodCategories.includes(candidate.category))
-    score += PLANNER_WEIGHTS.interest_match * 0.6;
+  if (input.interests.includes(candidate.category)) {
+    score += PLANNER_WEIGHTS.interest_match;
+    reasons.push(`You picked ${candidate.category}`);
+  } else if (moodCategories.includes(candidate.category)) score += PLANNER_WEIGHTS.interest_match * 0.6;
 
-  if (candidate.with.some((value) => companions.includes(value)))
+  if (candidate.with.some((v) => companions.includes(v))) {
     score += PLANNER_WEIGHTS.companion_match;
+    reasons.push(`Great for ${input.companion === "Solo" ? "solo visits" : input.companion.toLowerCase()}`);
+  }
 
   const priceCap = BUDGET_LIMITS[input.budget];
   if (candidate.priceUSD <= priceCap) {
     score += PLANNER_WEIGHTS.budget_fit;
-    if (input.budget === "Balanced" && candidate.priceUSD > 15 && candidate.priceUSD < 50)
-      score += 5;
+    if (input.budget === "Balanced" && candidate.priceUSD > 15 && candidate.priceUSD < 50) score += 5;
+    if (candidate.priceUSD === 0) reasons.push("Free entry");
+    else reasons.push(`Fits your ${input.budget.toLowerCase()} budget (~$${candidate.priceUSD})`);
   }
 
-  if (candidate.avgRating !== null && candidate.avgRating !== undefined) {
-    score += Math.max(0, Math.min(5, candidate.avgRating) / 5) * PLANNER_WEIGHTS.rating_bonus;
+  if (candidate.avgRating != null) {
+    score += (Math.max(0, Math.min(5, candidate.avgRating)) / 5) * PLANNER_WEIGHTS.rating_bonus;
+    if (candidate.avgRating >= 4.3) reasons.push(`Highly rated (${candidate.avgRating.toFixed(1)}★)`);
   }
 
   if (input.profile?.favorites?.some((id) => id === candidate.id || id === candidate.merchantId)) {
     score += PLANNER_WEIGHTS.favorite_match;
+    reasons.push("In your favorites");
   }
 
   const dietary = (input.profile?.dietary_preferences ?? []).map(normalize);
   const options = (candidate.dietaryOptions ?? []).map(normalize);
-  if (
-    dietary.length > 0 &&
-    options.length > 0 &&
-    dietary.some((preference) =>
-      options.some((option) => option.includes(preference) || preference.includes(option)),
-    )
-  ) {
+  if (dietary.length && options.length && dietary.some((p) => options.some((o) => o.includes(p) || p.includes(o)))) {
     score += PLANNER_WEIGHTS.dietary_match;
+    reasons.push("Has options for your diet");
   }
 
-  const featureTokens = [
-    ...(input.profile?.interests ?? []),
-    ...(input.profile?.travel_styles ?? []),
-  ]
+  const food = (input.foodPreferences ?? []).map(normalize).filter(Boolean);
+  if (food.length && ["Restaurants", "Cafés"].includes(candidate.category)) {
+    const hit = food.find((f) => {
+      const keys = FOOD_KEYWORDS[f] ?? [f];
+      return keys.some((k) => hasPrefix(text, k) || options.some((o) => hasPrefix(o, k)));
+    });
+    if (hit) {
+      score += PLANNER_WEIGHTS.food_match;
+      reasons.push(`Serves ${hit} food`);
+    }
+  }
+
+  const featureTokens = [...(input.profile?.interests ?? []), ...(input.profile?.travel_styles ?? [])]
     .map(normalize)
     .filter(Boolean);
-  if (featureTokens.length > 0 && featureTokens.some((token) => text.includes(token))) {
+  const feat = featureTokens.find((t) => text.includes(t));
+  if (feat) {
     score += PLANNER_WEIGHTS.feature_match;
+    reasons.push(`Matches your interest in ${feat}`);
+  }
+
+  for (const a of input.avoid ?? []) {
+    const tokens = AVOID_TOKENS[a] ?? [normalize(a)];
+    if (tokens.some((t) => hasWord(text, t))) score -= PLANNER_WEIGHTS.avoid_penalty;
   }
 
   if (candidate.isSponsored) score += PLANNER_WEIGHTS.sponsored_bonus;
 
   if (previous) {
-    score += Math.max(
-      -15,
-      PLANNER_WEIGHTS.distance_efficiency - haversineKm(previous, candidate) * 2,
-    );
+    const km = haversineKm(previous, candidate);
+    score += Math.max(-15, PLANNER_WEIGHTS.distance_efficiency - km * 2);
+    if (km < 2) reasons.push(`Only ${travelMinutes(km)} min from your previous stop`);
   } else if (input.startPoint) {
-    score += Math.max(
-      -10,
-      PLANNER_WEIGHTS.distance_efficiency * 0.5 - haversineKm(input.startPoint, candidate),
-    );
+    const km = haversineKm(input.startPoint, candidate);
+    score += Math.max(-10, PLANNER_WEIGHTS.distance_efficiency * 0.5 - km);
+    if (km < 3) reasons.push("Close to your starting point");
   }
 
-  if (candidate.bestVisitTime && text.includes(normalize(candidate.bestVisitTime)))
-    score += PLANNER_WEIGHTS.time_fit * 0.5;
-  return score;
+  if (candidate.bestVisitTime && text.includes(normalize(candidate.bestVisitTime))) score += PLANNER_WEIGHTS.time_fit * 0.5;
+
+  return {
+    total: score,
+    matchPercent: Math.max(10, Math.min(99, Math.round((score / reachableMax(input, candidate)) * 100))),
+    reasons,
+  };
+}
+
+function scoreCandidate(candidate: PlannerCandidate, input: PlannerInput, previous?: PlannerCandidate) {
+  return scoreBreakdown(candidate, input, previous).total;
 }
 
 function hardFilter(
@@ -287,6 +387,9 @@ function hardFilter(
   if (input.indoorPreference === "indoor" && candidate.indoor === false) return false;
   if (input.indoorPreference === "outdoor" && candidate.indoor === true) return false;
   if (input.mobility === "easy" && candidate.accessibility === "active") return false;
+  if (input.avoid?.includes("stairs") && candidate.accessibility === "active") return false;
+  if (input.avoid?.includes("loud") && candidate.category === "Nightlife" && input.mustInclude !== "Nightlife")
+    return false;
 
   const dailyBudget = BUDGET_LIMITS[input.budget];
   if (Number.isFinite(dailyBudget) && spent + candidate.priceUSD > dailyBudget && spent > 0)
@@ -295,16 +398,27 @@ function hardFilter(
 }
 
 function templateFor(input: PlannerInput) {
+  const base = baseTemplate(input);
+  let slots = base;
+  if (input.pace === "slow" && base.length > 1) slots = base.slice(0, base.length - 1);
+  if (input.pace === "fast" && input.durationHours >= 4) slots = [...base, "activity"];
+  if (input.mustInclude && !slots.includes(`must:${input.mustInclude}`)) slots = [`must:${input.mustInclude}`, ...slots.slice(1)];
+  return slots;
+}
+
+function baseTemplate(input: PlannerInput) {
   if (input.durationHours <= 2) return ["activity"];
   if (input.durationHours <= 4) return ["activity", "food"];
   if (input.durationHours <= 6) return ["activity", "food", "cafe"];
   return ["activity", "food", "cafe", "activity", "food"];
 }
 
-function slotCategory(slot: string, mood: PlannerMood): Category[] {
+function slotCategory(slot: string, input: PlannerInput): Category[] {
+  if (slot.startsWith("must:")) return [slot.slice(5) as Category];
   if (slot === "food") return ["Restaurants"];
   if (slot === "cafe") return ["Cafés"];
-  return MOOD_CATEGORIES[mood];
+  // Extra moods widen the activity pool; scoring still ranks the main mood first.
+  return Array.from(new Set(activeMoods(input).flatMap((m) => MOOD_CATEGORIES[m])));
 }
 
 /** Professional, dependency-free planning engine with hard filters, weighted scoring, diversity, and controlled randomness. */
@@ -320,12 +434,18 @@ export function generateInternalPlan(
   let spent = 0;
   let previous: PlannerCandidate | undefined;
 
-  for (const slot of slots) {
+  // If nothing is open yet for a slot (e.g. restaurants opening at noon), wait up to 2h before giving that slot up.
+  const MAX_WAIT_HOURS = 2;
+  let waited = 0;
+  let slotIndex = 0;
+
+  while (slotIndex < slots.length) {
+    const slot = slots[slotIndex];
     if (currentHour >= input.startHour + input.durationHours) break;
 
     const pool = candidates
       .filter((candidate) => !chosen.some((stop) => stop.location.id === candidate.id))
-      .filter((candidate) => slotCategory(slot, input.mood).includes(candidate.category))
+      .filter((candidate) => slotCategory(slot, input).includes(candidate.category))
       .filter((candidate) => hardFilter(candidate, input, currentHour, dayOfWeek, spent))
       .map((candidate) => {
         const distance = previous
@@ -333,7 +453,8 @@ export function generateInternalPlan(
           : input.startPoint
             ? haversineKm(input.startPoint, candidate)
             : undefined;
-        return { candidate, score: scoreCandidate(candidate, input, previous), distance };
+        const breakdown = scoreBreakdown(candidate, input, previous);
+        return { candidate, score: breakdown.total, breakdown, distance };
       })
       .sort((a, b) => b.score - a.score);
 
@@ -349,13 +470,20 @@ export function generateInternalPlan(
         : undefined;
 
     if (!selected) {
-      warnings.push(`We could not find a suitable ${slot} stop for this time.`);
-      currentHour += 0.5;
+      if (waited < MAX_WAIT_HOURS && currentHour + 0.5 < input.startHour + input.durationHours) {
+        currentHour += 0.5;
+        waited += 0.5;
+        continue;
+      }
+      warnings.push(`We could not find a suitable ${slot.replace("must:", "")} stop for this time.`);
+      waited = 0;
+      slotIndex += 1;
       continue;
     }
 
     const next = selected.candidate;
-    const durationHours = Math.max(0.5, next.durationMin / 60);
+    const paceFactor = input.pace === "slow" ? 1.3 : input.pace === "fast" ? 0.8 : 1;
+    const durationHours = Math.max(0.5, (next.durationMin / 60) * paceFactor);
     const endHour = Math.min(input.startHour + input.durationHours, currentHour + durationHours);
     const distance = selected.distance;
     const transferMinutes = travelMinutes(previous ? distance : undefined);
@@ -364,7 +492,11 @@ export function generateInternalPlan(
       location: next,
       startHour: currentHour,
       endHour,
-      reason: `${next.name} fits your ${input.mood.toLowerCase()} mood and ${input.companion.toLowerCase()} outing. The route keeps the next move practical and the experience varied.`,
+      reason: `${next.name} fits your ${activeMoods(input)
+        .map((m) => m.toLowerCase())
+        .join(" & ")} mood and ${input.companion.toLowerCase()} outing. The route keeps the next move practical and the experience varied.`,
+      matchPercent: selected.breakdown.matchPercent,
+      reasons: selected.breakdown.reasons,
       estimatedCostUSD: next.priceUSD,
       distanceKmFromPrevious: previous ? distance : undefined,
       travelMinutesFromPrevious: previous ? transferMinutes : undefined,
@@ -373,6 +505,8 @@ export function generateInternalPlan(
     spent += next.priceUSD;
     currentHour = endHour + transferMinutes / 60;
     previous = next;
+    waited = 0;
+    slotIndex += 1;
   }
 
   if (!chosen.length)
@@ -382,10 +516,13 @@ export function generateInternalPlan(
       "This plan uses the strongest verified matches available for your selected time and preferences.",
     );
 
+  const moodLabel = activeMoods(input)
+    .map((m) => m.toLowerCase())
+    .join(" & ");
   const title =
-    input.mood === "Cultural"
+    input.mood === "Cultural" && !input.extraMoods?.length
       ? "A day through Erbil's story"
-      : `Your ${input.mood.toLowerCase()} Erbil day`;
+      : `Your ${moodLabel} Erbil day`;
   const summary = `${chosen.length} stops matched for ${input.companion.toLowerCase()} · ${input.durationHours} hours · ${input.budget} budget.`;
   const alternatives = candidates
     .filter((candidate) => !chosen.some((stop) => stop.location.id === candidate.id))
@@ -416,4 +553,4 @@ export function locationToPlannerCandidate(location: Location): PlannerCandidate
   };
 }
 
-export { haversineKm };
+export { haversineKm, scoreBreakdown };
