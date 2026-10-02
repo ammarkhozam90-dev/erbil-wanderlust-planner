@@ -1,4 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Map, Images, Route, DollarSign,
   CalendarCheck, Eye, Send, LogOut, ClipboardList,
@@ -28,6 +29,23 @@ export function TourSidebar() {
   const navigate = useNavigate();
   const active = (u: string) => path === u || path.startsWith(u + '/');
 
+  // RLS already scopes tour_bookings to this organizer's own tours, so no
+  // need to look up their organizer/tour ids first — just count pending.
+  // This is the only signal an organizer gets that a request came in, since
+  // there's no email/SMS notification wired up yet.
+  const { data: pendingBookings = 0 } = useQuery({
+    queryKey: ['organizer-pending-bookings-count'],
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('tour_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: '/tour/login' });
@@ -45,7 +63,12 @@ export function TourSidebar() {
                   <SidebarMenuButton asChild isActive={active(i.url)}>
                     <Link to={i.url} className="flex items-center gap-2">
                       <i.icon className="h-4 w-4" />
-                      <span>{i.title}</span>
+                      <span className="flex-1">{i.title}</span>
+                      {i.url === '/tour/bookings' && pendingBookings > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
+                          {pendingBookings > 99 ? '99+' : pendingBookings}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
