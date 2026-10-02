@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
   Flag, BarChart3, ScrollText, Settings as SettingsIcon, Map, Palette, History, UploadCloud, UserCheck, Tag, Star,
+  ClipboardList,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -18,6 +19,7 @@ const items = [
   { title: 'Businesses',         url: '/admin/businesses', icon: Building2 },
   { title: 'Bulk Import',        url: '/admin/import',     icon: UploadCloud },
   { title: 'Tour Management',    url: '/admin/tours',      icon: Map },
+  { title: 'Bookings',           url: '/admin/bookings',   icon: ClipboardList },
   { title: 'Photos',             url: '/admin/photos',     icon: Images },
   { title: 'Categories',         url: '/admin/categories', icon: Tags },
   { title: 'Users',              url: '/admin/users',      icon: Users },
@@ -61,6 +63,21 @@ export function AdminSidebar() {
     },
   });
 
+  // Same idea for tour booking requests — this is the only signal an admin
+  // gets that one came in, since there's no email/SMS notification wired up.
+  const { data: pendingBookings = 0 } = useQuery({
+    queryKey: ['admin-pending-bookings-count'],
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('tour_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -82,6 +99,11 @@ export function AdminSidebar() {
                       {item.url === '/admin/claims' && pendingClaims > 0 && (
                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
                           {pendingClaims > 99 ? '99+' : pendingClaims}
+                        </span>
+                      )}
+                      {item.url === '/admin/bookings' && pendingBookings > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
+                          {pendingBookings > 99 ? '99+' : pendingBookings}
                         </span>
                       )}
                     </Link>
