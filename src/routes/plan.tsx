@@ -38,6 +38,8 @@ import {
 } from "@/lib/planner-engine";
 import { toast } from "sonner";
 import { CollaborationPanel } from "@/components/planner/CollaborationPanel";
+import { PlannerExtraQuestions } from "@/components/planner/PlannerExtraQuestions";
+import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -389,6 +391,7 @@ function PlanPage() {
                       ]}
                     />
                   </div>
+                  <PlannerExtraQuestions value={form} onChange={updateForm} />
                 </WizardStep>
               )}
               <div className="mt-8 flex items-center justify-between gap-3 border-t border-border/60 pt-5">
@@ -766,6 +769,7 @@ function PlanResult({
                   {stop.location.area} · {stop.location.category}
                 </p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{stop.reason}</p>
+                <StopWhyBadge stop={stop} />
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full border border-border px-2.5 py-1">
                     {stop.estimatedCostUSD ? `$${stop.estimatedCostUSD} est.` : "Free"}
