@@ -158,7 +158,16 @@ function PlanPage() {
           area: merchant.city || merchant.address || "Erbil",
           lat: Number(merchant.latitude),
           lng: Number(merchant.longitude),
-          priceUSD: price <= 1 ? 8 : price === 2 ? 20 : price === 3 ? 45 : 75,
+          priceUSD:
+            merchant.price_level == null && ["Parks & Nature", "Landmarks"].includes(category)
+              ? 0
+              : price <= 1
+                ? 8
+                : price === 2
+                  ? 20
+                  : price === 3
+                    ? 45
+                    : 75,
           description:
             merchant.description ||
             `A verified ${String(merchant.category || "Erbil").toLowerCase()} in ${merchant.city || "Erbil"}.`,
@@ -180,7 +189,7 @@ function PlanPage() {
           ].filter(Boolean),
           dietaryOptions: asStringArray(merchant.dietary_options),
           transportation: asStringArray(merchant.transportation),
-          bestVisitTime: merchant.best_visit_time || null,
+          bestVisitTime: asStringArray(merchant.best_visit_time).join(",") || null,
           hoursByDay: mapMerchantHours(merchant.merchant_hours),
           accessibility: suitabilityToAccessibility(merchant.suitability),
           indoor: ["Cafés", "Restaurants", "Shopping", "Art & Culture"].includes(category),
