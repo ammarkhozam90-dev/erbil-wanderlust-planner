@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing Supabase schema types do not yet include planner relations. */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { Fragment, useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -26,6 +26,8 @@ import { LOCATIONS, type Category } from "@/data/locations";
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateInternalPlan,
+  swapStop,
+  type LearnedAffinity,
   locationToPlannerCandidate,
   type GeneratedPlan,
   type PlannerBudget,
@@ -40,6 +42,10 @@ import { toast } from "sonner";
 import { CollaborationPanel } from "@/components/planner/CollaborationPanel";
 import { PlannerExtraQuestions } from "@/components/planner/PlannerExtraQuestions";
 import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
+import { StopActions } from "@/components/planner/StopActions";
+import { TravelLeg } from "@/components/planner/TravelLeg";
+import { TravelModePicker } from "@/components/planner/TravelModePicker";
+import { loadAffinity, recordSavedPlan } from "@/lib/planner-learning";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -94,6 +100,8 @@ function PlanPage() {
   const { profile, session, incrementItineraries } = useAuth();
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<GeneratedPlan | null>(null);
+  const [rejectedIds, setRejectedIds] = useState<string[]>([]);
+  const [affinity, setAffinity] = useState<LearnedAffinity | null>(null);
   const [form, setForm] = useState<PlannerInput>(() => ({
     companion: "Solo",
     mood: "Relaxed",
@@ -181,10 +189,24 @@ function PlanPage() {
     setForm((prev) => ({ ...prev, ...patch }));
   }
 
-  function generate() {
-    const plan = generateInternalPlan(candidates, { ...form, profile });
+  async function generate() {
+    const learned = await loadAffinity().catch(() => null);
+    setAffinity(learned);
+    const plan = generateInternalPlan(candidates, {
+      ...form,
+      profile,
+      affinity: learned,
+      excludeIds: rejectedIds,
+    });
     setResult(plan);
     incrementItineraries().catch(() => undefined);
+  }
+
+  function swapAt(index: number) {
+    if (!result) return;
+    const ids = [...rejectedIds, result.stops[index].location.id];
+    setRejectedIds(ids);
+    setResult(swapStop(result, index, candidates, { ...form, profile, affinity, excludeIds: ids }));
   }
 
   function next() {
@@ -194,6 +216,7 @@ function PlanPage() {
 
   function reset() {
     setResult(null);
+    setRejectedIds([]);
     setStep(0);
   }
 
@@ -391,6 +414,7 @@ function PlanPage() {
                       ]}
                     />
                   </div>
+                  <TravelModePicker value={form.travelMode} onChange={(v) => updateForm({ travelMode: v })} />
                   <PlannerExtraQuestions value={form} onChange={updateForm} />
                 </WizardStep>
               )}
@@ -427,7 +451,7 @@ function PlanPage() {
             </p>
           </section>
         ) : (
-          <PlanResult plan={result} form={form} onReset={reset} onRegenerate={generate} />
+          <PlanResult plan={result} form={form} onReset={reset} onRegenerate={generate} onSwap={swapAt} />
         )}
       </main>
     </div>
@@ -583,11 +607,13 @@ function PlanResult({
   form,
   onReset,
   onRegenerate,
+  onSwap,
 }: {
   plan: GeneratedPlan;
   form: PlannerInput;
   onReset: () => void;
   onRegenerate: () => void;
+  onSwap: (index: number) => void;
 }) {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -600,8 +626,6 @@ function PlanResult({
     setSaved(false);
     setSavedItineraryId(null);
   }, [plan]);
-
-  const swap = () => toast.info("Swap feature is coming soon to the professional engine!");
 
   async function saveToProfile() {
     if (!session?.user) {
@@ -624,6 +648,7 @@ function PlanResult({
       if (error) throw error;
       setSavedItineraryId(savedItinerary.id);
       setSaved(true);
+      void recordSavedPlan(plan.stops);
       toast.success("Plan saved to your profile!");
     } catch (err: any) {
       toast.error(`Could not save plan: ${err.message}`);
@@ -731,8 +756,9 @@ function PlanResult({
 
       <div ref={resultRef} className="mt-7 space-y-4 bg-background p-1">
         {plan.stops.map((stop, index) => (
+          <Fragment key={`${stop.location.id}-${index}`}>
+          <TravelLeg stop={stop} mode={form.travelMode} />
           <article
-            key={`${stop.location.id}-${index}`}
             className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/45 p-4 sm:p-5"
           >
             <div className="flex gap-4">
@@ -754,14 +780,6 @@ function PlanResult({
                       {Math.round((stop.endHour - stop.startHour) * 60)} min
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={swap}
-                    className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-gold print:hidden"
-                  >
-                    <Replace className="h-3.5 w-3.5" /> Swap
-                  </Button>
                 </div>
                 <h2 className="mt-2 font-display text-2xl font-bold">{stop.location.name}</h2>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -770,6 +788,7 @@ function PlanResult({
                 </p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{stop.reason}</p>
                 <StopWhyBadge stop={stop} />
+                <StopActions stop={stop} onSwap={() => onSwap(index)} />
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full border border-border px-2.5 py-1">
                     {stop.estimatedCostUSD ? `$${stop.estimatedCostUSD} est.` : "Free"}
@@ -796,17 +815,21 @@ function PlanResult({
               </div>
             </div>
           </article>
+          </Fragment>
         ))}
       </div>
 
-      {plan.alternatives.length > 0 && (
+      {plan.alternatives.filter((p) => !plan.stops.some((s) => s.location.id === p.id)).length > 0 && (
         <div className="mt-10 border-t border-border/60 pt-8 print:hidden">
           <h2 className="font-display text-2xl font-bold">Recommended alternatives</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Places that also matched your mood but didn't make the primary route.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {plan.alternatives.slice(0, 3).map((place) => (
+            {plan.alternatives
+              .filter((p) => !plan.stops.some((s) => s.location.id === p.id))
+              .slice(0, 3)
+              .map((place) => (
               <div
                 key={place.id}
                 className="rounded-xl border border-border/70 bg-card/35 p-4 transition hover:border-gold/30"
