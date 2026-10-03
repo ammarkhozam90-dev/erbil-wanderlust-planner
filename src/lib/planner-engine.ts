@@ -156,6 +156,10 @@ function isMealTime(hour: number) {
   return (h >= 12 && h < 15) || (h >= 19 && h < 22.5);
 }
 
+/** Day plans stay near the city: places farther than this from the start point (or Erbil Citadel) are skipped. */
+export const MAX_DISTANCE_FROM_START_KM = 40;
+const ERBIL_CENTER = { lat: 36.1912, lng: 44.0092 };
+
 /** Whole-word tokens, so "bar" never matches "barista" and "mall" never matches "small". */
 const AVOID_TOKENS: Record<string, string[]> = {
   crowded: ["crowded", "busy", "mall", "bazaar", "market", "souq"],
@@ -487,6 +491,8 @@ function hardFilter(
 ) {
   if (candidate.approved === false) return false;
   if (input.excludeIds?.includes(candidate.id)) return false;
+  // Far-away places (e.g. Soran, Korek) are day trips, not part of a city plan.
+  if (haversineKm(input.startPoint ?? ERBIL_CENTER, candidate) > MAX_DISTANCE_FROM_START_KM) return false;
   // v3: must stay open for at least 30 min of the visit
   if (minutesUntilClose(candidate, hour, dayOfWeek) < Math.min(30, candidate.durationMin)) return false;
   if (!isOpenAt(candidate, hour, dayOfWeek)) return false;
