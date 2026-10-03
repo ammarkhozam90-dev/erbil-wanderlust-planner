@@ -4,7 +4,15 @@ import type { PlanStop } from "@/lib/planner-engine";
 import { recordFeedback } from "@/lib/planner-learning";
 
 /** Like / not for me / swap under each stop. Every tap teaches the planner. */
-export function StopActions({ stop, onSwap }: { stop: PlanStop; onSwap: () => void }) {
+export function StopActions({
+  stop,
+  onSwap,
+  children,
+}: {
+  stop: PlanStop;
+  onSwap: () => void;
+  children?: React.ReactNode;
+}) {
   // The vote belongs to one place, so it resets by itself when the stop is swapped.
   const [vote, setVote] = useState<{ id: string; v: "like" | "dislike" } | null>(null);
   const liked = vote?.id === stop.location.id && vote.v === "like";
@@ -41,6 +49,7 @@ export function StopActions({ stop, onSwap }: { stop: PlanStop; onSwap: () => vo
       >
         <Shuffle className="h-3.5 w-3.5" /> Swap
       </button>
+      {children}
     </div>
   );
 }
