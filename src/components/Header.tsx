@@ -5,6 +5,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
+import { BookingNotificationIcon } from "./BookingNotificationIcon";
 
 const navItems = [
   { to: "/plan", label: "Plan My Day" },
@@ -78,6 +79,7 @@ export function Header() {
           >
             <Heart className="h-4 w-4" />
           </Link>
+          <BookingNotificationIcon />
           <NotificationBell />
           <LanguageSwitcher />
           <UserMenu />
