@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- collaboration RPCs are not in the generated Supabase type file yet. */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { ArrowLeft, Clock3, MapPin, Users } from "lucide-react";
+import { Fragment, useEffect } from "react";
+import { ArrowLeft, Clock3, Copy, MapPin, Navigation, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { GeneratedPlan } from "@/lib/planner-engine";
+import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
+import { TravelLeg } from "@/components/planner/TravelLeg";
 
 export const Route = createFileRoute("/shared-plan/$id")({
   head: () => ({
@@ -107,11 +110,26 @@ function SharedPlanPage() {
               {saved.summary || "A day in Erbil shaped together."}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link to="/plan">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Create your own plan
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success("Link copied. Only people you invited can open it.");
+                } catch {
+                  toast.error("Could not copy the link.");
+                }
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copy link
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/plan">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Create your own plan
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
           <Stat label="Stops" value={String(plan.stops.length)} />
@@ -121,12 +139,18 @@ function SharedPlanPage() {
           />
           <Stat label="Shared with" value="Your group" />
         </div>
+        {plan.warnings?.length > 0 && (
+          <div className="mt-5 rounded-xl border border-gold/20 bg-gold/5 p-4 text-sm text-muted-foreground">
+            {plan.warnings.map((w) => (
+              <p key={w}>{w}</p>
+            ))}
+          </div>
+        )}
         <div className="mt-8 space-y-4">
           {plan.stops.map((stop, index) => (
-            <article
-              key={`${stop.location.id}-${index}`}
-              className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5"
-            >
+            <Fragment key={`${stop.location.id}-${index}`}>
+            <TravelLeg stop={stop} mode={plan.travelMode} />
+            <article className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5">
               <div className="flex gap-4">
                 <div className="hidden w-32 shrink-0 overflow-hidden rounded-xl sm:block">
                   <img
@@ -139,7 +163,7 @@ function SharedPlanPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge className="bg-gold text-background">Stop {index + 1}</Badge>
                     <span className="flex items-center gap-1 text-xs font-semibold text-gold">
-                      <Clock3 className="h-3.5 w-3.5" /> {formatHour(Math.floor(stop.startHour))}
+                      <Clock3 className="h-3.5 w-3.5" /> {formatHour(stop.startHour)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {Math.round((stop.endHour - stop.startHour) * 60)} min
@@ -151,18 +175,32 @@ function SharedPlanPage() {
                     {stop.location.area} · {stop.location.category}
                   </p>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{stop.reason}</p>
-                  {stop.location.merchantId && (
-                    <Link
-                      to="/business/$id"
-                      params={{ id: stop.location.merchantId }}
-                      className="mt-3 inline-flex text-xs font-bold uppercase tracking-wider text-gold hover:underline"
-                    >
-                      View place
-                    </Link>
-                  )}
+                  <StopWhyBadge stop={stop} />
+                  <div className="mt-3 flex flex-wrap items-center gap-4">
+                    {stop.location.merchantId && (
+                      <Link
+                        to="/business/$id"
+                        params={{ id: stop.location.merchantId }}
+                        className="inline-flex text-xs font-bold uppercase tracking-wider text-gold hover:underline"
+                      >
+                        View place
+                      </Link>
+                    )}
+                    {Number.isFinite(stop.location.lat) && Number.isFinite(stop.location.lng) && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${stop.location.lat},${stop.location.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gold hover:underline"
+                      >
+                        <Navigation className="h-3.5 w-3.5" /> Open in Maps
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </article>
+            </Fragment>
           ))}
         </div>
       </main>
@@ -188,8 +226,10 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function formatHour(h: number) {
+function formatHour(value: number) {
+  const total = Math.round(value * 60);
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
   const s = h >= 12 ? "PM" : "AM";
-  const n = h % 12 || 12;
-  return `${n}:00 ${s}`;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${s}`;
 }
