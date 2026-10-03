@@ -112,6 +112,8 @@ export interface GeneratedPlan {
   stops: PlanStop[];
   alternatives: PlannerCandidate[];
   warnings: string[];
+  /** v3: saved with the plan so shared / reopened plans show the right travel icon. */
+  travelMode?: "walking" | "car" | "taxi";
 }
 
 /** Central tuning surface. Keep these values in code for the MVP; move them to an admin settings table later. */
@@ -662,6 +664,7 @@ export function generateInternalPlan(
     stops: chosen,
     alternatives,
     warnings,
+    travelMode: input.travelMode,
   };
 }
 

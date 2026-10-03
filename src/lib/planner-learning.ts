@@ -50,13 +50,13 @@ function writeLocal(events: FeedbackEvent[]) {
 /** Record one signal. Safe to call fire-and-forget. */
 export async function recordFeedback(
   action: FeedbackAction,
-  place: Pick<PlannerCandidate, "id" | "category" | "tags">,
+  place: { id: string; category?: string; tags?: string[] },
 ) {
   const event: FeedbackEvent = {
     action,
     place_id: place.id,
-    category: place.category,
-    tags: (place.tags ?? []).map((t) => t.toLowerCase()),
+    category: place.category ?? "",
+    tags: (place.tags ?? []).map((t) => String(t).toLowerCase()),
     created_at: new Date().toISOString(),
   };
   try {
