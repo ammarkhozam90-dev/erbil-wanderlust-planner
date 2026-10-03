@@ -5,8 +5,18 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { recordFeedback } from '@/lib/planner-learning';
 
-export function FavoriteButton({ merchantId, className = '' }: { merchantId: string; className?: string }) {
+export function FavoriteButton({
+  merchantId,
+  className = '',
+  place,
+}: {
+  merchantId: string;
+  className?: string;
+  /** Optional: lets Plan My Day learn the category/tags of the place that was favorited. */
+  place?: { id: string; category?: string; tags?: string[] };
+}) {
   const { session } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -41,6 +51,7 @@ export function FavoriteButton({ merchantId, className = '' }: { merchantId: str
       toast.error(error.message);
       return;
     }
+    if (!isSaved) void recordFeedback('favorite', place ?? { id: merchantId });
     await qc.invalidateQueries({ queryKey: key });
     await qc.invalidateQueries({ queryKey: ['favorites', session.user.id] });
     toast.success(isSaved ? 'Removed from favorites.' : 'Saved to your favorites.');
