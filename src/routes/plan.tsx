@@ -140,10 +140,15 @@ function PlanPage() {
     const db = (merchantCandidates.data ?? [])
       .filter(
         (merchant) =>
-          Number.isFinite(Number(merchant.latitude)) && Number.isFinite(Number(merchant.longitude)),
+          Number.isFinite(Number(merchant.latitude)) &&
+          Number.isFinite(Number(merchant.longitude)) &&
+          String(merchant.category ?? "").toLowerCase() !== "hotel",
       )
       .map((merchant): PlannerCandidate => {
-        const category = normalizeCategory(merchant.category);
+        const category = normalizeCategory(merchant.category, [
+          ...asStringArray(merchant.mood_tags),
+          ...asStringArray(merchant.features),
+        ]);
         const price = Number(merchant.price_level ?? 1);
         return {
           id: `merchant-${merchant.id}`,
@@ -577,8 +582,16 @@ function formatHour(h: number) {
   const n = h % 12 || 12;
   return `${n}:00 ${s}`;
 }
-function normalizeCategory(v: any): Category {
+function normalizeCategory(v: any, tags: string[] = []): Category {
   const t = String(v ?? "").toLowerCase();
+  // DB enum "attraction": use the merchant's tags to pick the closest planner category.
+  if (t === "attraction") {
+    const tagText = tags.join(" ").toLowerCase();
+    if (/park|nature|garden/.test(tagText)) return "Parks & Nature";
+    if (/museum|art|culture|gallery/.test(tagText)) return "Art & Culture";
+    if (/night/.test(tagText)) return "Nightlife";
+    return "Landmarks";
+  }
   if (t.includes("cafe") || t.includes("coffee")) return "Cafés";
   if (t.includes("restaurant") || t.includes("food")) return "Restaurants";
   if (t.includes("park") || t.includes("nature")) return "Parks & Nature";
