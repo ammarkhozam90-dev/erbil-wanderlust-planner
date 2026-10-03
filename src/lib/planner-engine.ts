@@ -51,6 +51,20 @@ export interface PlannerInput {
   avoid?: string[];
   /** v2: one category the visitor wants guaranteed in the plan. */
   mustInclude?: Category | null;
+  /** v3: how the visitor moves between stops. Changes travel-time estimates. */
+  travelMode?: "walking" | "car" | "taxi";
+  /** v3: learned taste from saves / likes / swaps (see planner-learning.ts). */
+  affinity?: LearnedAffinity | null;
+  /** v3: place ids the visitor rejected — never suggested again in this plan. */
+  excludeIds?: string[];
+}
+
+/** v3: learned preferences. Values roughly -1 (dislikes) .. +1 (loves). */
+export interface LearnedAffinity {
+  categories: Record<string, number>;
+  tags: Record<string, number>;
+  places: Record<string, number>;
+  eventCount: number;
 }
 
 /** v2: why a place scored the way it did. Used to build the "Why we picked this" line. */
@@ -115,7 +129,30 @@ export const PLANNER_WEIGHTS = {
   sponsored_bonus: 5,
   food_match: 12,
   avoid_penalty: 30,
+  learned_match: 18,
+  closing_soon_penalty: 20,
+  part_of_day_fit: 10,
 };
+
+/** v3: speed per travel mode + fixed overhead (parking, waiting for a taxi). */
+const TRAVEL_SPEED = {
+  walking: { kmh: 4.5, overhead: 0, maxKm: 2.5 },
+  car: { kmh: 22, overhead: 8, maxKm: 40 },
+  taxi: { kmh: 22, overhead: 6, maxKm: 40 },
+} as const;
+
+function partOfDay(hour: number): "morning" | "afternoon" | "evening" | "night" {
+  const h = ((hour % 24) + 24) % 24;
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17 && h < 21) return "evening";
+  return "night";
+}
+
+function isMealTime(hour: number) {
+  const h = ((hour % 24) + 24) % 24;
+  return (h >= 12 && h < 15) || (h >= 19 && h < 22.5);
+}
 
 /** Whole-word tokens, so "bar" never matches "barista" and "mall" never matches "small". */
 const AVOID_TOKENS: Record<string, string[]> = {
@@ -209,6 +246,9 @@ function reachableMax(input: PlannerInput, candidate: PlannerCandidate) {
   if (input.profile?.dietary_preferences?.length) max += w.dietary_match;
   if ((input.profile?.interests?.length ?? 0) + (input.profile?.travel_styles?.length ?? 0) > 0) max += w.feature_match;
   if (input.foodPreferences?.length && ["Restaurants", "Cafés"].includes(candidate.category)) max += w.food_match;
+  if (candidate.bestVisitTime) max += w.part_of_day_fit;
+  if (input.affinity && input.affinity.eventCount >= 2) max += w.learned_match;
+  if (candidate.category === "Restaurants") max += 6;
   return max;
 }
 
@@ -258,16 +298,49 @@ function isOpenAt(candidate: PlannerCandidate, hour: number, dayOfWeek: number) 
   return current >= opening && current < closing;
 }
 
-function travelMinutes(distanceKm: number | undefined) {
+function travelMinutes(distanceKm: number | undefined, mode: PlannerInput["travelMode"] = "car") {
   if (distanceKm === undefined) return 0;
-  // Conservative, offline estimate for Erbil city travel. It is not live traffic data.
-  return Math.min(45, Math.max(10, Math.round(distanceKm * 6)));
+  // Offline estimate. Road distance ~ 1.3x straight line. Not live traffic data.
+  const s = TRAVEL_SPEED[mode ?? "car"];
+  const minutes = ((distanceKm * 1.3) / s.kmh) * 60 + s.overhead;
+  return Math.min(75, Math.max(5, Math.round(minutes)));
+}
+
+/** v3: minutes until the place closes from a given hour. Infinity when 24h/unknown. */
+function minutesUntilClose(candidate: PlannerCandidate, hour: number, dayOfWeek: number) {
+  const h = candidate.hoursByDay?.[dayOfWeek];
+  const now = normalizedHour(hour) * 60;
+  let closeMin: number;
+  if (h) {
+    if (h.is24h || h.openMin === h.closeMin) return Number.POSITIVE_INFINITY;
+    closeMin = h.closeMin;
+  } else {
+    const [o, c] = candidate.bestHours;
+    if (o === c) return Number.POSITIVE_INFINITY;
+    closeMin = (c % 24) * 60;
+  }
+  let diff = closeMin - now;
+  if (diff <= 0) diff += 24 * 60;
+  return diff;
+}
+
+/** v3: learned affinity score in -1..1 for a candidate. */
+function learnedScore(candidate: PlannerCandidate, a?: LearnedAffinity | null) {
+  if (!a || a.eventCount < 2) return 0;
+  const place = a.places[candidate.id] ?? (candidate.merchantId ? a.places[candidate.merchantId] : 0) ?? 0;
+  const cat = a.categories[candidate.category] ?? 0;
+  const tags = (candidate.tags ?? []).map((t) => a.tags[normalize(t)] ?? 0);
+  const tag = tags.length ? tags.reduce((x, y) => x + y, 0) / tags.length : 0;
+  // Confidence grows with the number of signals, capped at 1.
+  const confidence = Math.min(1, a.eventCount / 15);
+  return Math.max(-1, Math.min(1, (place * 0.5 + cat * 0.3 + tag * 0.2) * confidence));
 }
 
 function scoreBreakdown(
   candidate: PlannerCandidate,
   input: PlannerInput,
   previous?: PlannerCandidate,
+  ctx?: { hour?: number; dayOfWeek?: number },
 ): ScoreBreakdown {
   const moods = activeMoods(input);
   const moodTokens = moods.flatMap((m) => MOOD_ALIASES[m]).map(normalize);
@@ -355,7 +428,7 @@ function scoreBreakdown(
   if (previous) {
     const km = haversineKm(previous, candidate);
     score += Math.max(-15, PLANNER_WEIGHTS.distance_efficiency - km * 2);
-    if (km < 2) reasons.push(`Only ${travelMinutes(km)} min from your previous stop`);
+    if (km < 2) reasons.push(`Only ${travelMinutes(km, input.travelMode)} min from your previous stop`);
   } else if (input.startPoint) {
     const km = haversineKm(input.startPoint, candidate);
     score += Math.max(-10, PLANNER_WEIGHTS.distance_efficiency * 0.5 - km);
@@ -363,6 +436,34 @@ function scoreBreakdown(
   }
 
   if (candidate.bestVisitTime && text.includes(normalize(candidate.bestVisitTime))) score += PLANNER_WEIGHTS.time_fit * 0.5;
+
+  // v3: time-of-day fit (merchant's "best visit time" vs the slot hour)
+  if (ctx?.hour != null && candidate.bestVisitTime) {
+    const pod = partOfDay(ctx.hour);
+    if (normalize(candidate.bestVisitTime).includes(pod)) {
+      score += PLANNER_WEIGHTS.part_of_day_fit;
+      reasons.push(`Best visited in the ${pod}`);
+    }
+  }
+
+  // v3: meals at meal time
+  if (ctx?.hour != null && candidate.category === "Restaurants") {
+    if (isMealTime(ctx.hour)) score += 6;
+    else score -= 8;
+  }
+
+  // v3: penalise places that close before the visit ends
+  if (ctx?.hour != null) {
+    const left = minutesUntilClose(candidate, ctx.hour, ctx.dayOfWeek ?? new Date().getDay());
+    if (left < candidate.durationMin) score -= PLANNER_WEIGHTS.closing_soon_penalty;
+  }
+
+  // v3: learned taste
+  const learned = learnedScore(candidate, input.affinity);
+  if (learned !== 0) {
+    score += learned * PLANNER_WEIGHTS.learned_match;
+    if (learned > 0.25) reasons.push("Similar to places you saved");
+  }
 
   return {
     total: score,
@@ -383,6 +484,9 @@ function hardFilter(
   spent: number,
 ) {
   if (candidate.approved === false) return false;
+  if (input.excludeIds?.includes(candidate.id)) return false;
+  // v3: must stay open for at least 30 min of the visit
+  if (minutesUntilClose(candidate, hour, dayOfWeek) < Math.min(30, candidate.durationMin)) return false;
   if (!isOpenAt(candidate, hour, dayOfWeek)) return false;
   if (input.indoorPreference === "indoor" && candidate.indoor === false) return false;
   if (input.indoorPreference === "outdoor" && candidate.indoor === true) return false;
@@ -453,16 +557,25 @@ export function generateInternalPlan(
           : input.startPoint
             ? haversineKm(input.startPoint, candidate)
             : undefined;
-        const breakdown = scoreBreakdown(candidate, input, previous);
-        return { candidate, score: breakdown.total, breakdown, distance };
+        const breakdown = scoreBreakdown(candidate, input, previous, { hour: currentHour, dayOfWeek });
+        const tooFarToWalk =
+          !!previous &&
+          input.travelMode === "walking" &&
+          distance !== undefined &&
+          distance > TRAVEL_SPEED.walking.maxKm;
+        return { candidate, score: breakdown.total, breakdown, distance, tooFarToWalk };
       })
       .sort((a, b) => b.score - a.score);
 
+    // v3: walking plans only use places within walking range, unless nothing else fits this slot.
+    const walkable = pool.filter((item) => !item.tooFarToWalk);
+    const usablePool = walkable.length > 0 ? walkable : pool;
+
     // Diversity is preferred, but never allowed to create a false empty state when the catalogue is small.
     const diversePool = previous
-      ? pool.filter((item) => item.candidate.category !== previous?.category)
-      : pool;
-    const eligiblePool = diversePool.length > 0 ? diversePool : pool;
+      ? usablePool.filter((item) => item.candidate.category !== previous?.category)
+      : usablePool;
+    const eligiblePool = diversePool.length > 0 ? diversePool : usablePool;
     const topCandidates = eligiblePool.slice(0, 3);
     const selected =
       topCandidates.length > 0
@@ -486,7 +599,7 @@ export function generateInternalPlan(
     const durationHours = Math.max(0.5, (next.durationMin / 60) * paceFactor);
     const endHour = Math.min(input.startHour + input.durationHours, currentHour + durationHours);
     const distance = selected.distance;
-    const transferMinutes = travelMinutes(previous ? distance : undefined);
+    const transferMinutes = travelMinutes(previous ? distance : undefined, input.travelMode);
 
     chosen.push({
       location: next,
@@ -509,6 +622,14 @@ export function generateInternalPlan(
     slotIndex += 1;
   }
 
+  const travelTotal = chosen.reduce((m, st) => m + (st.travelMinutesFromPrevious ?? 0), 0);
+  if (
+    input.travelMode === "walking" &&
+    chosen.some((st) => (st.distanceKmFromPrevious ?? 0) > TRAVEL_SPEED.walking.maxKm)
+  )
+    warnings.push("Some stops are far apart for walking. Choose car or taxi for a smoother day.");
+  if (travelTotal > input.durationHours * 60 * 0.3)
+    warnings.push(`About ${travelTotal} min of this plan is travel. Choose a closer start point or "car" to see more.`);
   if (!chosen.length)
     warnings.push("Try a broader budget, a different mood, or a longer day to see more options.");
   if (chosen.length < slots.length && chosen.length > 0)
@@ -553,4 +674,68 @@ export function locationToPlannerCandidate(location: Location): PlannerCandidate
   };
 }
 
-export { haversineKm, scoreBreakdown };
+/**
+ * v3: replace one stop with the next-best option for the same time slot,
+ * keeping the rest of the plan unchanged. Rejected ids are never re-offered.
+ */
+export function swapStop(
+  plan: GeneratedPlan,
+  index: number,
+  candidates: PlannerCandidate[],
+  input: PlannerInput,
+): GeneratedPlan {
+  const stop = plan.stops[index];
+  if (!stop) return plan;
+  const dayOfWeek = input.dayOfWeek ?? new Date().getDay();
+  const previous = index > 0 ? plan.stops[index - 1].location : undefined;
+  const next = plan.stops[index + 1];
+  const used = new Set(plan.stops.map((s) => s.location.id));
+  const excluded = new Set([...(input.excludeIds ?? []), stop.location.id]);
+  const spentOthers = plan.estimatedCostUSD - stop.estimatedCostUSD;
+
+  // Food and cafe stops are swapped for the same category; activity stops for any activity category.
+  const sameKind = (c: PlannerCandidate) => {
+    const cat = stop.location.category;
+    if (cat === "Restaurants" || cat === "Cafés") return c.category === cat;
+    return c.category === cat || slotCategory("activity", input).includes(c.category);
+  };
+
+  const best = candidates
+    .filter((c) => !used.has(c.id) && !excluded.has(c.id))
+    .filter(sameKind)
+    .filter((c) => hardFilter(c, { ...input, excludeIds: [...excluded] }, stop.startHour, dayOfWeek, spentOthers))
+    .map((c) => ({ c, b: scoreBreakdown(c, input, previous, { hour: stop.startHour, dayOfWeek }) }))
+    .sort((a, b) => b.b.total - a.b.total)[0];
+
+  if (!best) {
+    const msg = "No other option fits this time slot.";
+    return { ...plan, warnings: plan.warnings.includes(msg) ? plan.warnings : [...plan.warnings, msg] };
+  }
+
+  const distance = previous ? haversineKm(previous, best.c) : undefined;
+  const newStop: PlanStop = {
+    ...stop,
+    location: best.c,
+    reason: `${best.c.name} fits your ${activeMoods(input)
+      .map((m) => m.toLowerCase())
+      .join(" & ")} mood and ${input.companion.toLowerCase()} outing. The route keeps the next move practical and the experience varied.`,
+    matchPercent: best.b.matchPercent,
+    reasons: best.b.reasons,
+    estimatedCostUSD: best.c.priceUSD,
+    distanceKmFromPrevious: distance,
+    travelMinutesFromPrevious: previous ? travelMinutes(distance, input.travelMode) : undefined,
+  };
+
+  // The stop after the swapped one now starts from a different place: refresh its distance / travel time labels.
+  const stops = plan.stops.map((s, i) => {
+    if (i === index) return newStop;
+    if (i === index + 1 && next) {
+      const d = haversineKm(best.c, next.location);
+      return { ...s, distanceKmFromPrevious: d, travelMinutesFromPrevious: travelMinutes(d, input.travelMode) };
+    }
+    return s;
+  });
+  return { ...plan, stops, estimatedCostUSD: spentOthers + best.c.priceUSD };
+}
+
+export { haversineKm, scoreBreakdown, travelMinutes, partOfDay };
