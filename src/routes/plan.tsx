@@ -45,7 +45,8 @@ import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
 import { StopActions } from "@/components/planner/StopActions";
 import { TravelLeg } from "@/components/planner/TravelLeg";
 import { TravelModePicker } from "@/components/planner/TravelModePicker";
-import { loadAffinity, recordSavedPlan } from "@/lib/planner-learning";
+import { loadAffinity, recordFeedback, recordSavedPlan } from "@/lib/planner-learning";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -124,9 +125,13 @@ function PlanPage() {
         )
         .eq("status", "approved")
         .limit(100);
-      if (error) return [];
+      if (error) {
+        console.error("[planner] could not load merchants:", error.message);
+        throw error;
+      }
       return (data ?? []) as any[];
     },
+    retry: false,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -185,6 +190,11 @@ function PlanPage() {
     });
   }, [merchantCandidates.data]);
 
+  const [debug, setDebug] = useState(false);
+  useEffect(() => {
+    setDebug(new URLSearchParams(window.location.search).has("debug"));
+  }, []);
+
   function updateForm(patch: Partial<PlannerInput>) {
     setForm((prev) => ({ ...prev, ...patch }));
   }
@@ -224,6 +234,24 @@ function PlanPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-14">
+        {debug && (
+          <div className="mx-auto mb-4 max-w-3xl rounded-xl border border-gold/30 bg-gold/5 p-4 text-xs leading-6">
+            <p className="font-bold text-gold">Planner data check (?debug)</p>
+            <p>
+              Merchants from database: {merchantCandidates.isLoading ? "loading…" : (merchantCandidates.data ?? []).length}
+              {merchantCandidates.isError && ` — ERROR: ${(merchantCandidates.error as Error)?.message}`}
+            </p>
+            <p>
+              With valid coordinates: {candidates.filter((c) => c.merchantId).length} · Static places:{" "}
+              {candidates.filter((c) => !c.merchantId).length}
+            </p>
+            <p>
+              Cafés: {candidates.filter((c) => c.category === "Cafés").length} · Restaurants:{" "}
+              {candidates.filter((c) => c.category === "Restaurants").length} · Other:{" "}
+              {candidates.filter((c) => !["Cafés", "Restaurants"].includes(c.category)).length}
+            </p>
+          </div>
+        )}
         {!result ? (
           <section className="mx-auto max-w-4xl">
             <div className="mb-8 text-center">
@@ -757,7 +785,7 @@ function PlanResult({
       <div ref={resultRef} className="mt-7 space-y-4 bg-background p-1">
         {plan.stops.map((stop, index) => (
           <Fragment key={`${stop.location.id}-${index}`}>
-          <TravelLeg stop={stop} mode={form.travelMode} />
+          <TravelLeg stop={stop} mode={plan.travelMode ?? form.travelMode} />
           <article
             className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/45 p-4 sm:p-5"
           >
@@ -788,7 +816,15 @@ function PlanResult({
                 </p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{stop.reason}</p>
                 <StopWhyBadge stop={stop} />
-                <StopActions stop={stop} onSwap={() => onSwap(index)} />
+                <StopActions stop={stop} onSwap={() => onSwap(index)}>
+                  {stop.location.merchantId && (
+                    <FavoriteButton
+                      merchantId={stop.location.merchantId}
+                      place={stop.location}
+                      className="h-[30px] w-[30px] border-border/70 bg-transparent text-muted-foreground backdrop-blur-none"
+                    />
+                  )}
+                </StopActions>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full border border-border px-2.5 py-1">
                     {stop.estimatedCostUSD ? `$${stop.estimatedCostUSD} est.` : "Free"}
@@ -802,6 +838,7 @@ function PlanResult({
                     <Link
                       to="/business/$id"
                       params={{ id: stop.location.merchantId }}
+                      onClick={() => void recordFeedback("open", stop.location)}
                       className="rounded-full border border-gold/25 px-2.5 py-1 text-gold transition hover:bg-gold/10 print:hidden"
                     >
                       View place
@@ -842,6 +879,7 @@ function PlanResult({
                   <Link
                     to="/business/$id"
                     params={{ id: place.merchantId }}
+                    onClick={() => void recordFeedback("open", place)}
                     className="mt-3 block text-xs font-bold uppercase tracking-wider text-gold hover:underline"
                   >
                     View details
