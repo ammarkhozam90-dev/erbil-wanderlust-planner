@@ -49,14 +49,22 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 
   async function skipAll() {
     setSaving(true);
-    await updateProfile({ onboarding_completed: true } as any);
+    const { error } = await updateProfile({ onboarding_complete: true } as any);
+    if (error) console.error("[onboarding] could not save completion flag", error);
     setSaving(false);
     onDone();
   }
 
+  // X button / Esc / click outside: treat as "Skip all" so it never reappears.
+  function handleOpenChange(next: boolean) {
+    if (next || saving) return;
+    if (step >= TOTAL_STEPS) onDone();
+    else skipAll();
+  }
+
   async function finish() {
     setSaving(true);
-    await updateProfile({ onboarding_completed: true } as any);
+    await updateProfile({ onboarding_complete: true } as any);
     setSaving(false);
     setStep(TOTAL_STEPS); // celebration screen
   }
@@ -67,11 +75,11 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md gap-0 p-0">
         {/* Progress + skip-all — always visible, always escapable */}
         {step < TOTAL_STEPS && (
-          <div className="flex items-center gap-3 px-6 pt-6">
+          <div className="flex items-center gap-3 px-6 pr-12 pt-6">
             <div className="flex flex-1 gap-1.5">
               {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => (
                 <div
