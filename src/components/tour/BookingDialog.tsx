@@ -43,7 +43,12 @@ export function BookingDialog({ tourId, dates, adultPrice, childPrice, currency 
       adults, children, notes: notes || null,
     });
     setSubmitting(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (error.code === '23505') {
+        return toast.error("You've already requested a booking for this tour with this phone number or email. Contact the organizer if you need to change it.");
+      }
+      return toast.error(error.message);
+    }
     setSent(true);
   }
 
