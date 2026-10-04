@@ -2,7 +2,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { CalendarDays, Clock3, ExternalLink, Loader2, MapPin, Pencil, Search, Sparkles, Trash2, Wallet } from "lucide-react";
+import { CalendarDays, Check, Clock3, ExternalLink, Loader2, LogOut, MapPin, Pencil, Search, Share2, Sparkles, Trash2, Users, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { GeneratedPlan } from "@/lib/planner-engine";
+import { SharePlanDialog } from "@/components/planner/SharePlanDialog";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -33,6 +34,16 @@ type SavedPlan = {
   plan_data: GeneratedPlan | null;
   is_public: boolean;
   created_at: string;
+};
+
+type Invitation = {
+  id: string;
+  itinerary_id: string;
+  role: "viewer" | "editor";
+  status: "pending" | "accepted";
+  plan_title: string;
+  plan_summary: string | null;
+  owner_name: string;
 };
 
 const db = supabase as any;
@@ -55,6 +66,9 @@ function HistoryPage() {
   const [deleting, setDeleting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [tab, setTab] = useState<"mine" | "shared">("mine");
+  const [shareFor, setShareFor] = useState<SavedPlan | null>(null);
+  const [busyInvite, setBusyInvite] = useState<string | null>(null);
 
   const plans = useQuery({
     queryKey: ["my-saved-plans", userId],
@@ -69,6 +83,62 @@ function HistoryPage() {
       return (data ?? []) as SavedPlan[];
     },
   });
+
+  const invitations = useQuery({
+    queryKey: ["my-itinerary-invitations", userId],
+    enabled: Boolean(userId),
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await db.rpc("list_my_itinerary_invitations");
+      if (error) throw error;
+      return (data ?? []) as Invitation[];
+    },
+  });
+
+  // How many people each of my plans is shared with (owner can read these rows).
+  const planIds = (plans.data ?? []).map((p) => p.id);
+  const sharing = useQuery({
+    queryKey: ["my-plan-sharing", userId, planIds.join(",")],
+    enabled: Boolean(userId) && planIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("itinerary_collaborators")
+        .select("itinerary_id,status")
+        .in("itinerary_id", planIds);
+      if (error) return {} as Record<string, { accepted: number; pending: number }>;
+      const map: Record<string, { accepted: number; pending: number }> = {};
+      for (const row of data ?? []) {
+        const entry = (map[row.itinerary_id] ??= { accepted: 0, pending: 0 });
+        if (row.status === "accepted") entry.accepted++;
+        else if (row.status === "pending") entry.pending++;
+      }
+      return map;
+    },
+  });
+
+  const pendingInvites = (invitations.data ?? []).filter((i) => i.status === "pending");
+  const joinedPlans = (invitations.data ?? []).filter((i) => i.status === "accepted");
+
+  async function respond(inv: Invitation, accept: boolean) {
+    setBusyInvite(inv.id);
+    const { error } = await db.rpc("respond_to_itinerary_invitation", {
+      p_collaborator_id: inv.id,
+      p_accept: accept,
+    });
+    setBusyInvite(null);
+    if (error) return toast.error(error.message || "Could not update the invitation.");
+    toast.success(accept ? "You joined the plan." : "Invitation declined.");
+    qc.invalidateQueries({ queryKey: ["my-itinerary-invitations", userId] });
+  }
+
+  async function leave(inv: Invitation) {
+    setBusyInvite(inv.id);
+    const { error } = await db.rpc("remove_itinerary_collaborator", { p_collaborator_id: inv.id });
+    setBusyInvite(null);
+    if (error) return toast.error(error.message || "Could not leave the plan.");
+    toast.success("You left the plan.");
+    qc.invalidateQueries({ queryKey: ["my-itinerary-invitations", userId] });
+  }
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -146,7 +216,96 @@ function HistoryPage() {
           </Button>
         </div>
 
-        {total > 0 && (
+        <div className="mt-6 flex gap-2 border-b border-border/60">
+          {([
+            ["mine", "My plans", total],
+            ["shared", "Shared with me", pendingInvites.length + joinedPlans.length],
+          ] as const).map(([key, label, count]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
+                tab === key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">{count}</span>
+              {key === "shared" && pendingInvites.length > 0 && (
+                <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-white">
+                  {pendingInvites.length} new
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {tab === "shared" && (
+          <div className="mt-6 space-y-8">
+            {invitations.isLoading && (
+              <div className="flex justify-center py-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            )}
+            {invitations.isError && (
+              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-5 text-sm">
+                Could not load shared plans. The sharing database setup may not be installed yet.
+              </div>
+            )}
+
+            {pendingInvites.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="font-display text-2xl font-bold">Invitations waiting for you</h2>
+                {pendingInvites.map((inv) => (
+                  <article key={inv.id} className="rounded-3xl border border-gold/30 bg-gold/5 p-5">
+                    <p className="text-xs text-muted-foreground">{inv.owner_name} invited you to a plan</p>
+                    <h3 className="mt-1 font-display text-2xl font-bold">{inv.plan_title}</h3>
+                    {inv.plan_summary && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{inv.plan_summary}</p>}
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Badge className="bg-gold text-background">Can {inv.role === "editor" ? "edit" : "view"}</Badge>
+                      <Button size="sm" disabled={busyInvite === inv.id} onClick={() => respond(inv, true)} className="bg-gold text-background hover:bg-gold/90">
+                        <Check className="mr-1.5 h-4 w-4" /> Accept
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busyInvite === inv.id} onClick={() => respond(inv, false)}>
+                        <X className="mr-1.5 h-4 w-4" /> Decline
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
+
+            <section className="space-y-3">
+              <h2 className="font-display text-2xl font-bold">Plans you joined</h2>
+              {!invitations.isLoading && joinedPlans.length === 0 && (
+                <div className="rounded-3xl border border-dashed border-border p-10 text-center">
+                  <Users className="mx-auto h-9 w-9 text-gold" />
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    When a friend invites you to a plan and you accept, it shows up here.
+                  </p>
+                </div>
+              )}
+              {joinedPlans.map((inv) => (
+                <article key={inv.id} className="flex flex-col gap-4 rounded-3xl border border-border/60 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-xl font-bold">{inv.plan_title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      By {inv.owner_name} · You can {inv.role === "editor" ? "edit" : "view"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" className="bg-gold text-background hover:bg-gold/90">
+                      <Link to="/shared-plan/$id" params={{ id: inv.itinerary_id }}><ExternalLink className="mr-2 h-3.5 w-3.5" /> Open</Link>
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={busyInvite === inv.id} onClick={() => leave(inv)}>
+                      <LogOut className="mr-2 h-3.5 w-3.5" /> Leave
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </div>
+        )}
+
+        {tab === "mine" && total > 0 && (
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -159,6 +318,7 @@ function HistoryPage() {
           </div>
         )}
 
+        {tab === "mine" && (
         <div className="mt-6 space-y-4">
           {plans.isLoading && (
             <div className="flex justify-center py-16 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>
@@ -215,6 +375,14 @@ function HistoryPage() {
                       {p.plan_data?.totalHours ? <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5 text-gold" /> {p.plan_data.totalHours}h</span> : null}
                       {cost ? <span className="inline-flex items-center gap-1"><Wallet className="h-3.5 w-3.5 text-gold" /> ~${cost}</span> : null}
                     </div>
+                    {(sharing.data?.[p.id]?.accepted || sharing.data?.[p.id]?.pending) ? (
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gold">
+                        <Users className="h-3.5 w-3.5" />
+                        {sharing.data?.[p.id]?.accepted ? `Shared with ${sharing.data[p.id].accepted}` : ""}
+                        {sharing.data?.[p.id]?.accepted && sharing.data?.[p.id]?.pending ? " · " : ""}
+                        {sharing.data?.[p.id]?.pending ? `${sharing.data[p.id].pending} pending` : ""}
+                      </p>
+                    ) : null}
                     {p.summary && <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{p.summary}</p>}
                     {stops.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -230,6 +398,9 @@ function HistoryPage() {
                     <Button asChild size="sm" className="bg-gold text-background hover:bg-gold/90">
                       <Link to="/shared-plan/$id" params={{ id: p.id }}><ExternalLink className="mr-2 h-3.5 w-3.5" /> Open</Link>
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShareFor(p)}>
+                      <Share2 className="mr-2 h-3.5 w-3.5" /> Share
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => { setEditingId(p.id); setDraftTitle(p.title); }}>
                       <Pencil className="mr-2 h-3.5 w-3.5" /> Rename
                     </Button>
@@ -242,7 +413,20 @@ function HistoryPage() {
             );
           })}
         </div>
+        )}
       </main>
+
+      <SharePlanDialog
+        itineraryId={shareFor?.id ?? null}
+        title={shareFor?.title}
+        open={!!shareFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShareFor(null);
+            qc.invalidateQueries({ queryKey: ["my-plan-sharing"] });
+          }
+        }}
+      />
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>
         <AlertDialogContent>
