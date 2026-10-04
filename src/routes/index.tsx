@@ -11,25 +11,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Sun, Clock, Map as MapIcon, ChevronRight, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { fetchSiteSettings, useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "ErbilGo — AI Day Planner for Erbil, Kurdistan" },
-      {
-        name: "description",
-        content:
-          "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers.",
-      },
-      { property: "og:title", content: "ErbilGo — Plan your perfect day in Erbil" },
+  loader: async () => ({ seo: (await fetchSiteSettings()).seo }),
+  head: ({ loaderData }) => {
+    const seo = loaderData?.seo;
+    const title = seo?.title?.trim() || "ErbilGo — AI Day Planner for Erbil, Kurdistan";
+    const description =
+      seo?.description?.trim() ||
+      "AI-powered personalized day plans for Erbil — for residents, tourists, families, couples and remote workers.";
+    const meta: Record<string, string>[] = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: seo?.title?.trim() || "ErbilGo — Plan your perfect day in Erbil" },
       {
         property: "og:description",
-        content: "AI-driven luxury travel planner for the heart of Kurdistan.",
+        content: seo?.description?.trim() || "AI-driven luxury travel planner for the heart of Kurdistan.",
       },
       { property: "og:url", content: "https://erbilgo.app/" },
-    ],
-    links: [{ rel: "canonical", href: "https://erbilgo.app/" }],
-  }),
+    ];
+    if (seo?.og_image?.trim()) {
+      meta.push({ property: "og:image", content: seo.og_image.trim() });
+      meta.push({ name: "twitter:image", content: seo.og_image.trim() });
+    }
+    return { meta, links: [{ rel: "canonical", href: "https://erbilgo.app/" }] };
+  },
   component: Home,
 });
 
@@ -117,6 +124,8 @@ const DEFAULT_LAYOUT = {
 };
 
 function Home() {
+  const { settings } = useSiteSettings();
+  const hp = settings.homepage;
   const hero = useQuery({
     queryKey: ["public-site-hero"],
     queryFn: async () => {
@@ -134,7 +143,7 @@ function Home() {
   });
 
   const featured = useQuery({
-    queryKey: ["featured-businesses"],
+    queryKey: ["featured-businesses", hp.featured_count],
     queryFn: async () => {
       const fields = "id,name,category,city,address,cover_url,price_level,description,is_sponsored";
       const sponsoredResult = await supabase
@@ -143,13 +152,13 @@ function Home() {
         .eq("status", "approved")
         .order("is_sponsored", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(12);
+        .limit(Math.max(12, hp.featured_count));
 
       if (!sponsoredResult.error) {
         const approved = sponsoredResult.data ?? [];
         const sponsored = approved.filter((business: any) => Boolean(business.is_sponsored));
         return {
-          items: sponsored.length > 0 ? sponsored : approved.slice(0, 6),
+          items: (sponsored.length > 0 ? sponsored : approved).slice(0, hp.featured_count),
           sponsored: sponsored.length > 0,
         };
       }
@@ -164,7 +173,7 @@ function Home() {
         .select("id,name,category,city,address,cover_url,price_level,description")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(hp.featured_count);
       if (fallbackError) throw fallbackError;
       return { items: fallback ?? [], sponsored: false };
     },
@@ -272,6 +281,7 @@ function Home() {
           </section>
 
           {/* CURATED JOURNEYS - LUXURY CARDS */}
+          {hp.show_journeys && (
           <section className="space-y-10">
             <SectionHeader
               title="Curated Journeys"
@@ -322,9 +332,10 @@ function Home() {
               ))}
             </div>
           </section>
+          )}
 
           {/* FEATURED BUSINESSES */}
-          {featured.data?.items && featured.data.items.length > 0 && (
+          {hp.show_featured && featured.data?.items && featured.data.items.length > 0 && (
             <section className="space-y-8">
               <SectionHeader
                 title={featured.data.sponsored ? "Sponsored for you" : "Featured for you"}
@@ -347,6 +358,7 @@ function Home() {
           )}
 
           {/* SIGNATURE EXPERIENCES - NEW SECTION */}
+          {hp.show_signature && (
           <section className="rounded-[3rem] bg-gold/5 border border-gold/10 p-8 md:p-16">
             <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="flex-1 space-y-6">
@@ -390,8 +402,10 @@ function Home() {
               </div>
             </div>
           </section>
+          )}
 
           {/* EXPLORE BY INTEREST - REFINED CARDS */}
+          {hp.show_categories && (
           <section className="space-y-10">
             <SectionHeader
               title="Explore by Interest"
@@ -444,6 +458,7 @@ function Home() {
               </Link>
             </div>
           </section>
+          )}
         </div>
       </div>
     </div>

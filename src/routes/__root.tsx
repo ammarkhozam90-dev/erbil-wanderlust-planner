@@ -15,6 +15,7 @@ import { LanguageProvider } from "../lib/language";
 import { AuthProvider } from "../lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/Footer";
+import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
 
 function NotFoundComponent() {
   return (
@@ -121,8 +122,11 @@ function RootComponent() {
       <AuthProvider>
         <LanguageProvider>
           {/* هنا قمنا بإزالة الهيدر المضاف يدوياً ليعود الموقع لهيدره الأصلي تلقائياً */}
-          <Outlet />
-          <Footer />
+          <MaintenanceGate>
+            <AnnouncementBar />
+            <Outlet />
+            <Footer />
+          </MaintenanceGate>
           <Toaster />
         </LanguageProvider>
       </AuthProvider>

@@ -39,6 +39,7 @@ import {
   type PlannerDayHours,
 } from "@/lib/planner-engine";
 import { toast } from "sonner";
+import { useSiteSettings } from "@/lib/site-settings";
 import { CollaborationPanel } from "@/components/planner/CollaborationPanel";
 import { PlannerExtraQuestions } from "@/components/planner/PlannerExtraQuestions";
 import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
@@ -98,6 +99,7 @@ const budgets: { value: PlannerBudget; label: string; hint: string }[] = [
 ];
 
 function PlanPage() {
+  const { settings: siteSettings, loaded: siteLoaded } = useSiteSettings();
   const { profile, session, incrementItineraries } = useAuth();
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<GeneratedPlan | null>(null);
@@ -221,6 +223,8 @@ function PlanPage() {
       profile,
       affinity: learned,
       excludeIds: rejectedIds,
+      maxStops: siteSettings.planner.max_stops,
+      variety: siteSettings.planner.variety,
     });
     setResult(plan);
     incrementItineraries().catch(() => undefined);
@@ -230,7 +234,7 @@ function PlanPage() {
     if (!result) return;
     const ids = [...rejectedIds, result.stops[index].location.id];
     setRejectedIds(ids);
-    setResult(swapStop(result, index, candidates, { ...form, profile, affinity, excludeIds: ids }));
+    setResult(swapStop(result, index, candidates, { ...form, profile, affinity, excludeIds: ids, maxStops: siteSettings.planner.max_stops, variety: siteSettings.planner.variety }));
   }
 
   function next() {
@@ -242,6 +246,19 @@ function PlanPage() {
     setResult(null);
     setRejectedIds([]);
     setStep(0);
+  }
+
+  if (siteLoaded && !siteSettings.planner.enabled) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Header />
+        <main className="mx-auto max-w-xl px-4 py-24 text-center">
+          <h1 className="font-display text-4xl font-bold">Plan My Day is taking a short break</h1>
+          <p className="mt-4 text-muted-foreground">We're polishing the planner. Please check back soon.</p>
+          <Link to="/" className="mt-8 inline-block font-semibold text-gold underline underline-offset-4">Back to home</Link>
+        </main>
+      </div>
+    );
   }
 
   return (
