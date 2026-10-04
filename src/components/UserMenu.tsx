@@ -8,11 +8,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export function UserMenu() {
   const { session, profile, signOut, isAdmin, isMerchant } = useAuth();
   const navigate = useNavigate();
+
+  // Must run before the early return below (Rules of Hooks).
+  const invites = useQuery({
+    queryKey: ["my-itinerary-invitations", session?.user?.id],
+    enabled: Boolean(session),
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("list_my_itinerary_invitations");
+      if (error) return [] as { status: string }[];
+      return (data ?? []) as { status: string }[];
+    },
+  });
+  const pendingInvites = (invites.data ?? []).filter((i) => i.status === "pending").length;
 
   if (!session) {
     return (
@@ -47,7 +62,7 @@ export function UserMenu() {
             {initial}
           </span>
         )}
-        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+        <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background ${pendingInvites > 0 ? "bg-destructive" : "bg-primary"}`} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[14rem]">
         <DropdownMenuLabel className="flex flex-col">
@@ -77,6 +92,11 @@ export function UserMenu() {
           <Link to="/shared-plans" className="flex items-center gap-2">
             <Users className="h-4 w-4 text-gold" />
             <span>Shared Plans</span>
+            {pendingInvites > 0 && (
+              <span className="ml-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                {pendingInvites}
+              </span>
+            )}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
