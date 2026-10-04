@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, Instagram, Mail, MapPin } from "lucide-react";
+import { ArrowUpRight, Facebook, Instagram, Mail, MapPin, MessageCircle } from "lucide-react";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const publicLinks = [
   { to: "/", label: "Plan my day" },
@@ -10,6 +11,8 @@ const publicLinks = [
 
 export function Footer() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { settings } = useSiteSettings();
+  const { brand, merchants } = settings;
 
   // Keep operational workspaces focused; the public footer belongs to the discovery experience.
   if (
@@ -64,13 +67,13 @@ export function Footer() {
                 Our local guide
               </Link>
               <a
-                href="mailto:hello@erbilgo.app"
+                href={`mailto:${brand.contact_email}`}
                 className="flex w-fit items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
               >
                 <Mail className="h-3.5 w-3.5" /> Contact us
               </a>
               <a
-                href="mailto:partners@erbilgo.app?subject=Partner%20with%20ErbilGo"
+                href={`mailto:${brand.partner_email}?subject=Partner%20with%20ErbilGo`}
                 className="flex w-fit items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
               >
                 Partner with us <ArrowUpRight className="h-3.5 w-3.5" />
@@ -78,39 +81,47 @@ export function Footer() {
             </nav>
           </div>
 
-          <div className="rounded-2xl border border-gold/15 bg-gold/5 p-4">
-            <h2 className="font-display text-lg font-bold">Know a place worth finding?</h2>
-            <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
-              Help visitors discover the businesses and experiences that make Erbil special.
-            </p>
-            <Link
-              to="/merchant/auth"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold transition hover:text-primary"
-            >
-              Share your business <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+          {merchants.registrations_open && (
+            <div className="rounded-2xl border border-gold/15 bg-gold/5 p-4">
+              <h2 className="font-display text-lg font-bold">Know a place worth finding?</h2>
+              <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
+                Help visitors discover the businesses and experiences that make Erbil special.
+              </p>
+              <Link
+                to="/merchant/auth"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold transition hover:text-primary"
+              >
+                Share your business <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 flex flex-col gap-3 border-t border-border/50 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} ErbilGo. Made for better days in Erbil.</p>
           <div className="flex items-center gap-4">
             <a
-              href="mailto:hello@erbilgo.app"
+              href={`mailto:${brand.contact_email}`}
               aria-label="Email ErbilGo"
               className="transition hover:text-gold"
             >
               <Mail className="h-4 w-4" />
             </a>
-            <a
-              href="https://instagram.com/erbilgo"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="ErbilGo on Instagram"
-              className="transition hover:text-gold"
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
+            {brand.instagram && (
+              <a href={brand.instagram} target="_blank" rel="noreferrer" aria-label="ErbilGo on Instagram" className="transition hover:text-gold">
+                <Instagram className="h-4 w-4" />
+              </a>
+            )}
+            {brand.facebook && (
+              <a href={brand.facebook} target="_blank" rel="noreferrer" aria-label="ErbilGo on Facebook" className="transition hover:text-gold">
+                <Facebook className="h-4 w-4" />
+              </a>
+            )}
+            {brand.whatsapp && (
+              <a href={`https://wa.me/${brand.whatsapp}`} target="_blank" rel="noreferrer" aria-label="ErbilGo on WhatsApp" className="transition hover:text-gold">
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            )}
             <span>Discover locally. Travel thoughtfully.</span>
           </div>
         </div>
