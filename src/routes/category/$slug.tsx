@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { useMemo } from "react";
@@ -13,6 +13,7 @@ import { getCategoryBySlug, CATEGORIES } from "@/lib/categories";
 import { Header } from "@/components/Header";
 import {
   categoryBusinessesQuery,
+  categorySponsorsQuery,
   PAGE_SIZE,
   type CategoryFilters,
   type SortKey,
@@ -118,10 +119,17 @@ function CategoryPage() {
 
   const { data } = useSuspenseQuery(categoryBusinessesQuery(cat, filters));
 
+  // Paid placements: shown on top (labelled) only while no search/filter is active.
+  const filtersActive = !!(search.q || search.tags.length || search.price.length || search.open);
+  const { data: sponsored = [] } = useQuery({ ...categorySponsorsQuery(cat), enabled: !filtersActive });
+  const sponsoredIds = useMemo(() => new Set(sponsored.map((s) => s.id)), [sponsored]);
+
   const visible = useMemo(() => {
-    if (!filters.openNow) return data.items;
-    return data.items.filter((b) => computeOpenState(b.merchant_hours) === "open");
-  }, [data.items, filters.openNow]);
+    const base = !filters.openNow
+      ? data.items
+      : data.items.filter((b) => computeOpenState(b.merchant_hours) === "open");
+    return base.filter((b) => !sponsoredIds.has(b.id)); // no duplicates
+  }, [data.items, filters.openNow, sponsoredIds]);
 
   const update = (patch: Partial<CategoryFilters>) => {
     navigate({
@@ -146,7 +154,18 @@ function CategoryPage() {
         <CategoryHeader title={cat.title} description={cat.description} count={data.total} />
         <CategoryFiltersBar value={filters} onChange={update} />
 
-        {visible.length === 0 ? (
+        {sponsored.length > 0 && !filtersActive && (
+          <section className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Sponsored</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sponsored.map((b) => (
+                <BusinessCard key={b.id} business={b} sponsored />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {visible.length === 0 && sponsored.length === 0 ? (
           <EmptyState />
         ) : (
           <>
