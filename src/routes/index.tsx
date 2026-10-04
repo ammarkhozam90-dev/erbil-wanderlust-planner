@@ -237,7 +237,7 @@ function Home() {
           <section className="group relative isolate overflow-visible rounded-[2.5rem] shadow-luxury">
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2.5rem]">
               <img
-                src={heroImg}
+                src={layout.image_url || heroImg}
                 alt="Erbil Citadel at sunset"
                 className="hero-image-motion h-full w-full object-cover object-center"
               />
