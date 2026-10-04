@@ -2,7 +2,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect } from "react";
-import { ArrowLeft, Clock3, Copy, MapPin, Navigation, Users } from "lucide-react";
+import { ArrowLeft, Clock3, Copy, MapPin, Navigation, Share2, Users } from "lucide-react";
+import { useState } from "react";
+import { SharePlanDialog } from "@/components/planner/SharePlanDialog";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +42,7 @@ function SharedPlanPage() {
   const { id } = Route.useParams();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +75,24 @@ function SharedPlanPage() {
     },
   });
 
+  const isOwner = Boolean(session?.user && planQuery.data && planQuery.data.user_id === session.user.id);
+
+  const peopleQuery = useQuery({
+    queryKey: ["shared-itinerary-people", id, session?.user?.id],
+    enabled: Boolean(id && planQuery.data && session?.user),
+    queryFn: async () => {
+      const { data, error } = await db.rpc("list_itinerary_collaborators", { p_itinerary_id: id });
+      if (error) return [] as any[];
+      return (data ?? []) as {
+        id: string; user_id: string; role: "viewer" | "editor"; status: string;
+        full_name: string | null; avatar_url: string | null;
+      }[];
+    },
+  });
+  const people = (peopleQuery.data ?? []).filter((p) => p.status === "accepted");
+  const pendingCount = (peopleQuery.data ?? []).filter((p) => p.status === "pending").length;
+  const myRole = people.find((p) => p.user_id === session?.user?.id)?.role;
+
   if (planQuery.isLoading)
     return (
       <Shell>
@@ -103,7 +124,10 @@ function SharedPlanPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-gold">
-              <Users className="h-4 w-4" /> Shared ErbilGo plan
+              <Users className="h-4 w-4" /> {isOwner ? "Your ErbilGo plan" : "Shared ErbilGo plan"}
+              <Badge variant="outline" className="ml-1 font-semibold normal-case tracking-normal">
+                {isOwner ? "Owner" : myRole === "editor" ? "You can edit" : "You can view"}
+              </Badge>
             </p>
             <h1 className="mt-3 font-display text-4xl font-bold sm:text-5xl">{saved.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -111,6 +135,11 @@ function SharedPlanPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {isOwner && (
+              <Button onClick={() => setShareOpen(true)} className="bg-gold text-background hover:bg-gold/90">
+                <Share2 className="mr-2 h-4 w-4" /> Share & invite
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={async () => {
@@ -137,8 +166,38 @@ function SharedPlanPage() {
             label="Estimated spend"
             value={plan.estimatedCostUSD ? `$${plan.estimatedCostUSD}` : "Free"}
           />
-          <Stat label="Shared with" value="Your group" />
+          <Stat
+            label="People on this plan"
+            value={String(1 + people.filter((p) => p.user_id !== saved.user_id).length)}
+          />
         </div>
+        {(people.length > 0 || pendingCount > 0) && (
+          <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card/35 p-3">
+            <Users className="h-4 w-4 text-gold" />
+            {people.map((p) => (
+              <span key={p.id} className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/40 py-1 pl-1 pr-3 text-xs">
+                <span className="grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-gold/10 text-[10px] font-bold text-gold">
+                  {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (p.full_name || "?").slice(0, 1).toUpperCase()}
+                </span>
+                {p.full_name || "ErbilGo traveller"} · {p.role === "editor" ? "edit" : "view"}
+              </span>
+            ))}
+            {pendingCount > 0 && isOwner && (
+              <span className="text-xs text-muted-foreground">{pendingCount} invitation{pendingCount > 1 ? "s" : ""} pending</span>
+            )}
+          </div>
+        )}
+        {isOwner && (
+          <SharePlanDialog
+            itineraryId={saved.id}
+            title={saved.title}
+            open={shareOpen}
+            onOpenChange={(o) => {
+              setShareOpen(o);
+              if (!o) queryClient.invalidateQueries({ queryKey: ["shared-itinerary-people", id] });
+            }}
+          />
+        )}
         {plan.warnings?.length > 0 && (
           <div className="mt-5 rounded-xl border border-gold/20 bg-gold/5 p-4 text-sm text-muted-foreground">
             {plan.warnings.map((w) => (
