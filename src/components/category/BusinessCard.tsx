@@ -9,9 +9,10 @@ import type { BusinessListItem } from "@/lib/business-queries";
 interface Props {
   business: BusinessListItem;
   onAddToPlan?: (b: BusinessListItem) => void;
+  sponsored?: boolean;
 }
 
-export function BusinessCard({ business: b, onAddToPlan }: Props) {
+export function BusinessCard({ business: b, onAddToPlan, sponsored = false }: Props) {
   const open = computeOpenState(b.merchant_hours);
   const mapsHref =
     b.latitude != null && b.longitude != null
@@ -39,6 +40,11 @@ export function BusinessCard({ business: b, onAddToPlan }: Props) {
               className="absolute bottom-2 left-2 h-12 w-12 rounded-md border-2 border-background object-cover shadow"
               loading="lazy"
             />
+          )}
+          {sponsored && (
+            <Badge className="absolute left-2 top-2 border border-white/20 bg-black/50 text-white backdrop-blur-md">
+              Sponsored
+            </Badge>
           )}
           {open !== "unknown" && (
             <Badge
