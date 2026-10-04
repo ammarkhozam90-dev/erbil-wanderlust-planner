@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, ShieldCheck, Building2, Images, Tags, Users,
   Flag, BarChart3, ScrollText, Settings as SettingsIcon, Map, Palette, History, UploadCloud, UserCheck, Tag, Star,
-  ClipboardList,
+  ClipboardList, Megaphone,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -26,6 +26,7 @@ const items = [
   { title: 'Reports',            url: '/admin/reports',    icon: Flag },
   { title: 'Analytics',          url: '/admin/analytics',  icon: BarChart3 },
   { title: 'Offers',             url: '/admin/offers',     icon: Tag },
+  { title: 'Sponsorship',        url: '/admin/sponsorship', icon: Megaphone },
   { title: 'Ratings & Reviews',   url: '/admin/reviews',    icon: Star },
   { title: 'Activity Log',       url: '/admin/activity',   icon: ScrollText },
   { title: 'Site Content',       url: '/admin/site-content', icon: Palette },
@@ -78,6 +79,20 @@ export function AdminSidebar() {
     },
   });
 
+  // Sponsorship requests waiting for payment confirmation.
+  const { data: pendingSponsorships = 0 } = useQuery({
+    queryKey: ['admin-pending-sponsorships-count'],
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await (supabase as any)
+        .from('sponsorship_campaigns')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) return 0; // table not created yet
+      return count ?? 0;
+    },
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -99,6 +114,11 @@ export function AdminSidebar() {
                       {item.url === '/admin/claims' && pendingClaims > 0 && (
                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
                           {pendingClaims > 99 ? '99+' : pendingClaims}
+                        </span>
+                      )}
+                      {item.url === '/admin/sponsorship' && pendingSponsorships > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-none text-white">
+                          {pendingSponsorships > 99 ? '99+' : pendingSponsorships}
                         </span>
                       )}
                       {item.url === '/admin/bookings' && pendingBookings > 0 && (
