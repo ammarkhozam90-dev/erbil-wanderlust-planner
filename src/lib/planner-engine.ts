@@ -57,6 +57,10 @@ export interface PlannerInput {
   affinity?: LearnedAffinity | null;
   /** v3: place ids the visitor rejected — never suggested again in this plan. */
   excludeIds?: string[];
+  /** Admin setting: hard cap on the number of stops (0/undefined = automatic). */
+  maxStops?: number;
+  /** Admin setting: pick randomly among the top N matches (1-3). Default 3. */
+  variety?: 1 | 2 | 3;
 }
 
 /** v3: learned preferences. Values roughly -1 (dislikes) .. +1 (loves). */
@@ -515,6 +519,7 @@ function templateFor(input: PlannerInput) {
   if (input.pace === "slow" && base.length > 1) slots = base.slice(0, base.length - 1);
   if (input.pace === "fast" && input.durationHours >= 4) slots = [...base, "activity"];
   if (input.mustInclude && !slots.includes(`must:${input.mustInclude}`)) slots = [`must:${input.mustInclude}`, ...slots.slice(1)];
+  if (input.maxStops && input.maxStops > 0) slots = slots.slice(0, input.maxStops);
   return slots;
 }
 
@@ -584,7 +589,7 @@ export function generateInternalPlan(
       ? usablePool.filter((item) => item.candidate.category !== previous?.category)
       : usablePool;
     const eligiblePool = diversePool.length > 0 ? diversePool : usablePool;
-    const topCandidates = eligiblePool.slice(0, 3);
+    const topCandidates = eligiblePool.slice(0, input.variety ?? 3);
     const selected =
       topCandidates.length > 0
         ? topCandidates[Math.floor(Math.random() * topCandidates.length)]
