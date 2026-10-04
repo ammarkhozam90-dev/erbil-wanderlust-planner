@@ -87,3 +87,27 @@ export function categoryBusinessesQuery(category: CategoryDef, filters: Category
     staleTime: 30_000,
   });
 }
+
+/**
+ * Businesses with a paid campaign running TODAY on this placement ("cat:<slug>" or "home").
+ * Returns [] if the sponsorship tables are not installed yet, so pages never break.
+ */
+export async function fetchSponsored(placement: string, limit: number): Promise<BusinessListItem[]> {
+  const sb: any = supabase;
+  const { data: ids, error } = await sb.rpc("active_sponsored", { p_placement: placement, p_limit: limit });
+  if (error || !ids?.length) return [];
+  const { data } = await supabase
+    .from("merchants")
+    .select("*, merchant_hours(*)")
+    .in("id", ids.map((r: { merchant_id: string }) => r.merchant_id))
+    .eq("status", "approved");
+  return (data ?? []) as unknown as BusinessListItem[];
+}
+
+export function categorySponsorsQuery(category: CategoryDef) {
+  return queryOptions({
+    queryKey: ["category-sponsors", category.slug],
+    queryFn: () => fetchSponsored(`cat:${category.slug}`, 3),
+    staleTime: 60_000,
+  });
+}
