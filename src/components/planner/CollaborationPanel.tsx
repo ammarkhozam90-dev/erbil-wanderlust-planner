@@ -41,9 +41,17 @@ type CollaboratorRow = {
 
 const db = supabase as any;
 
-export function CollaborationPanel({ itineraryId }: { itineraryId: string | null }) {
+export function CollaborationPanel({
+  itineraryId,
+  alwaysOpen = false,
+}: {
+  itineraryId: string | null;
+  /** Render the full panel without the collapsible header (used inside the Share dialog). */
+  alwaysOpen?: boolean;
+}) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const open = alwaysOpen || openState;
   const [searchText, setSearchText] = useState("");
   const [selectedRole, setSelectedRole] = useState<CollaboratorRole>("viewer");
   const [invitingId, setInvitingId] = useState<string | null>(null);
@@ -53,27 +61,14 @@ export function CollaborationPanel({ itineraryId }: { itineraryId: string | null
     queryKey: ["itinerary-collaborators", itineraryId],
     enabled: open && Boolean(itineraryId),
     queryFn: async () => {
-      const { data, error } = await db
-        .from("itinerary_collaborators")
-        .select("*")
-        .eq("itinerary_id", itineraryId)
-        .order("created_at", { ascending: true });
+      const { data, error } = await db.rpc("list_itinerary_collaborators", {
+        p_itinerary_id: itineraryId,
+      });
       if (error) throw error;
-
-      const rows = (data ?? []) as CollaboratorRow[];
-      const ids = rows.map((row) => row.user_id);
-      if (ids.length === 0) return rows;
-
-      const { data: profiles, error: profileError } = await db
-        .from("profiles")
-        .select("id,full_name,avatar_url")
-        .in("id", ids);
-      if (profileError) throw profileError;
-
-      const profileMap = new Map(
-        (profiles ?? []).map((profile: ProfileResult) => [profile.id, profile]),
-      );
-      return rows.map((row) => ({ ...row, profile: profileMap.get(row.user_id) ?? null }));
+      return ((data ?? []) as any[]).map((row) => ({
+        ...row,
+        profile: { id: row.user_id, full_name: row.full_name, avatar_url: row.avatar_url },
+      })) as CollaboratorRow[];
     },
   });
 
@@ -191,7 +186,8 @@ export function CollaborationPanel({ itineraryId }: { itineraryId: string | null
   }
 
   return (
-    <div className="mt-5 overflow-hidden rounded-2xl border border-gold/20 bg-card/30">
+    <div className={`overflow-hidden rounded-2xl border border-gold/20 bg-card/30 ${alwaysOpen ? "" : "mt-5"}`}>
+      {!alwaysOpen && (
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -212,9 +208,10 @@ export function CollaborationPanel({ itineraryId }: { itineraryId: string | null
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
+      )}
 
       {open && (
-        <div className="space-y-5 border-t border-border/60 p-4">
+        <div className={`space-y-5 p-4 ${alwaysOpen ? "" : "border-t border-border/60"}`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="min-w-0 flex-1">
               <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">
@@ -225,7 +222,7 @@ export function CollaborationPanel({ itineraryId }: { itineraryId: string | null
                 <input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
-                  placeholder="Search by full name"
+                  placeholder="Type your friend's name (2+ letters)"
                   className="h-10 w-full rounded-xl border border-border bg-background/50 pl-9 pr-3 text-sm outline-none transition focus:border-gold"
                 />
               </div>
@@ -259,7 +256,7 @@ export function CollaborationPanel({ itineraryId }: { itineraryId: string | null
           {searchText.trim().length >= 2 &&
             !profileSearch.isFetching &&
             searchResults.length === 0 && (
-              <p className="text-xs text-muted-foreground">No matching registered account found.</p>
+              <p className="text-xs text-muted-foreground">No account found with that name. Your friend needs an ErbilGo account first.</p>
             )}
           {searchResults.length > 0 && (
             <div className="space-y-2">
