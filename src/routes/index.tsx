@@ -146,36 +146,44 @@ function Home() {
     queryKey: ["featured-businesses", hp.featured_count],
     queryFn: async () => {
       const fields = "id,name,category,city,address,cover_url,price_level,description,is_sponsored";
-      const sponsoredResult = await supabase
+      const limit = hp.featured_count;
+      const sb: any = supabase;
+
+      // 1) Paid campaigns running today on the homepage (rotated randomly by the database).
+      const { data: paid } = await sb.rpc("active_sponsored", { p_placement: "home", p_limit: limit });
+      const paidIds: string[] = (paid ?? []).map((r: { merchant_id: string }) => r.merchant_id);
+      const paidItems: any[] = paidIds.length
+        ? ((await supabase.from("merchants").select(fields).in("id", paidIds).eq("status", "approved")).data ?? [])
+        : [];
+
+      // 2) Businesses the admin flagged as sponsored manually (free partnerships).
+      const { data: manual } = await supabase
         .from("merchants")
         .select(fields)
         .eq("status", "approved")
-        .order("is_sponsored", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(Math.max(12, hp.featured_count));
+        .eq("is_sponsored", true)
+        .limit(limit);
 
-      if (!sponsoredResult.error) {
-        const approved = sponsoredResult.data ?? [];
-        const sponsored = approved.filter((business: any) => Boolean(business.is_sponsored));
-        return {
-          items: (sponsored.length > 0 ? sponsored : approved).slice(0, hp.featured_count),
-          sponsored: sponsored.length > 0,
-        };
+      const seen = new Set<string>();
+      const sponsoredItems = [...paidItems, ...(manual ?? [])]
+        .filter((b: any) => (seen.has(b.id) ? false : (seen.add(b.id), true)))
+        .slice(0, limit)
+        .map((b: any) => ({ ...b, _sponsored: true }));
+
+      // 3) Fill the remaining slots with the newest approved businesses (unlabelled).
+      let items: any[] = sponsoredItems;
+      if (items.length < limit) {
+        const { data: recent, error } = await supabase
+          .from("merchants")
+          .select(fields)
+          .eq("status", "approved")
+          .order("created_at", { ascending: false })
+          .limit(limit + sponsoredItems.length);
+        if (error) throw error;
+        const fill = (recent ?? []).filter((b: any) => !seen.has(b.id)).slice(0, limit - items.length);
+        items = [...items, ...fill];
       }
-
-      // Keep the homepage useful if an older database has not received is_sponsored yet.
-      console.warn(
-        "[homepage] Sponsored placements unavailable; using approved directory fallback",
-        sponsoredResult.error,
-      );
-      const { data: fallback, error: fallbackError } = await supabase
-        .from("merchants")
-        .select("id,name,category,city,address,cover_url,price_level,description")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false })
-        .limit(hp.featured_count);
-      if (fallbackError) throw fallbackError;
-      return { items: fallback ?? [], sponsored: false };
+      return { items, sponsored: sponsoredItems.length > 0 };
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -338,19 +346,15 @@ function Home() {
           {hp.show_featured && featured.data?.items && featured.data.items.length > 0 && (
             <section className="space-y-8">
               <SectionHeader
-                title={featured.data.sponsored ? "Sponsored for you" : "Featured for you"}
-                subtitle={
-                  featured.data.sponsored
-                    ? "Partner places selected for visibility by ErbilGo — always clearly labeled."
-                    : "A refined selection from ErbilGo’s approved directory, refreshed for your next day out."
-                }
+                title="Featured for you"
+                subtitle="A refined selection from ErbilGo’s approved directory. Places marked Sponsored are paid placements."
               />
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {featured.data.items.map((business: any) => (
                   <BusinessCard
                     key={business.id}
                     business={business}
-                    sponsored={featured.data?.sponsored === true}
+                    sponsored={business._sponsored === true}
                   />
                 ))}
               </div>
