@@ -64,11 +64,28 @@ export function CollaborationPanel({
       const { data, error } = await db.rpc("list_itinerary_collaborators", {
         p_itinerary_id: itineraryId,
       });
-      if (error) throw error;
-      return ((data ?? []) as any[]).map((row) => ({
-        ...row,
-        profile: { id: row.user_id, full_name: row.full_name, avatar_url: row.avatar_url },
-      })) as CollaboratorRow[];
+      if (!error) {
+        return ((data ?? []) as any[]).map((row) => ({
+          ...row,
+          profile: { id: row.user_id, full_name: row.full_name, avatar_url: row.avatar_url },
+        })) as CollaboratorRow[];
+      }
+
+      // Fallback if the helper function is not installed yet: read the table directly.
+      const { data: rowsData, error: rowsError } = await db
+        .from("itinerary_collaborators")
+        .select("*")
+        .eq("itinerary_id", itineraryId)
+        .order("created_at", { ascending: true });
+      if (rowsError) throw rowsError;
+      const rows = (rowsData ?? []) as CollaboratorRow[];
+      if (rows.length === 0) return rows;
+      const { data: profiles } = await db
+        .from("profiles")
+        .select("id,full_name,avatar_url")
+        .in("id", rows.map((r) => r.user_id));
+      const map = new Map((profiles ?? []).map((pr: ProfileResult) => [pr.id, pr]));
+      return rows.map((r) => ({ ...r, profile: map.get(r.user_id) ?? null }));
     },
   });
 
