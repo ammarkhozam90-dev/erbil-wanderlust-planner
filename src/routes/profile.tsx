@@ -195,7 +195,7 @@ function ProfilePage() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   useEffect(() => {
     if (profile && showOnboarding === null) {
-      setShowOnboarding(!profile.onboarding_completed);
+      setShowOnboarding(!((profile as any).onboarding_complete ?? (profile as any).onboarding_completed));
     }
   }, [profile, showOnboarding]);
 
