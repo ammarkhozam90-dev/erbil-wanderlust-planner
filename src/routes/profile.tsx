@@ -195,7 +195,9 @@ function ProfilePage() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   useEffect(() => {
     if (profile && showOnboarding === null) {
-      setShowOnboarding(!((profile as any).onboarding_complete ?? (profile as any).onboarding_completed));
+      let localDone = false;
+      try { localDone = localStorage.getItem(`erbilgo_onboarding_done_${(profile as any).id}`) === "1"; } catch {}
+      setShowOnboarding(!localDone && !((profile as any).onboarding_complete ?? (profile as any).onboarding_completed));
     }
   }, [profile, showOnboarding]);
 

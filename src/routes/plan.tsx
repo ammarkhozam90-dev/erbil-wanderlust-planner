@@ -44,6 +44,7 @@ import { CollaborationPanel } from "@/components/planner/CollaborationPanel";
 import { PlannerExtraQuestions } from "@/components/planner/PlannerExtraQuestions";
 import { StopWhyBadge } from "@/components/planner/StopWhyBadge";
 import { StopActions } from "@/components/planner/StopActions";
+import { PlaceImage } from "@/components/planner/PlaceImage";
 import { TravelLeg } from "@/components/planner/TravelLeg";
 import { TravelModePicker } from "@/components/planner/TravelModePicker";
 import { loadAffinity, recordFeedback, recordSavedPlan } from "@/lib/planner-learning";
@@ -234,7 +235,10 @@ function PlanPage() {
     if (!result) return;
     const ids = [...rejectedIds, result.stops[index].location.id];
     setRejectedIds(ids);
-    setResult(swapStop(result, index, candidates, { ...form, profile, affinity, excludeIds: ids, maxStops: siteSettings.planner.max_stops, variety: siteSettings.planner.variety }));
+    const swapped = swapStop(result, index, candidates, { ...form, profile, affinity, excludeIds: ids, maxStops: siteSettings.planner.max_stops, variety: siteSettings.planner.variety });
+    if (swapped.lastSwap?.ok) toast.success(swapped.lastSwap.message ?? "Stop swapped");
+    else toast.info(swapped.lastSwap?.message ?? "No other option fits this time slot.");
+    setResult(swapped);
   }
 
   function next() {
@@ -604,9 +608,13 @@ function SelectCard({
   );
 }
 function formatHour(h: number) {
-  const s = h >= 12 ? "PM" : "AM";
-  const n = h % 12 || 12;
-  return `${n}:00 ${s}`;
+  // v4: show real minutes (10:25 AM), rounded to 5 min, so travel time is visible in the schedule.
+  let total = Math.round((h * 60) / 5) * 5;
+  total = ((total % 1440) + 1440) % 1440;
+  const hh = Math.floor(total / 60);
+  const mm = total % 60;
+  const s = hh >= 12 ? "PM" : "AM";
+  return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${s}`;
 }
 function normalizeCategory(v: any, tags: string[] = []): Category {
   const t = String(v ?? "").toLowerCase();
@@ -750,7 +758,7 @@ function PlanResult({
 
   function shareWhatsApp() {
     const stopsText = plan.stops
-      .map((s, i) => `${i + 1}. ${s.location.name} (${formatHour(Math.floor(s.startHour))})`)
+      .map((s, i) => `${i + 1}. ${s.location.name} (${formatHour(s.startHour)})`)
       .join("\n");
     const message = `Check out my day in Erbil planned by ErbilGo!\n\n${plan.title}\n${plan.summary}\n\nItinerary:\n${stopsText}\n\nPlan yours at: ${window.location.origin}/plan`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
@@ -830,10 +838,11 @@ function PlanResult({
           >
             <div className="flex gap-4">
               <div className="relative hidden w-32 shrink-0 overflow-hidden rounded-xl sm:block">
-                <img
-                  src={stop.location.image || "/placeholder.svg"}
-                  alt=""
-                  className="h-full min-h-28 w-full object-cover"
+                <PlaceImage
+                  src={stop.location.image}
+                  name={stop.location.name}
+                  category={stop.location.category}
+                  className="h-full min-h-28 w-full"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -841,7 +850,7 @@ function PlanResult({
                   <div className="flex items-center gap-2">
                     <Badge className="bg-gold text-background">Stop {index + 1}</Badge>
                     <span className="text-xs font-semibold text-gold">
-                      {formatHour(Math.floor(stop.startHour))}
+                      {formatHour(stop.startHour)} – {formatHour(stop.endHour)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {Math.round((stop.endHour - stop.startHour) * 60)} min
