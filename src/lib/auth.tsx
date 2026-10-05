@@ -262,14 +262,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(
     async (patch: any) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update(patch)
-        .eq("id", session?.user?.id ?? "");
-      if (!error) {
-        setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+      // v4: never send an empty id, drop undefined keys, retry briefly (new accounts /
+      // token refresh can make the first write fail or match 0 rows).
+      const clean = Object.fromEntries(Object.entries(patch ?? {}).filter(([, v]) => v !== undefined));
+      let userId = session?.user?.id;
+      if (!userId) userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) return { error: "Not signed in" };
+      if (clean.onboarding_complete) {
+        try { localStorage.setItem(`erbilgo_onboarding_done_${userId}`, "1"); } catch {}
       }
-      return { error: error?.message ?? null };
+      let lastError: string | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await supabase.from("profiles").update(clean).eq("id", userId).select("id");
+        if (!error && data && data.length > 0) {
+          setProfile((prev) => (prev ? { ...prev, ...clean } : prev));
+          return { error: null };
+        }
+        lastError = error?.message ?? "Profile row not found yet";
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
+      console.error("[profile] update failed after retries:", lastError);
+      return { error: lastError };
     },
     [session?.user?.id],
   );

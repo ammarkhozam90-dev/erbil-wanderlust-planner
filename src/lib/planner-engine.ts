@@ -118,6 +118,8 @@ export interface GeneratedPlan {
   warnings: string[];
   /** v3: saved with the plan so shared / reopened plans show the right travel icon. */
   travelMode?: "walking" | "car" | "taxi";
+  /** v4: result of the last swap so the UI can tell the visitor what happened. */
+  lastSwap?: { index: number; ok: boolean; message?: string };
 }
 
 /** Central tuning surface. Keep these values in code for the MVP; move them to an admin settings table later. */
@@ -545,6 +547,9 @@ export function generateInternalPlan(
 ): GeneratedPlan {
   const warnings: string[] = [];
   const slots = templateFor(input);
+  const endLimit = input.startHour + input.durationHours;
+  const maxStops = input.maxStops && input.maxStops > 0 ? input.maxStops : 7;
+  let fillers = 0;
   const chosen: PlanStop[] = [];
   const dayOfWeek = input.dayOfWeek ?? new Date().getDay();
   let currentHour = input.startHour;
@@ -556,9 +561,24 @@ export function generateInternalPlan(
   let waited = 0;
   let slotIndex = 0;
 
-  while (slotIndex < slots.length) {
+  while (true) {
+    // v4: keep filling the day until the chosen duration is used (>= 45 min left).
+    if (slotIndex >= slots.length) {
+      const remaining = endLimit - currentHour;
+      if (remaining < 0.75 || chosen.length >= maxStops || fillers >= 4) break;
+      fillers += 1;
+      const lastCat = previous?.category;
+      const hadMeal = chosen.some((st) => st.location.category === "Restaurants" && currentHour - st.startHour < 4);
+      slots.push(
+        isMealTime(Math.floor(currentHour)) && !hadMeal
+          ? "food"
+          : lastCat === "Cafés" || lastCat === "Restaurants"
+            ? "activity"
+            : "cafe",
+      );
+    }
     const slot = slots[slotIndex];
-    if (currentHour >= input.startHour + input.durationHours) break;
+    if (currentHour >= endLimit - 0.25) break;
 
     const pool = candidates
       .filter((candidate) => !chosen.some((stop) => stop.location.id === candidate.id))
@@ -610,13 +630,19 @@ export function generateInternalPlan(
     const next = selected.candidate;
     const paceFactor = input.pace === "slow" ? 1.3 : input.pace === "fast" ? 0.8 : 1;
     const durationHours = Math.max(0.5, (next.durationMin / 60) * paceFactor);
-    const endHour = Math.min(input.startHour + input.durationHours, currentHour + durationHours);
     const distance = selected.distance;
     const transferMinutes = travelMinutes(previous ? distance : undefined, input.travelMode);
+    // v4: travel happens BEFORE the visit, so the stop starts after the ride.
+    const arriveHour = currentHour + (previous ? transferMinutes / 60 : 0);
+    if (arriveHour >= endLimit - 0.25) break;
+    let endHour = Math.min(endLimit, arriveHour + durationHours);
+    // Last stop: stretch (up to +50%) to use the remaining time instead of ending early.
+    const isLastPlanned = slotIndex === slots.length - 1 && endLimit - endHour < 0.75;
+    if (isLastPlanned) endHour = Math.min(endLimit, arriveHour + durationHours * 2);
 
     chosen.push({
       location: next,
-      startHour: currentHour,
+      startHour: arriveHour,
       endHour,
       reason: `${next.name} fits your ${activeMoods(input)
         .map((m) => m.toLowerCase())
@@ -629,7 +655,7 @@ export function generateInternalPlan(
     });
 
     spent += next.priceUSD;
-    currentHour = endHour + transferMinutes / 60;
+    currentHour = endHour;
     previous = next;
     waited = 0;
     slotIndex += 1;
@@ -645,7 +671,7 @@ export function generateInternalPlan(
     warnings.push(`About ${travelTotal} min of this plan is travel. Choose a closer start point or "car" to see more.`);
   if (!chosen.length)
     warnings.push("Try a broader budget, a different mood, or a longer day to see more options.");
-  if (chosen.length < slots.length && chosen.length > 0)
+  if (chosen.length < slots.length - fillers && chosen.length > 0)
     warnings.push(
       "This plan uses the strongest verified matches available for your selected time and preferences.",
     );
@@ -702,54 +728,96 @@ export function swapStop(
   if (!stop) return plan;
   const dayOfWeek = input.dayOfWeek ?? new Date().getDay();
   const previous = index > 0 ? plan.stops[index - 1].location : undefined;
-  const next = plan.stops[index + 1];
   const used = new Set(plan.stops.map((s) => s.location.id));
   const excluded = new Set([...(input.excludeIds ?? []), stop.location.id]);
   const spentOthers = plan.estimatedCostUSD - stop.estimatedCostUSD;
+  const cat = stop.location.category;
+  const activityCats = slotCategory("activity", input);
+  const isFoodish = cat === "Restaurants" || cat === "Cafés";
 
-  // Food and cafe stops are swapped for the same category; activity stops for any activity category.
-  const sameKind = (c: PlannerCandidate) => {
-    const cat = stop.location.category;
-    if (cat === "Restaurants" || cat === "Cafés") return c.category === cat;
-    return c.category === cat || slotCategory("activity", input).includes(c.category);
-  };
-
-  const best = candidates
-    .filter((c) => !used.has(c.id) && !excluded.has(c.id))
-    .filter(sameKind)
-    .filter((c) => hardFilter(c, { ...input, excludeIds: [...excluded] }, stop.startHour, dayOfWeek, spentOthers))
-    .map((c) => ({ c, b: scoreBreakdown(c, input, previous, { hour: stop.startHour, dayOfWeek }) }))
-    .sort((a, b) => b.b.total - a.b.total)[0];
-
-  if (!best) {
-    const msg = "No other option fits this time slot.";
-    return { ...plan, warnings: plan.warnings.includes(msg) ? plan.warnings : [...plan.warnings, msg] };
+  // v4: widen the search step by step instead of giving up on a small catalogue.
+  const tiers: Array<{ kind: (c: PlannerCandidate) => boolean; budget: boolean }> = [
+    { kind: (c) => c.category === cat, budget: true },
+    {
+      kind: (c) => (isFoodish ? c.category === "Restaurants" || c.category === "Cafés" : activityCats.includes(c.category) || c.category === cat),
+      budget: true,
+    },
+    { kind: (c) => (isFoodish ? c.category === "Restaurants" || c.category === "Cafés" : !["Restaurants", "Cafés"].includes(c.category)), budget: false },
+    { kind: () => true, budget: false },
+  ];
+  const filterInput = { ...input, excludeIds: [...excluded] };
+  let best: { c: PlannerCandidate; b: ScoreBreakdown } | undefined;
+  for (const tier of tiers) {
+    best = candidates
+      .filter((c) => !used.has(c.id) && !excluded.has(c.id))
+      .filter(tier.kind)
+      .filter((c) =>
+        hardFilter(c, tier.budget ? filterInput : { ...filterInput, budget: "Premium" }, stop.startHour, dayOfWeek, spentOthers),
+      )
+      .map((c) => ({ c, b: scoreBreakdown(c, input, previous, { hour: stop.startHour, dayOfWeek }) }))
+      .sort((a, b) => b.b.total - a.b.total)[0];
+    if (best) break;
   }
 
-  const distance = previous ? haversineKm(previous, best.c) : undefined;
+  if (!best) {
+    return {
+      ...plan,
+      lastSwap: { index, ok: false, message: "No other open place fits this time. Try a different time or mood." },
+    };
+  }
+
   const newStop: PlanStop = {
     ...stop,
     location: best.c,
     reason: `${best.c.name} fits your ${activeMoods(input)
       .map((m) => m.toLowerCase())
-      .join(" & ")} mood and ${input.companion.toLowerCase()} outing. The route keeps the next move practical and the experience varied.`,
+      .join(" & ")} mood and ${input.companion.toLowerCase()} outing.`,
     matchPercent: best.b.matchPercent,
     reasons: best.b.reasons,
     estimatedCostUSD: best.c.priceUSD,
-    distanceKmFromPrevious: distance,
-    travelMinutesFromPrevious: previous ? travelMinutes(distance, input.travelMode) : undefined,
   };
+  const stops = retimeStops(
+    plan.stops.map((s, i) => (i === index ? newStop : s)),
+    input,
+  );
+  return {
+    ...plan,
+    stops,
+    estimatedCostUSD: spentOthers + best.c.priceUSD,
+    totalHours: stops.length ? stops[stops.length - 1].endHour - input.startHour : 0,
+    lastSwap: { index, ok: true, message: `Swapped to ${best.c.name}` },
+  };
+}
 
-  // The stop after the swapped one now starts from a different place: refresh its distance / travel time labels.
-  const stops = plan.stops.map((s, i) => {
-    if (i === index) return newStop;
-    if (i === index + 1 && next) {
-      const d = haversineKm(best.c, next.location);
-      return { ...s, distanceKmFromPrevious: d, travelMinutesFromPrevious: travelMinutes(d, input.travelMode) };
-    }
-    return s;
+/** v4: recompute distances, travel time and start/end times after any change, keeping visit lengths. */
+export function retimeStops(stops: PlanStop[], input: PlannerInput): PlanStop[] {
+  const endLimit = input.startHour + input.durationHours;
+  const paceFactor = input.pace === "slow" ? 1.3 : input.pace === "fast" ? 0.8 : 1;
+  let clock = input.startHour;
+  const out: PlanStop[] = [];
+  stops.forEach((s, i) => {
+    const prev = i > 0 ? out[i - 1].location : undefined;
+    const d = prev ? haversineKm(prev, s.location) : undefined;
+    const t = prev ? travelMinutes(d, input.travelMode) : 0;
+    let start = clock + t / 60;
+    // Wait (max 2h) if the place is not open yet at the new time.
+    const dow = input.dayOfWeek ?? new Date().getDay();
+    let waitedH = 0;
+    while (!isOpenAt(s.location, Math.floor(start), dow) && waitedH < 2) { start += 0.25; waitedH += 0.25; }
+    if (start >= endLimit - 0.25) return;
+    const visit = Math.max(0.5, (s.location.durationMin / 60) * paceFactor);
+    const isLast = i === stops.length - 1;
+    const end = Math.min(endLimit, start + (isLast ? visit * 2 : visit));
+    out.push({
+      ...s,
+      startHour: start,
+      endHour: end,
+      distanceKmFromPrevious: prev ? d : undefined,
+      travelMinutesFromPrevious: prev ? t : undefined,
+    });
+    clock = end;
   });
-  return { ...plan, stops, estimatedCostUSD: spentOthers + best.c.priceUSD };
+  return out;
 }
 
 export { haversineKm, scoreBreakdown, travelMinutes, partOfDay };
