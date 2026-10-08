@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import heroImg from "@/assets/hero-citadel.jpg";
 import toursImg from "@/assets/tours-cover.jpg";
@@ -124,6 +126,17 @@ const DEFAULT_LAYOUT = {
 };
 
 function Home() {
+  // Safety net: if Google sign-in returned here instead of /auth, hand over to /auth
+  // (it opens the onboarding window for new users). Only fires right after the Google button.
+  const navigate = useNavigate();
+  const { session, loading: authLoading } = useAuth();
+  useEffect(() => {
+    if (authLoading || !session) return;
+    let flag: string | null = null;
+    try { flag = sessionStorage.getItem("erbilgo_google_oauth_pending"); } catch {}
+    if (flag && Date.now() - Number(flag) < 5 * 60 * 1000) navigate({ to: "/auth" });
+  }, [authLoading, session, navigate]);
+
   const { settings } = useSiteSettings();
   const hp = settings.homepage;
   const hero = useQuery({
