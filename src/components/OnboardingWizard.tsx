@@ -111,6 +111,11 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
     navigate({ to: "/plan" });
   }
 
+  function goProfile() {
+    onDone();
+    navigate({ to: "/profile" });
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md gap-0 p-0">
@@ -259,16 +264,16 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
                 </p>
               </div>
               <Button
-                onClick={goPlan}
+                onClick={goProfile}
                 className="mt-2 w-full bg-gold text-background hover:bg-gold/90"
               >
-                <Sparkles className="mr-2 h-4 w-4" /> Generate my first plan
+                Go to my profile
               </Button>
               <button
-                onClick={onDone}
+                onClick={goPlan}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Maybe later
+                <Sparkles className="mr-1 inline h-3 w-3" /> Generate my first plan
               </button>
             </div>
           )}
