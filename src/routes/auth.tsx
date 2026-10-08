@@ -13,6 +13,7 @@ import { searchNationalities } from "@/data/nationalities";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { PhoneInput, isValidPhone } from "@/components/PhoneInput";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -209,7 +210,7 @@ function SignUpForm({
   const step1Valid =
     form.fullName.trim().length >= 2 &&
     /^\S+@\S+\.\S+$/.test(form.email.trim()) &&
-    form.phone.trim().length >= 5 &&
+    isValidPhone(form.phone) &&
     pwd.ok &&
     passwordsMatch;
 
@@ -263,7 +264,7 @@ function SignUpForm({
             <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" />
           </Row>
           <Row label="Phone number">
-            <Input type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+964 …" autoComplete="tel" />
+            <PhoneInput value={form.phone} onChange={(v) => set("phone", v)} />
           </Row>
           <Row label="Password">
             <PasswordInput value={form.password} onChange={(v) => set("password", v)} show={show} setShow={setShow} autoComplete="new-password" />
