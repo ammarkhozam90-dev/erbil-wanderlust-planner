@@ -3,6 +3,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { searchNationalities } from "@/data/nationalities";
 import { Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -13,13 +19,33 @@ interface OnboardingWizardProps {
   onDone: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const BASE_STEPS = 5;
+const AGE_RANGES = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 
 export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
-  const { updateProfile } = useAuth();
+  const { updateProfile, profile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+
+  // Extra "basics" step: only for users who skipped them at signup (e.g. Google sign-in).
+  const [needsBasics] = useState(() => {
+    const p = profile as any;
+    return !p?.phone || !p?.age_range || !p?.gender || !p?.nationality;
+  });
+  const offset = needsBasics ? 1 : 0;
+  const TOTAL_STEPS = BASE_STEPS + offset;
+  const cur = step - offset; // 1..5 = the original steps; 0 = basics step
+
+  const [phone, setPhone] = useState((profile as any)?.phone ?? "");
+  const [ageRange, setAgeRange] = useState<string>((profile as any)?.age_range ?? "");
+  const [gender, setGender] = useState<string>((profile as any)?.gender ?? "");
+  const [nationality, setNationality] = useState<string>((profile as any)?.nationality ?? "");
+  const [natFocused, setNatFocused] = useState(false);
+  const natSuggestions = searchNationalities(nationality, 8);
+  const basicsValid =
+    phone.trim().length >= 5 && !!ageRange && !!gender && nationality.trim().length >= 2;
 
   const [styles, setStyles] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
@@ -34,6 +60,17 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 
   async function persistAndAdvance() {
     setSaving(true);
+    if (cur === 0) {
+      await updateProfile({
+        phone: phone.trim(),
+        age_range: ageRange,
+        gender,
+        nationality: nationality.trim(),
+      } as any);
+      setSaving(false);
+      setStep(step + 1);
+      return;
+    }
     await updateProfile({
       travel_styles: styles,
       interests,
@@ -98,7 +135,65 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
         )}
 
         <div className="px-6 py-8">
-          {step === 1 && (
+          {cur === 0 && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="font-display text-xl font-bold">A few details about you</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Helps us personalize your plans.
+                </p>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone number</Label>
+                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+964 …" autoComplete="tel" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age range</Label>
+                <Select value={ageRange} onValueChange={setAgeRange}>
+                  <SelectTrigger><SelectValue placeholder="Select age range" /></SelectTrigger>
+                  <SelectContent>{AGE_RANGES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gender</Label>
+                <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nationality</Label>
+                <div className="relative">
+                  <Input
+                    value={nationality}
+                    onChange={(e) => setNationality(e.target.value)}
+                    onFocus={() => setNatFocused(true)}
+                    onBlur={() => window.setTimeout(() => setNatFocused(false), 150)}
+                    placeholder="Start typing your nationality…"
+                    autoComplete="off"
+                  />
+                  {natFocused && nationality.trim().length > 0 && natSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl">
+                      {natSuggestions.map((option) => (
+                        <button
+                          key={option.code}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setNationality(option.name); setNatFocused(false); }}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          <span className="font-medium">{option.name}</span>
+                          <span className="ml-3 text-[10px] text-muted-foreground">{option.region}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {cur === 1 && (
             <StepChips
               title="What's your travel vibe?"
               subtitle="Pick a few — no wrong answers."
@@ -108,7 +203,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
             />
           )}
 
-          {step === 2 && (
+          {cur === 2 && (
             <StepChips
               title="What do you love doing here?"
               subtitle="Tap everything that sounds fun."
@@ -118,7 +213,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
             />
           )}
 
-          {step === 3 && (
+          {cur === 3 && (
             <div className="space-y-8">
               <StepSingleChips
                 title="Who do you usually explore with?"
@@ -135,7 +230,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
             </div>
           )}
 
-          {step === 4 && (
+          {cur === 4 && (
             <div className="space-y-8">
               <StepChips
                 title="Any dietary needs?"
@@ -193,7 +288,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
             <Button
               size="sm"
               onClick={persistAndAdvance}
-              disabled={saving}
+              disabled={saving || (cur === 0 && !basicsValid)}
               className="bg-gold text-background hover:bg-gold/90"
             >
               {saving ? "…" : step === TOTAL_STEPS - 1 ? "Generate my plan" : "Continue"}
