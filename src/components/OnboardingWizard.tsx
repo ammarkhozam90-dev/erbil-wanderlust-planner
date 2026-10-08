@@ -81,8 +81,10 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
       budget_preference: budget,
     } as any);
     setSaving(false);
-    if (step < TOTAL_STEPS) setStep(step + 1);
-    else finish();
+    // Last question step -> mark onboarding complete BEFORE showing the "all set" screen,
+    // so /profile does not open the window again.
+    if (step >= TOTAL_STEPS - 1) await finish();
+    else setStep(step + 1);
   }
 
   async function skipAll() {
