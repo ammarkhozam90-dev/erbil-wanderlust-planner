@@ -12,6 +12,7 @@ import { useAuth, validatePassword, PASSWORD_RULES } from "@/lib/auth";
 import { searchNationalities } from "@/data/nationalities";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -58,8 +59,10 @@ function AuthPage() {
 
   // Removed global useEffect redirect to allow form-specific navigation
 
-  // Google return only: new users go to /profile (onboarding wizard opens there),
-  // returning users go home. Runs only if the Google button set the flag just before.
+  // Google return only: new users get the floating onboarding window right away,
+  // and /profile opens when they finish. Returning users go home.
+  // Runs only if the Google button set the flag just before.
+  const [googleOnboarding, setGoogleOnboarding] = useState(false);
   useEffect(() => {
     if (authLoading || !session) return;
     let flag: string | null = null;
@@ -70,8 +73,18 @@ function AuthPage() {
     try { localDone = localStorage.getItem(`erbilgo_onboarding_done_${session.user.id}`) === "1"; } catch {}
     const p = profile as any;
     const done = localDone || !!(p?.onboarding_complete ?? p?.onboarding_completed);
-    navigate({ to: done ? "/" : "/profile" });
+    if (done) navigate({ to: "/" });
+    else setGoogleOnboarding(true);
   }, [authLoading, session, profile, navigate]);
+
+  if (googleOnboarding && session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <OnboardingWizard open onDone={() => navigate({ to: "/profile" })} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
