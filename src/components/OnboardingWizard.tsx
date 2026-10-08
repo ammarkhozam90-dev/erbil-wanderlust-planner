@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { searchNationalities } from "@/data/nationalities";
+import { PhoneInput, isValidPhone } from "@/components/PhoneInput";
 import { Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -45,7 +46,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
   const [natFocused, setNatFocused] = useState(false);
   const natSuggestions = searchNationalities(nationality, 8);
   const basicsValid =
-    phone.trim().length >= 5 && !!ageRange && !!gender && nationality.trim().length >= 2;
+    isValidPhone(phone) && !!ageRange && !!gender && nationality.trim().length >= 2;
 
   const [styles, setStyles] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
@@ -150,7 +151,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
               </div>
               <div>
                 <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone number</Label>
-                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+964 …" autoComplete="tel" />
+                <PhoneInput value={phone} onChange={setPhone} />
               </div>
               <div>
                 <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age range</Label>
