@@ -1,393 +1,512 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff, Check, X, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import type { Session, User } from "@supabase/supabase-js";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useAuth, validatePassword, PASSWORD_RULES } from "@/lib/auth";
+import { searchNationalities } from "@/data/nationalities";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
-export type TravelStyle =
-  | "Adventure"
-  | "Nature"
-  | "History & Culture"
-  | "Luxury"
-  | "Family"
-  | "Photography"
-  | "Relaxing"
-  | "Nightlife"
-  | "Food"
-  | "Budget"
-  | "Social"
-  | "Cozy"
-  | "Remote Work Focus"
-  | "Solo Explorer";
-export type AppRole = Database["public"]["Enums"]["app_role"];
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign In — ErbilGo" },
+      { name: "description", content: "Sign in or create your ErbilGo account to sync saved spots, preferences, and itineraries across all your devices." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Sign In — ErbilGo" },
+      { property: "og:url", content: "https://erbilgo.app/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://erbilgo.app/auth" }],
+  }),
+  component: AuthPage,
+});
 
-// PASSWORD_RULES must be an array of rule objects (used with .map() in auth.tsx
-// to render the live checklist under the password field).
-export const PASSWORD_RULES: { id: string; label: string; test: (v: string) => boolean }[] = [
+const GOOGLE_FLAG = "erbilgo_google_oauth_pending";
+
+type Mode = "signin" | "signup" | "forgot";
+
+const AGE_RANGES = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"];
+
+// ---- Defensive fallback ----
+// PASSWORD_RULES is expected to be an array of { id, label, test(value) => boolean }.
+// If lib/auth ever exports something else (e.g. a plain string), this fallback
+// prevents the whole signup form from crashing with ".map is not a function".
+type PasswordRule = { id: string; label: string; test: (v: string) => boolean };
+
+const DEFAULT_PASSWORD_RULES: PasswordRule[] = [
   { id: "length", label: "At least 8 characters", test: (v) => v.length >= 8 },
   { id: "upper", label: "One uppercase letter", test: (v) => /[A-Z]/.test(v) },
   { id: "lower", label: "One lowercase letter", test: (v) => /[a-z]/.test(v) },
-  { id: "number", label: "One number", test: (v) => /\d/.test(v) },
+  { id: "number", label: "One number", test: (v) => /[0-9]/.test(v) },
 ];
 
-export const PASSWORD_ERROR_MESSAGE =
-  "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, and a number.";
+const SAFE_PASSWORD_RULES: PasswordRule[] = Array.isArray(PASSWORD_RULES)
+  ? (PASSWORD_RULES as PasswordRule[])
+  : DEFAULT_PASSWORD_RULES;
 
-// validatePassword returns an object with .ok so it can be used directly as
-// `const pwd = validatePassword(form.password); ... pwd.ok` in auth.tsx.
-export const validatePassword = (password: string): { ok: boolean; message: string | null } => {
-  const ok = PASSWORD_RULES.every((rule) => rule.test(password));
-  return { ok, message: ok ? null : PASSWORD_ERROR_MESSAGE };
-};
+function AuthPage() {
+  const { session, profile, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>("signin");
 
-export interface SignUpExtras {
-  fullName: string;
-  phone?: string;
-  ageRange?: string;
-  gender?: string;
-  nationality?: string;
-}
+  // Removed global useEffect redirect to allow form-specific navigation
 
-interface AuthState {
-  session: Session | null;
-  user: User | null;
-  profile: Profile | null;
-  roles: AppRole[];
-  isAdmin: boolean;
-  isMerchant: boolean;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (
-    email: string,
-    password: string,
-    extras: SignUpExtras,
-  ) => Promise<{ error: string | null; needsConfirm: boolean }>;
-  signOut: () => Promise<void>;
-  updateProfile: (
-    patch: Partial<Database["public"]["Tables"]["profiles"]["Update"]>,
-  ) => Promise<{ error: string | null }>;
-  toggleFavorite: (id: string) => Promise<void>;
-  incrementItineraries: () => Promise<void>;
-  refetchProfile: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: string | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
-  changePassword: (
-    currentPassword: string,
-    newPassword: string,
-  ) => Promise<{ error: string | null }>;
-  deleteAccount: () => Promise<{ error: string | null }>;
-  signOutOtherSessions: () => Promise<{ error: string | null }>;
-}
-
-const AuthContext = createContext<AuthState | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [roles, setRoles] = useState<AppRole[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const initializingRef = useRef(true);
-  const activeUserIdRef = useRef<string | null>(null);
-
-  const loadUserData = useCallback(async (userId: string) => {
-    console.log("[auth] fetching profile and roles", { userId });
-    setLoading(true);
-    try {
-      const [profileResult, rolesResult] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-      ]);
-
-      if (profileResult.error) {
-        console.error("[auth] profile fetch failed", profileResult.error);
-      }
-      if (rolesResult.error) {
-        console.error("[auth] roles fetch failed", rolesResult.error);
-      }
-
-      if (activeUserIdRef.current !== userId) return;
-
-      setProfile(profileResult.data ?? null);
-      setRoles((rolesResult.data ?? []).map((row) => row.role));
-    } catch (error) {
-      console.error("[auth] profile loading failed", error);
-      setProfile(null);
-      setRoles([]);
-    } finally {
-      setLoading(false);
-      console.log("[auth] profile loading finished", { userId });
-    }
-  }, []);
-
+  // Google return only: new users go to /profile (onboarding wizard opens there),
+  // returning users go home. Runs only if the Google button set the flag just before.
   useEffect(() => {
-    let mounted = true;
+    if (authLoading || !session) return;
+    let flag: string | null = null;
+    try { flag = sessionStorage.getItem(GOOGLE_FLAG); } catch {}
+    if (!flag || Date.now() - Number(flag) > 5 * 60 * 1000) return;
+    try { sessionStorage.removeItem(GOOGLE_FLAG); } catch {}
+    let localDone = false;
+    try { localDone = localStorage.getItem(`erbilgo_onboarding_done_${session.user.id}`) === "1"; } catch {}
+    const p = profile as any;
+    const done = localDone || !!(p?.onboarding_complete ?? p?.onboarding_completed);
+    navigate({ to: done ? "/" : "/profile" });
+  }, [authLoading, session, profile, navigate]);
 
-    const initialize = async () => {
-      console.log("[auth] initializing session...");
-      try {
-        const {
-          data: { session: initialSession },
-          error,
-        } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (!mounted) return;
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto flex max-w-md flex-col items-center px-4 py-12 md:py-16">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">
+          {mode === "signin" ? "Welcome back" : mode === "signup" ? "Join ErbilGo" : "Reset password"}
+        </p>
+        <h1 className="mt-2 text-center font-display text-3xl font-bold md:text-4xl">
+          {mode === "signin" ? "Sign in to your account" : mode === "signup" ? "Create your account" : "Forgot your password?"}
+        </h1>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          {mode === "forgot"
+            ? "We'll email you a secure link to set a new password."
+            : "Your saved spots and preferences sync across every device."}
+        </p>
 
-        setSession(initialSession);
-        activeUserIdRef.current = initialSession?.user?.id ?? null;
-        if (initialSession?.user) {
-          await loadUserData(initialSession.user.id);
-        } else {
-          setProfile(null);
-          setRoles([]);
-        }
-      } catch (error) {
-        console.error("[auth] session initialization failed", error);
-        if (mounted) {
-          setSession(null);
-          setProfile(null);
-          setRoles([]);
-        }
-      } finally {
-        if (mounted) {
-          initializingRef.current = false;
-          setLoading(false);
-          console.log("[auth] initialization finished");
-        }
-      }
-    };
+        <div className="mt-8 w-full rounded-3xl border border-border bg-card/60 p-6 shadow-luxury">
+          {mode !== "forgot" && <GoogleSection />}
+          {mode === "signin" && <SignInForm onSignIn={signIn} onForgot={() => setMode("forgot")} navigate={navigate} />}
+          {mode === "signup" && <SignUpForm onSignUp={signUp} navigate={navigate} />}
+          {mode === "forgot" && <ForgotForm onReset={resetPassword} onBack={() => setMode("signin")} />}
+        </div>
 
-    void initialize();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      console.log("[auth] state change event", event);
-      if (!mounted || initializingRef.current) return;
-
-      setSession(nextSession);
-      if (!nextSession?.user || event === "SIGNED_OUT") {
-        activeUserIdRef.current = null;
-        setProfile(null);
-        setRoles([]);
-        setLoading(false);
-        return;
-      }
-
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        activeUserIdRef.current = nextSession.user.id;
-        void loadUserData(nextSession.user.id);
-      }
-      // TOKEN_REFRESHED only updates the session. It must not refetch the
-      // profile or trigger sign-out, which prevents refresh-induced flicker.
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [loadUserData]);
-
-  const signOut = useCallback(async () => {
-    console.trace("[auth] signOut called");
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("[auth] signOut failed", error);
-    } finally {
-      activeUserIdRef.current = null;
-      setSession(null);
-      setProfile(null);
-      setRoles([]);
-      setLoading(false);
-    }
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string, extras: SignUpExtras) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: extras.fullName,
-          phone: extras.phone ?? null,
-          age_range: extras.ageRange ?? null,
-          gender: extras.gender ?? null,
-          nationality: extras.nationality ?? null,
-        },
-      },
-    });
-    if (error) return { error: error.message, needsConfirm: false };
-
-    // Safety net: explicitly write the extra fields onto the profiles row too,
-    // in case the DB trigger only maps full_name. Wrapped in try/catch so that
-    // if this fails (e.g. no active session yet because email confirmation is
-    // required, and RLS blocks the update), it NEVER breaks the signup flow
-    // or blocks navigation to /profile.
-    if (data.user && data.session) {
-      try {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            phone: extras.phone ?? null,
-            nationality: extras.nationality ?? null,
-            age_range: extras.ageRange ?? null,
-            gender: extras.gender ?? null,
-          })
-          .eq("id", data.user.id);
-        if (profileError) {
-          console.warn("[signUp] could not back-fill profile fields:", profileError.message);
-        }
-      } catch (err) {
-        console.warn("[signUp] profile back-fill threw:", err);
-      }
-    }
-
-    return { error: null, needsConfirm: !!data.user && !data.session };
-  }, []);
-
-  const updateProfile = useCallback(
-    async (patch: any) => {
-      // v4: never send an empty id, drop undefined keys, retry briefly (new accounts /
-      // token refresh can make the first write fail or match 0 rows).
-      const clean = Object.fromEntries(Object.entries(patch ?? {}).filter(([, v]) => v !== undefined));
-      let userId = session?.user?.id;
-      if (!userId) userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) return { error: "Not signed in" };
-      if (clean.onboarding_complete) {
-        try { localStorage.setItem(`erbilgo_onboarding_done_${userId}`, "1"); } catch {}
-      }
-      let lastError: string | null = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data, error } = await supabase.from("profiles").update(clean).eq("id", userId).select("id");
-        if (!error && data && data.length > 0) {
-          setProfile((prev) => (prev ? { ...prev, ...clean } : prev));
-          return { error: null };
-        }
-        lastError = error?.message ?? "Profile row not found yet";
-        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
-      }
-      console.error("[profile] update failed after retries:", lastError);
-      return { error: lastError };
-    },
-    [session?.user?.id],
+        {mode !== "forgot" && (
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="mt-6 text-xs font-semibold uppercase tracking-wider text-gold hover:underline"
+          >
+            {mode === "signin" ? "No account yet? Sign up →" : "Already have an account? Sign in →"}
+          </button>
+        )}
+      </div>
+    </div>
   );
-
-  // دوال إضافية (يمكنك تركها فارغة مؤقتاً أو تنفيذها لاحقاً حسب مشروعك)
-  const toggleFavorite = useCallback(async (id: string) => {}, []);
-  const incrementItineraries = useCallback(async () => {}, []);
-  const refetchProfile = useCallback(
-    async () => session?.user && loadUserData(session.user.id),
-    [session?.user, loadUserData],
-  );
-  const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth?mode=reset-password`,
-    });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const updatePassword = useCallback(async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const changePassword = useCallback(
-    async (current: string, next: string) => {
-      if (!session?.user?.email) return { error: "No active session" };
-
-      // 1. Re-authenticate
-      const { error: reAuthError } = await supabase.auth.signInWithPassword({
-        email: session.user.email,
-        password: current,
-      });
-      if (reAuthError) return { error: "Incorrect current password" };
-
-      // 2. Update password
-      const { error: updateError } = await supabase.auth.updateUser({ password: next });
-      if (updateError) return { error: updateError.message };
-
-      // 3. Sign out (as requested by user)
-      await signOut();
-
-      return { error: null };
-    },
-    [session?.user?.email, signOut],
-  );
-
-  const deleteAccount = useCallback(async () => {
-    const { error } = await supabase.rpc("delete_user_account");
-    if (error) return { error: error.message };
-    await signOut();
-    return { error: null };
-  }, [signOut]);
-
-  const signOutOtherSessions = useCallback(async () => {
-    const { error } = await supabase.auth.signOut({ scope: "others" });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const value = useMemo(
-    () => ({
-      session,
-      user: session?.user ?? null,
-      profile,
-      roles,
-      isAdmin: roles.includes("admin"), // تم إزالة "|| true" لأنها كانت تمنح صلاحيات أدمن لكل مستخدم
-      isMerchant: roles.includes("merchant"),
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      updateProfile,
-      toggleFavorite,
-      incrementItineraries,
-      refetchProfile,
-      resetPassword,
-      updatePassword,
-      changePassword,
-      deleteAccount,
-      signOutOtherSessions,
-    }),
-    [
-      session,
-      profile,
-      roles,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      updateProfile,
-      toggleFavorite,
-      incrementItineraries,
-      refetchProfile,
-      resetPassword,
-      updatePassword,
-      changePassword,
-      deleteAccount,
-      signOutOtherSessions,
-    ],
-  );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth(): AuthState {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
+/* ============================== SIGN IN ============================== */
+
+function SignInForm({
+  onSignIn,
+  onForgot,
+  navigate,
+}: {
+  onSignIn: (e: string, p: string) => Promise<{ error: string | null }>;
+  onForgot: () => void;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const res = await onSignIn(email.trim(), password);
+    setBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Welcome back");
+    // Redirect to home page after successful login
+    navigate({ to: "/" });
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      <div className="mb-4">
+        <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+        <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+      </div>
+      <div className="mb-2">
+        <div className="mb-1.5 flex items-center justify-between">
+          <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
+          <button type="button" onClick={onForgot} className="text-[11px] font-semibold uppercase tracking-wider text-gold hover:underline">
+            Forgot?
+          </button>
+        </div>
+        <PasswordInput value={password} onChange={setPassword} show={show} setShow={setShow} autoComplete="current-password" />
+      </div>
+      <Button type="submit" disabled={busy} className="mt-6 w-full bg-gold text-background hover:bg-gold/90">
+        {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in…</>) : "Sign in"}
+      </Button>
+    </form>
+  );
+}
+
+/* ============================== SIGN UP ============================== */
+
+function SignUpForm({
+  onSignUp,
+  navigate,
+}: {
+  onSignUp: ReturnType<typeof useAuth>["signUp"];
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const [step, setStep] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  const [show2, setShow2] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirm: "",
+    ageRange: "",
+    gender: "",
+    nationality: "",
+  });
+
+  const pwd = validatePassword(form.password);
+  const passwordsMatch = form.password.length > 0 && form.password === form.confirm;
+
+  function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  const step1Valid =
+    form.fullName.trim().length >= 2 &&
+    /^\S+@\S+\.\S+$/.test(form.email.trim()) &&
+    form.phone.trim().length >= 5 &&
+    pwd.ok &&
+    passwordsMatch;
+
+  const nationalitySuggestions = searchNationalities(form.nationality, 8);
+  const [nationalityFocused, setNationalityFocused] = useState(false);
+  const step2Valid = form.ageRange && form.gender && form.nationality.trim().length >= 2;
+
+  async function submit() {
+    setBusy(true);
+    const res = await onSignUp(form.email.trim(), form.password, {
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      ageRange: form.ageRange,
+      gender: form.gender,
+      nationality: form.nationality.trim(),
+    });
+    setBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.needsConfirm) {
+      toast.success("Check your email to confirm your account");
+      navigate({ to: "/auth", search: { mode: "confirm-email" } });
+    } else {
+      toast.success("Welcome to ErbilGo");
+      // Redirect to profile page after successful signup
+      navigate({ to: "/profile" });
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center gap-2">
+        {[1, 2].map((s) => (
+          <div key={s} className="flex-1">
+            <div className={`h-1.5 rounded-full transition-colors ${step >= s ? "bg-gold" : "bg-border"}`} />
+            <p className={`mt-1 text-[10px] font-semibold uppercase tracking-wider ${step >= s ? "text-gold" : "text-muted-foreground"}`}>
+              Step {s} of 2
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-4">
+          <Row label="Full name">
+            <Input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} placeholder="Your name" autoComplete="name" />
+          </Row>
+          <Row label="Email">
+            <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" />
+          </Row>
+          <Row label="Phone number">
+            <Input type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+964 …" autoComplete="tel" />
+          </Row>
+          <Row label="Password">
+            <PasswordInput value={form.password} onChange={(v) => set("password", v)} show={show} setShow={setShow} autoComplete="new-password" />
+            <ul className="mt-2 grid gap-1 text-[11px]">
+              {SAFE_PASSWORD_RULES.map((r) => {
+                const ok = r.test(form.password);
+                return (
+                  <li key={r.id} className={`flex items-center gap-1.5 ${ok ? "text-emerald-500" : "text-muted-foreground"}`}>
+                    {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    {r.label}
+                  </li>
+                );
+              })}
+            </ul>
+          </Row>
+          <Row label="Confirm password">
+            <PasswordInput value={form.confirm} onChange={(v) => set("confirm", v)} show={show2} setShow={setShow2} autoComplete="new-password" />
+            {form.confirm.length > 0 && (
+              <p className={`mt-1 text-[11px] ${passwordsMatch ? "text-emerald-500" : "text-destructive"}`}>
+                {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+              </p>
+            )}
+          </Row>
+
+          <Button
+            type="button"
+            disabled={!step1Valid}
+            onClick={() => setStep(2)}
+            className="w-full bg-gold text-background hover:bg-gold/90"
+          >
+            Continue <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <Row label="Age range">
+            <Select value={form.ageRange} onValueChange={(v) => set("ageRange", v)}>
+              <SelectTrigger><SelectValue placeholder="Select age range" /></SelectTrigger>
+              <SelectContent>{AGE_RANGES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+            </Select>
+          </Row>
+          <Row label="Gender">
+            <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+            </Select>
+          </Row>
+          <Row label="Nationality">
+            <div className="relative">
+              <Input
+                value={form.nationality}
+                onChange={(e) => set("nationality", e.target.value)}
+                onFocus={() => setNationalityFocused(true)}
+                onBlur={() => window.setTimeout(() => setNationalityFocused(false), 150)}
+                placeholder="Start typing your nationality…"
+                autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={nationalityFocused && form.nationality.trim().length > 0}
+              />
+              {nationalityFocused && form.nationality.trim().length > 0 && nationalitySuggestions.length > 0 && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
+                >
+                  {nationalitySuggestions.map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      role="option"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        set("nationality", option.name);
+                        setNationalityFocused(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                    >
+                      <span className="font-medium">{option.name}</span>
+                      <span className="ml-3 text-[10px] text-muted-foreground">{option.region}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {form.nationality.trim().length > 0 && nationalitySuggestions.length === 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">No matching nationality found. You can continue with your own entry.</p>
+            )}
+          </Row>
+
+          <p className="text-[11px] text-muted-foreground">
+            You can add travel preferences, interests and more from your profile after signing up.
+          </p>
+
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <Button
+              type="button"
+              disabled={!step2Valid || busy}
+              onClick={submit}
+              className="flex-1 bg-gold text-background hover:bg-gold/90"
+            >
+              {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating…</>) : "Create account"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================== FORGOT ============================== */
+
+function ForgotForm({
+  onReset,
+  onBack,
+}: {
+  onReset: (email: string) => Promise<{ error: string | null }>;
+  onBack: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const res = await onReset(email.trim());
+    setBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    setSent(true);
+    toast.success("Reset link sent — check your inbox");
+  }
+
+  if (sent) {
+    return (
+      <div className="text-center">
+        <p className="text-sm">
+          If an account exists for <span className="font-semibold text-gold">{email}</span>, you'll receive a password reset link shortly.
+        </p>
+        <Button onClick={onBack} variant="outline" className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      <Row label="Email">
+        <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+      </Row>
+      <Button type="submit" disabled={busy} className="mt-4 w-full bg-gold text-background hover:bg-gold/90">
+        {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…</>) : "Send reset link"}
+      </Button>
+      <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
+        ← Back to sign in
+      </button>
+    </form>
+  );
+}
+
+/* ============================== GOOGLE ============================== */
+
+function GoogleSection() {
+  const [busy, setBusy] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setBusy(true);
+    try { sessionStorage.setItem(GOOGLE_FLAG, String(Date.now())); } catch {}
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth` },
+    });
+    if (error) {
+      try { sessionStorage.removeItem(GOOGLE_FLAG); } catch {}
+      setBusy(false);
+      toast.error(error.message);
+    }
+  }
+
+  return (
+    <div className="mb-6">
+      <Button
+        type="button"
+        variant="outline"
+        disabled={busy}
+        onClick={handleGoogleSignIn}
+        className="w-full"
+      >
+        {busy ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+        )}
+        Continue with Google
+      </Button>
+      <div className="mt-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+    </div>
+  );
+}
+
+/* ============================== SHARED ============================== */
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function PasswordInput({
+  value, onChange, show, setShow, autoComplete,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  setShow: (b: boolean) => void;
+  autoComplete?: string;
+}) {
+  return (
+    <div className="relative">
+      <Input
+        type={show ? "text" : "password"}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        className="pr-10"
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute inset-y-0 right-2 grid place-items-center text-muted-foreground hover:text-foreground"
+        aria-label={show ? "Hide password" : "Show password"}
+        tabIndex={-1}
+      >
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  );
 }
