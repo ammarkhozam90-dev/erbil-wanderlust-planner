@@ -27,6 +27,8 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const GOOGLE_FLAG = "erbilgo_google_oauth_pending";
+
 type Mode = "signin" | "signup" | "forgot";
 
 const AGE_RANGES = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
@@ -50,11 +52,26 @@ const SAFE_PASSWORD_RULES: PasswordRule[] = Array.isArray(PASSWORD_RULES)
   : DEFAULT_PASSWORD_RULES;
 
 function AuthPage() {
-  const { session, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
+  const { session, profile, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
 
   // Removed global useEffect redirect to allow form-specific navigation
+
+  // Google return only: new users go to /profile (onboarding wizard opens there),
+  // returning users go home. Runs only if the Google button set the flag just before.
+  useEffect(() => {
+    if (authLoading || !session) return;
+    let flag: string | null = null;
+    try { flag = sessionStorage.getItem(GOOGLE_FLAG); } catch {}
+    if (!flag || Date.now() - Number(flag) > 5 * 60 * 1000) return;
+    try { sessionStorage.removeItem(GOOGLE_FLAG); } catch {}
+    let localDone = false;
+    try { localDone = localStorage.getItem(`erbilgo_onboarding_done_${session.user.id}`) === "1"; } catch {}
+    const p = profile as any;
+    const done = localDone || !!(p?.onboarding_complete ?? p?.onboarding_completed);
+    navigate({ to: done ? "/" : "/profile" });
+  }, [authLoading, session, profile, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -409,11 +426,13 @@ function GoogleSection() {
 
   async function handleGoogleSignIn() {
     setBusy(true);
+    try { sessionStorage.setItem(GOOGLE_FLAG, String(Date.now())); } catch {}
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}/auth` },
     });
     if (error) {
+      try { sessionStorage.removeItem(GOOGLE_FLAG); } catch {}
       setBusy(false);
       toast.error(error.message);
     }
