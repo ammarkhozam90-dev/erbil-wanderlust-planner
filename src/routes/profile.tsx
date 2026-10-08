@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { PhoneInput } from "@/components/PhoneInput";
 
 // Kept in sync with the vocabulary used on the merchant side
 // (src/routes/merchant/_authenticated/ai-planning.tsx MOODS) and the Tour
@@ -540,9 +541,9 @@ function ProfilePage() {
                 <Input type="email" value={email} disabled readOnly />
               </Field>
               <Field label="Phone Number" icon={<Phone className="h-4 w-4" />}>
-                <Input
+                <PhoneInput
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
                 />
               </Field>
               <Field label="Nationality" icon={<Globe className="h-4 w-4" />}>
