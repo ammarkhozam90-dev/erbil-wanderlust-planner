@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/select";
 import { searchNationalities } from "@/data/nationalities";
 import { PhoneInput, isValidPhone } from "@/components/PhoneInput";
-import { Sparkles, X } from "lucide-react";
+import { AlertTriangle, Sparkles, X } from "lucide-react";
+import { toast } from "sonner";
+import { getMissingFields } from "@/lib/profile-completion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { STYLES, INTERESTS, DIETARY, COMPANIONS, PACE, BUDGET } from "@/lib/preference-options";
@@ -31,10 +33,9 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
   const [saving, setSaving] = useState(false);
 
   // Extra "basics" step: only for users who skipped them at signup (e.g. Google sign-in).
-  const [needsBasics] = useState(() => {
-    const p = profile as any;
-    return !p?.phone || !p?.age_range || !p?.gender || !p?.nationality;
-  });
+  const [missingAtOpen] = useState(() => getMissingFields(profile));
+  const needsBasics = missingAtOpen.length > 0;
+  const isMissing = (k: string) => missingAtOpen.some((m) => m.key === k);
   const offset = needsBasics ? 1 : 0;
   const TOTAL_STEPS = BASE_STEPS + offset;
   const cur = step - offset; // 1..5 = the original steps; 0 = basics step
@@ -62,13 +63,17 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
   async function persistAndAdvance() {
     setSaving(true);
     if (cur === 0) {
-      await updateProfile({
+      const { error } = await updateProfile({
         phone: phone.trim(),
         age_range: ageRange,
         gender,
         nationality: nationality.trim(),
       } as any);
       setSaving(false);
+      if (error) {
+        toast.error("We couldn't save your details. Please try again.");
+        return;
+      }
       setStep(step + 1);
       return;
     }
@@ -149,31 +154,41 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
           {cur === 0 && (
             <div className="space-y-4">
               <div>
-                <h2 className="font-display text-xl font-bold">A few details about you</h2>
+                <h2 className="font-display text-xl font-bold">Complete your profile</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Helps us personalize your plans.
+                  A few required details to personalize your plans.
                 </p>
               </div>
+              <div className="flex gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <div>
+                  <p className="font-medium text-foreground">Some required details are missing</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Please complete them so we can give you the best experience in ErbilGo.
+                    Missing: <span className="font-semibold text-foreground">{missingAtOpen.map((m) => m.label).join(", ")}</span>.
+                  </p>
+                </div>
+              </div>
               <div>
-                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone number</Label>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone number{isMissing("phone") && <span className="ml-1 text-amber-500">*</span>}</Label>
                 <PhoneInput value={phone} onChange={setPhone} />
               </div>
               <div>
-                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age range</Label>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age range{isMissing("age_range") && <span className="ml-1 text-amber-500">*</span>}</Label>
                 <Select value={ageRange} onValueChange={setAgeRange}>
                   <SelectTrigger><SelectValue placeholder="Select age range" /></SelectTrigger>
                   <SelectContent>{AGE_RANGES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gender</Label>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gender{isMissing("gender") && <span className="ml-1 text-amber-500">*</span>}</Label>
                 <Select value={gender} onValueChange={setGender}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nationality</Label>
+                <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nationality{isMissing("nationality") && <span className="ml-1 text-amber-500">*</span>}</Label>
                 <div className="relative">
                   <Input
                     value={nationality}
