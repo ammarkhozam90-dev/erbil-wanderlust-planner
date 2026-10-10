@@ -4,15 +4,19 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/language";
-import { AuthProvider } from "../lib/auth";
+import { AuthProvider, useAuth } from "../lib/auth";
+import { getMissingFields } from "../lib/profile-completion";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/Footer";
 import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
@@ -77,6 +81,46 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+/**
+ * Sends signed-in users with missing REQUIRED details (phone, age range, gender, nationality)
+ * to /profile on every visit until they complete them, with a clear notice of what is missing.
+ * The onboarding window itself is opened by the profile page.
+ */
+function ProfileCompletionGuard() {
+  const { session, profile, loading } = useAuth();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const notified = useRef(false);
+
+  useEffect(() => {
+    if (!session) {
+      notified.current = false;
+      return;
+    }
+    if (loading || !profile) return;
+
+    const missing = getMissingFields(profile);
+    if (missing.length === 0) {
+      notified.current = false;
+      return;
+    }
+
+    // Do not interrupt sign-in / password-reset flows.
+    if (pathname === "/auth" || pathname.startsWith("/auth/") || pathname.startsWith("/reset-password")) return;
+
+    if (!notified.current) {
+      notified.current = true;
+      toast.warning("Your profile is incomplete", {
+        description: `Missing: ${missing.map((m) => m.label).join(", ")}. Please complete these details so we can give you the best experience in ErbilGo.`,
+        duration: 9000,
+      });
+    }
+    if (pathname !== "/profile") navigate({ to: "/profile", replace: true });
+  }, [session, profile, loading, pathname, navigate]);
+
+  return null;
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -127,6 +171,7 @@ function RootComponent() {
             <Outlet />
             <Footer />
           </MaintenanceGate>
+          <ProfileCompletionGuard />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
