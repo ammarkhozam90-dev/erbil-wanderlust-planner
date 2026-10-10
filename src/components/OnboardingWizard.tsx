@@ -97,7 +97,8 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 
   // X button / Esc / click outside: treat as "Skip all" so it never reappears.
   function handleOpenChange(next: boolean) {
-    if (next || saving) return;
+    // The "about you" step is required (same as email sign-up): it cannot be dismissed.
+    if (next || saving || cur === 0) return;
     if (step >= TOTAL_STEPS) onDone();
     else skipAll();
   }
@@ -121,7 +122,7 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md gap-0 p-0">
+      <DialogContent className={cn("max-w-md gap-0 p-0", cur === 0 && "[&>button]:hidden")}>
         {/* Progress + skip-all — always visible, always escapable */}
         {step < TOTAL_STEPS && (
           <div className="flex items-center gap-3 px-6 pr-12 pt-6">
@@ -133,12 +134,14 @@ export function OnboardingWizard({ open, onDone }: OnboardingWizardProps) {
                 />
               ))}
             </div>
-            <button
-              onClick={skipAll}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Skip all
-            </button>
+            {cur !== 0 && (
+              <button
+                onClick={skipAll}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Skip all
+              </button>
+            )}
           </div>
         )}
 
