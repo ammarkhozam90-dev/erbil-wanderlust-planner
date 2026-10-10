@@ -58,6 +58,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { PhoneInput } from "@/components/PhoneInput";
+import { getMissingFields } from "@/lib/profile-completion";
 
 // Kept in sync with the vocabulary used on the merchant side
 // (src/routes/merchant/_authenticated/ai-planning.tsx MOODS) and the Tour
@@ -198,7 +199,12 @@ function ProfilePage() {
     if (profile && showOnboarding === null) {
       let localDone = false;
       try { localDone = localStorage.getItem(`erbilgo_onboarding_done_${(profile as any).id}`) === "1"; } catch {}
-      setShowOnboarding(!localDone && !((profile as any).onboarding_complete ?? (profile as any).onboarding_completed));
+      // Missing required details ALWAYS reopen the window, even if onboarding was marked done.
+      const missingRequired = getMissingFields(profile).length > 0;
+      setShowOnboarding(
+        missingRequired ||
+          (!localDone && !((profile as any).onboarding_complete ?? (profile as any).onboarding_completed)),
+      );
     }
   }, [profile, showOnboarding]);
 
