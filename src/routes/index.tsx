@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import heroImg from "@/assets/hero-citadel.jpg";
@@ -10,7 +10,25 @@ import { SmartHeroBar } from "@/components/SmartHeroBar";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CATEGORIES, LOCATIONS } from "@/data/locations";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Sun, Clock, Map as MapIcon, ChevronRight, ArrowRight } from "lucide-react";
+import {
+  MapPin,
+  Sun,
+  Clock,
+  Map as MapIcon,
+  ChevronRight,
+  ArrowRight,
+  Hotel,
+  Coffee,
+  UtensilsCrossed,
+  Compass,
+  Landmark,
+  TreePine,
+  Martini,
+  Palette,
+  ShoppingBag,
+  Bus,
+  type LucideIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { fetchSiteSettings, useSiteSettings } from "@/lib/site-settings";
@@ -254,6 +272,7 @@ function Home() {
 
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8">
         <div className="space-y-16 lg:space-y-24">
+          <div>
           {/* HERO SECTION - LUXURY REDESIGN */}
           <section className="group relative isolate overflow-visible rounded-[2.5rem] shadow-luxury">
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2.5rem]">
@@ -266,7 +285,7 @@ function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
 
-            <div className="relative z-10 aspect-[4/5] sm:aspect-[4/3] md:aspect-[1920/750]">
+            <div className="relative z-10 aspect-[4/5] sm:aspect-[4/3] md:aspect-[1920/650] md:min-h-[480px]">
               {/* Floating Status Badge */}
               <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
@@ -280,7 +299,7 @@ function Home() {
               </div>
 
               <div
-                className={`absolute inset-0 z-20 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-20 ${alignClass}`}
+                className={`absolute inset-0 z-20 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-14 ${alignClass}`}
               >
                 <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
                   <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">
@@ -300,6 +319,10 @@ function Home() {
               </div>
             </div>
           </section>
+
+          {/* CATEGORY STORIES - Instagram-highlights style */}
+          <CategoryStories />
+          </div>
 
           {/* CURATED JOURNEYS - LUXURY CARDS */}
           {hp.show_journeys && (
@@ -479,6 +502,105 @@ function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+const STORY_ITEMS: { label: string; slug?: string; to?: "/tours"; icon: LucideIcon }[] = [
+  { label: "Hotels", slug: "hotels", icon: Hotel },
+  { label: "Cafés", slug: "cafes", icon: Coffee },
+  { label: "Restaurants", slug: "restaurants", icon: UtensilsCrossed },
+  { label: "Things to Do", slug: "things-to-do", icon: Compass },
+  { label: "Landmarks", slug: "landmarks", icon: Landmark },
+  { label: "Parks", slug: "parks", icon: TreePine },
+  { label: "Nightlife", slug: "nightlife", icon: Martini },
+  { label: "Art & Culture", slug: "art-culture", icon: Palette },
+  { label: "Shopping", slug: "shopping", icon: ShoppingBag },
+  { label: "Tours", to: "/tours", icon: Bus },
+];
+
+function StoryBubble({ label, icon: Icon }: { label: string; icon: LucideIcon }) {
+  return (
+    <>
+      <span className="relative grid h-[74px] w-[74px] place-items-center transition-transform duration-300 group-hover:scale-105 group-active:scale-95 sm:h-[88px] sm:w-[88px]">
+        <span className="absolute inset-0 animate-spin rounded-full bg-[conic-gradient(from_0deg,#D4AF37,#10b981,#D4AF37,#f59e0b,#D4AF37)] [animation-duration:8s] motion-reduce:animate-none" />
+        <span className="absolute inset-[3px] rounded-full bg-background" />
+        <span className="absolute inset-[6px] grid place-items-center rounded-full bg-gradient-to-br from-gold/25 via-card to-emerald-500/15">
+          <Icon className="h-7 w-7 text-gold sm:h-8 sm:w-8" strokeWidth={1.6} />
+        </span>
+      </span>
+      <span className="w-full truncate text-center text-[11px] font-semibold text-foreground/80 transition-colors group-hover:text-gold sm:text-xs">
+        {label}
+      </span>
+    </>
+  );
+}
+
+function CategoryStories() {
+  const scroller = useRef<HTMLDivElement>(null);
+  const drag = useRef({ down: false, moved: false, startX: 0, startLeft: 0 });
+
+  function onMouseDown(e: React.MouseEvent) {
+    const el = scroller.current;
+    if (!el) return;
+    drag.current = { down: true, moved: false, startX: e.clientX, startLeft: el.scrollLeft };
+  }
+  function onMouseMove(e: React.MouseEvent) {
+    const el = scroller.current;
+    if (!el || !drag.current.down) return;
+    const dx = e.clientX - drag.current.startX;
+    if (Math.abs(dx) > 5) drag.current.moved = true;
+    el.scrollLeft = drag.current.startLeft - dx;
+  }
+  function endDrag() {
+    drag.current.down = false;
+  }
+
+  const itemClass =
+    "group flex w-[84px] shrink-0 snap-start select-none flex-col items-center gap-2 sm:w-[100px]";
+
+  return (
+    <section aria-label="Browse categories" className="mt-5 sm:mt-7">
+      <div
+        ref={scroller}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+        onClickCapture={(e) => {
+          if (drag.current.moved) {
+            e.preventDefault();
+            e.stopPropagation();
+            drag.current.moved = false;
+          }
+        }}
+        className="flex cursor-grab snap-x gap-3 overflow-x-auto px-1 pb-2 pt-1 [scrollbar-width:none] active:cursor-grabbing sm:gap-5 [&::-webkit-scrollbar]:hidden [&>*:first-child]:ml-auto [&>*:last-child]:mr-auto"
+      >
+        {STORY_ITEMS.map((item) =>
+          item.to ? (
+            <Link
+              key={item.label}
+              to={item.to}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              className={itemClass}
+            >
+              <StoryBubble label={item.label} icon={item.icon} />
+            </Link>
+          ) : (
+            <Link
+              key={item.label}
+              to="/category/$slug"
+              params={{ slug: item.slug! }}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              className={itemClass}
+            >
+              <StoryBubble label={item.label} icon={item.icon} />
+            </Link>
+          ),
+        )}
+      </div>
+    </section>
   );
 }
 
