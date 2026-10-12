@@ -17,7 +17,7 @@ import {
   Map as MapIcon,
   ChevronRight,
   ArrowRight,
-  Hotel,
+  BedDouble,
   Coffee,
   UtensilsCrossed,
   Compass,
@@ -506,7 +506,7 @@ function Home() {
 }
 
 const STORY_ITEMS: { label: string; slug?: string; to?: "/tours"; icon: LucideIcon }[] = [
-  { label: "Hotels", slug: "hotels", icon: Hotel },
+  { label: "Hotels", slug: "hotels", icon: BedDouble },
   { label: "Cafés", slug: "cafes", icon: Coffee },
   { label: "Restaurants", slug: "restaurants", icon: UtensilsCrossed },
   { label: "Things to Do", slug: "things-to-do", icon: Compass },
@@ -521,14 +521,13 @@ const STORY_ITEMS: { label: string; slug?: string; to?: "/tours"; icon: LucideIc
 function StoryBubble({ label, icon: Icon }: { label: string; icon: LucideIcon }) {
   return (
     <>
-      <span className="relative grid h-[74px] w-[74px] place-items-center transition-transform duration-300 group-hover:scale-105 group-active:scale-95 sm:h-[88px] sm:w-[88px]">
-        <span className="absolute inset-0 animate-spin rounded-full bg-[conic-gradient(from_0deg,#D4AF37,#10b981,#D4AF37,#f59e0b,#D4AF37)] [animation-duration:8s] motion-reduce:animate-none" />
-        <span className="absolute inset-[3px] rounded-full bg-background" />
-        <span className="absolute inset-[6px] grid place-items-center rounded-full bg-gradient-to-br from-gold/25 via-card to-emerald-500/15">
-          <Icon className="h-7 w-7 text-gold sm:h-8 sm:w-8" strokeWidth={1.6} />
-        </span>
+      <span className="grid h-[54px] w-[54px] place-items-center rounded-full border border-border/60 bg-gradient-to-br from-gold/10 via-card to-card shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-gold/50 group-hover:from-gold/20 group-hover:shadow-[0_6px_20px_-6px_rgba(212,175,55,0.45)] group-active:scale-95 sm:h-16 sm:w-16">
+        <Icon
+          className="h-[22px] w-[22px] text-gold/90 transition-transform duration-300 group-hover:scale-110 sm:h-6 sm:w-6"
+          strokeWidth={1.5}
+        />
       </span>
-      <span className="w-full truncate text-center text-[11px] font-semibold text-foreground/80 transition-colors group-hover:text-gold sm:text-xs">
+      <span className="w-full truncate text-center text-[11px] font-medium tracking-wide text-foreground/70 transition-colors group-hover:text-gold sm:text-xs">
         {label}
       </span>
     </>
@@ -556,7 +555,7 @@ function CategoryStories() {
   }
 
   const itemClass =
-    "group flex w-[84px] shrink-0 snap-start select-none flex-col items-center gap-2 sm:w-[100px]";
+    "group flex w-[68px] shrink-0 snap-start select-none flex-col items-center gap-1.5 sm:w-[84px]";
 
   return (
     <section aria-label="Browse categories" className="mt-5 sm:mt-7">
@@ -573,7 +572,7 @@ function CategoryStories() {
             drag.current.moved = false;
           }
         }}
-        className="flex cursor-grab snap-x gap-3 overflow-x-auto px-1 pb-2 pt-1 [scrollbar-width:none] active:cursor-grabbing sm:gap-5 [&::-webkit-scrollbar]:hidden [&>*:first-child]:ml-auto [&>*:last-child]:mr-auto"
+        className="flex cursor-grab snap-x gap-3 overflow-x-auto px-1 pb-2 pt-1 [scrollbar-width:none] active:cursor-grabbing sm:gap-4 [&::-webkit-scrollbar]:hidden [&>*:first-child]:ml-auto [&>*:last-child]:mr-auto"
       >
         {STORY_ITEMS.map((item) =>
           item.to ? (
