@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronDown, Heart } from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
+import { useAuth } from "@/lib/auth";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
@@ -11,12 +12,12 @@ const navItems = [
   { to: "/plan", label: "Plan My Day" },
   { to: "/guide", label: "Living in Erbil" },
   { to: "/offers", label: "Offers" },
-  { to: "/favorites", label: "Favorites" },
 ] as const;
 
 export function Header() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
+  const { session } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl">
@@ -72,13 +73,15 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <Link
-            to="/favorites"
-            aria-label="Open favorites"
-            className={`grid h-9 w-9 place-items-center rounded-full border transition-all hover:border-gold/60 hover:text-gold ${pathname.startsWith("/favorites") ? "border-gold/60 text-gold" : "border-border/70 text-muted-foreground"}`}
-          >
-            <Heart className="h-4 w-4" />
-          </Link>
+          {session && (
+            <Link
+              to="/favorites"
+              aria-label="Open favorites"
+              className={`grid h-9 w-9 place-items-center rounded-full border transition-all hover:border-gold/60 hover:text-gold ${pathname.startsWith("/favorites") ? "border-gold/60 text-gold" : "border-border/70 text-muted-foreground"}`}
+            >
+              <Heart className="h-4 w-4" />
+            </Link>
+          )}
           <BookingNotificationIcon />
           <NotificationBell />
           <LanguageSwitcher />
