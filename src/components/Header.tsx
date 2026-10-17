@@ -89,7 +89,7 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="relative z-[100] flex flex-wrap items-center justify-center gap-x-6 gap-y-2 overflow-visible border-t border-border/40 px-4 py-2 md:hidden">
+      <nav className="relative z-[100] hidden flex-wrap items-center justify-center gap-x-6 gap-y-2 overflow-visible border-t border-border/40 px-4 py-2">
         {navItems.map((item) => (
           <Link
             key={item.to}
