@@ -285,7 +285,7 @@ function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
 
-            <div className="relative z-10 min-h-[450px] sm:min-h-0 sm:aspect-[4/3] md:aspect-[1920/650] md:min-h-[480px]">
+            <div className="relative z-10 min-h-[350px] sm:min-h-0 sm:aspect-[4/3] md:aspect-[1920/650] md:min-h-[480px]">
               {/* Floating Status Badge */}
               <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
@@ -299,7 +299,7 @@ function Home() {
               </div>
 
               <div
-                className={`absolute inset-0 z-20 flex flex-col justify-center gap-3 px-5 pb-5 pt-16 sm:gap-6 sm:p-8 lg:p-14 ${alignClass}`}
+                className={`absolute inset-0 z-20 flex flex-col justify-center gap-3 px-5 pb-4 pt-14 sm:gap-6 sm:p-8 lg:p-14 ${alignClass}`}
               >
                 <div className="mx-auto max-w-4xl animate-in fade-in duration-1000 text-center">
                   <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.5em] text-gold">
@@ -308,11 +308,11 @@ function Home() {
                   <h1 className="mx-auto max-w-full overflow-hidden font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
                     {renderRuns(layout.headline.runs)}
                   </h1>
-                  <div className="mx-auto mt-3 max-w-xl px-2 text-sm opacity-90 sm:mt-6 sm:px-0 sm:text-lg">
+                  <div className="mx-auto mt-3 hidden max-w-xl px-2 text-sm opacity-90 sm:mt-6 sm:block sm:px-0 sm:text-lg">
                     {renderRuns(layout.subheadline.runs)}
                   </div>
 
-                  <div className="relative z-[100] mx-auto mt-5 w-full max-w-5xl sm:mt-10">
+                  <div className="relative z-[100] mx-auto mt-4 w-full max-w-5xl sm:mt-10">
                     <SmartHeroBar />
                   </div>
                 </div>
