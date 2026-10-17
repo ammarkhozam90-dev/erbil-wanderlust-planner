@@ -12,12 +12,12 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 const isMobileBuild = process.env.BUILD_TARGET === "mobile";
 
 export default defineConfig({
-  ...(isMobileBuild
-    ? {
-        nitro: false as const,
-        vite: { preview: { host: "127.0.0.1" } },
-      }
-    : {}),
+  ...(isMobileBuild ? { nitro: false as const } : {}),
+  vite: {
+    // Lets the app know at build time whether this is the mobile build (see __root.tsx).
+    define: { __MOBILE_BUILD__: JSON.stringify(isMobileBuild) },
+    ...(isMobileBuild ? { preview: { host: "127.0.0.1" } } : {}),
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
