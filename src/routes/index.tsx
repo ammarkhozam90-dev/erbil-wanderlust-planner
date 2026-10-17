@@ -285,7 +285,7 @@ function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
 
-            <div className="relative z-10 aspect-[4/5] sm:aspect-[4/3] md:aspect-[1920/650] md:min-h-[480px]">
+            <div className="relative z-10 min-h-[450px] sm:min-h-0 sm:aspect-[4/3] md:aspect-[1920/650] md:min-h-[480px]">
               {/* Floating Status Badge */}
               <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-white backdrop-blur-2xl sm:right-6 sm:top-6 sm:gap-3 sm:px-5 sm:py-2.5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest sm:text-sm">
