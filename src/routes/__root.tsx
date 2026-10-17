@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -80,6 +80,29 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       </div>
     </div>
   );
+}
+
+// Set by vite.config.ts: true only in the mobile (Capacitor / SPA) build.
+declare const __MOBILE_BUILD__: boolean;
+
+/**
+ * In the mobile SPA build the first paint is a static shell with an empty page area,
+ * which made the footer / bottom bar flash alone. Hold them back until a real page is
+ * on screen (or 2s have passed, e.g. on the 404 page). The normal web build is unaffected.
+ */
+function useAppShellReady() {
+  const hasPage = useRouterState({
+    select: (s) => {
+      const last = s.matches[s.matches.length - 1];
+      return s.matches.length > 1 && !!last && last.status !== "pending";
+    },
+  });
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+  return !__MOBILE_BUILD__ || hasPage || timedOut;
 }
 
 /**
@@ -161,6 +184,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const shellReady = useAppShellReady();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -170,8 +194,8 @@ function RootComponent() {
           <MaintenanceGate>
             <AnnouncementBar />
             <Outlet />
-            <Footer />
-            <MobileBottomNav />
+            {shellReady && <Footer />}
+            {shellReady && <MobileBottomNav />}
           </MaintenanceGate>
           <ProfileCompletionGuard />
           <Toaster />
