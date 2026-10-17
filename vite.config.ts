@@ -6,10 +6,15 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Mobile app build (Capacitor): set BUILD_TARGET=mobile to produce a static SPA
+// (generates /_shell.html). Without this variable the normal SSR web build is unchanged.
+const isMobileBuild = process.env.BUILD_TARGET === "mobile";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    ...(isMobileBuild ? { spa: { enabled: true } } : {}),
   },
 });
