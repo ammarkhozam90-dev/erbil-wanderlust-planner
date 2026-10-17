@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/Footer";
 import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 function NotFoundComponent() {
   return (
@@ -170,6 +171,7 @@ function RootComponent() {
             <AnnouncementBar />
             <Outlet />
             <Footer />
+            <MobileBottomNav />
           </MaintenanceGate>
           <ProfileCompletionGuard />
           <Toaster />
