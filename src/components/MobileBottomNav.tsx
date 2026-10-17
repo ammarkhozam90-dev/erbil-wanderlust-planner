@@ -34,7 +34,8 @@ export function MobileBottomNav() {
   }
 
   const isHome = pathname === "/";
-  const isExplore = pathname.startsWith("/category/") || sheetOpen;
+  const isExplore =
+    pathname.startsWith("/category/") || pathname.startsWith("/guide") || pathname.startsWith("/offers") || sheetOpen;
   const isPlan = pathname.startsWith("/plan");
   const isFavorites = pathname.startsWith("/favorites");
   const isProfile = pathname.startsWith("/profile");
@@ -78,6 +79,20 @@ export function MobileBottomNav() {
               </button>
             </div>
             <div className="max-h-[55vh] overflow-y-auto">
+              <div className="mb-2 grid grid-cols-2 gap-2">
+                <Link
+                  to="/guide"
+                  className="rounded-xl border border-gold/20 px-3 py-3 text-center text-sm font-medium text-foreground active:bg-gold/10"
+                >
+                  Living in Erbil
+                </Link>
+                <Link
+                  to="/offers"
+                  className="rounded-xl border border-gold/20 px-3 py-3 text-center text-sm font-medium text-foreground active:bg-gold/10"
+                >
+                  Offers
+                </Link>
+              </div>
               {CATEGORIES.map((category) => (
                 <Link
                   key={category.slug}
