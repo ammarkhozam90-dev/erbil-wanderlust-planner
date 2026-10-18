@@ -52,6 +52,9 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Generate app icon and splash
+        run: npx --yes @capacitor/assets@3.0.5 generate --android
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
