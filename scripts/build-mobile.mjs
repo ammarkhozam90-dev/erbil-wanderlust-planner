@@ -3,10 +3,18 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync } from "node:fs";
 
+// Clean up pasted values: strip surrounding quotes / spaces / line breaks from VITE_ settings.
+const cleanEnv = { ...process.env };
+for (const [key, value] of Object.entries(cleanEnv)) {
+  if (key.startsWith("VITE_") && typeof value === "string") {
+    cleanEnv[key] = value.trim().replace(/^["']+|["']+$/g, "").trim();
+  }
+}
+
 const result = spawnSync("npx", ["vite", "build"], {
   stdio: "inherit",
   shell: true,
-  env: { ...process.env, BUILD_TARGET: "mobile" },
+  env: { ...cleanEnv, BUILD_TARGET: "mobile" },
 });
 if (result.status !== 0) process.exit(result.status ?? 1);
 
