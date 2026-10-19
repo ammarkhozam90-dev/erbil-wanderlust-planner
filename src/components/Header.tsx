@@ -84,8 +84,16 @@ export function Header() {
           )}
           <BookingNotificationIcon />
           <NotificationBell />
-          <LanguageSwitcher />
-          <UserMenu />
+          {/* Desktop: language + profile picture. Mobile: one three-lines menu (profile picture is in the bottom bar). */}
+          <div className="hidden md:block">
+            <LanguageSwitcher />
+          </div>
+          <div className="hidden md:block">
+            <UserMenu />
+          </div>
+          <div className="md:hidden">
+            <UserMenu variant="menu" />
+          </div>
         </div>
       </div>
 
