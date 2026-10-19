@@ -10,9 +10,23 @@ import { useAuth } from "@/lib/auth";
  */
 const HIDDEN_PREFIXES = ["/admin", "/merchant", "/auth", "/reset-password"];
 
+/** The user's profile picture (or their first letter) for the Profile tab. */
+function ProfileAvatar({ url, name, active }: { url?: string | null; name?: string | null; active: boolean }) {
+  const ring = active ? "ring-2 ring-primary" : "ring-1 ring-border";
+  if (url) {
+    return <img src={url} alt="" className={`h-6 w-6 rounded-full object-cover ${ring}`} />;
+  }
+  const initial = (name?.trim()?.[0] ?? "U").toUpperCase();
+  return (
+    <span className={`grid h-6 w-6 place-items-center rounded-full bg-gold/15 text-[11px] font-bold text-gold ${ring}`}>
+      {initial}
+    </span>
+  );
+}
+
 export function MobileBottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Close the categories sheet whenever the route changes.
@@ -148,7 +162,15 @@ export function MobileBottomNav() {
           </Link>
 
           <Link to={session ? "/profile" : "/auth"} className={tabClass(isProfile)} aria-current={isProfile ? "page" : undefined}>
-            <User className="h-5 w-5" />
+            {session ? (
+              <ProfileAvatar
+                url={profile?.avatar_url}
+                name={profile?.full_name ?? session.user.email}
+                active={isProfile}
+              />
+            ) : (
+              <User className="h-5 w-5" />
+            )}
             {session ? "Profile" : "Sign in"}
           </Link>
         </div>
