@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { User, Settings, History, LogOut, LogIn, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { User, Settings, History, LogOut, LogIn, ShieldCheck, Sparkles, Users, Menu, Globe, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { LANGUAGES, useLanguage, type Lang } from "@/lib/language";
 import { supabase } from "@/integrations/supabase/client";
 
-export function UserMenu() {
+/**
+ * variant="avatar" (default): round profile picture button (desktop header).
+ * variant="menu": three-lines button, used in the mobile header. It also holds the language list,
+ * because on mobile the profile picture lives in the bottom bar.
+ */
+export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "menu" }) {
   const { session, profile, signOut, isAdmin, isMerchant } = useAuth();
   const navigate = useNavigate();
+  const { lang, setLang } = useLanguage();
 
   // Must run before the early return below (Rules of Hooks).
   const invites = useQuery({
@@ -28,6 +35,59 @@ export function UserMenu() {
     },
   });
   const pendingInvites = (invites.data ?? []).filter((i) => i.status === "pending").length;
+
+  const menuTrigger = (
+    <DropdownMenuTrigger
+      className="relative grid h-9 w-9 place-items-center rounded-full border border-border/70 text-muted-foreground transition-all hover:border-gold/60 hover:text-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+      aria-label="Open menu"
+    >
+      <Menu className="h-4 w-4" />
+      {pendingInvites > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-destructive" />
+      )}
+    </DropdownMenuTrigger>
+  );
+
+  const languageSection = (
+    <>
+      <DropdownMenuLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Globe className="h-3.5 w-3.5 text-gold" />
+        <span>Language</span>
+      </DropdownMenuLabel>
+      {LANGUAGES.map((l) => (
+        <DropdownMenuItem
+          key={l.code}
+          onSelect={() => setLang(l.code as Lang)}
+          className="flex items-center justify-between gap-3"
+          dir={l.dir}
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">{l.native}</span>
+            <span>{l.label}</span>
+          </span>
+          {lang === l.code && <Check className="h-3.5 w-3.5 text-primary" />}
+        </DropdownMenuItem>
+      ))}
+    </>
+  );
+
+  if (!session && variant === "menu") {
+    return (
+      <DropdownMenu>
+        {menuTrigger}
+        <DropdownMenuContent align="end" className="min-w-[14rem]">
+          <DropdownMenuItem asChild>
+            <Link to="/auth" className="flex items-center gap-2">
+              <LogIn className="h-4 w-4 text-gold" />
+              <span>Sign In / Sign Up</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {languageSection}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   if (!session) {
     return (
@@ -47,23 +107,27 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        className="group relative h-9 w-9 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-br from-gold/20 to-primary/10 transition-all hover:ring-2 hover:ring-gold/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-        aria-label="Open user menu"
-      >
-        {profile?.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt={displayName}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="grid h-full w-full place-items-center font-display text-base font-bold text-gold">
-            {initial}
-          </span>
-        )}
-        <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background ${pendingInvites > 0 ? "bg-destructive" : "bg-primary"}`} />
-      </DropdownMenuTrigger>
+      {variant === "menu" ? (
+        menuTrigger
+      ) : (
+        <DropdownMenuTrigger
+          className="group relative h-9 w-9 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-br from-gold/20 to-primary/10 transition-all hover:ring-2 hover:ring-gold/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          aria-label="Open user menu"
+        >
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={displayName}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center font-display text-base font-bold text-gold">
+              {initial}
+            </span>
+          )}
+          <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background ${pendingInvites > 0 ? "bg-destructive" : "bg-primary"}`} />
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent align="end" className="min-w-[14rem]">
         <DropdownMenuLabel className="flex flex-col">
           <span className="font-semibold text-foreground">{displayName}</span>
@@ -115,6 +179,12 @@ export function UserMenu() {
                 <span>Admin Dashboard</span>
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {variant === "menu" && (
+          <>
+            {languageSection}
             <DropdownMenuSeparator />
           </>
         )}
