@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           pnpm install --no-frozen-lockfile
-          pnpm add -w @capacitor/core@8.5.3 @capacitor/android@8.5.3
+          pnpm add -w @capacitor/core@8.5.3 @capacitor/android@8.5.3 @capacitor/app@8.1.2 @capacitor/browser@8.0.5
           pnpm add -w -D @capacitor/cli@8.5.3
 
       - name: Build web app (mobile)
@@ -51,6 +51,9 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: Add sign-in deep link to Android
+        run: node scripts/patch-android.mjs
 
       - name: Generate app icon and splash
         run: npx --yes @capacitor/assets@3.0.5 generate --android
