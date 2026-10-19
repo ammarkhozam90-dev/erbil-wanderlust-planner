@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/Footer";
 import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { NativeAuthBridge } from "@/components/NativeAuthBridge";
 
 function NotFoundComponent() {
   return (
@@ -203,6 +204,7 @@ function RootComponent() {
             {shellReady && <MobileBottomNav />}
           </MaintenanceGate>
           <ProfileCompletionGuard />
+          <NativeAuthBridge />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
