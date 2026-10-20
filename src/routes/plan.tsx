@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { LOCATIONS, type Category } from "@/data/locations";
 import { supabase } from "@/integrations/supabase/client";
+import { shareText } from "@/lib/native-share";
 import {
   generateInternalPlan,
   swapStop,
@@ -756,12 +757,17 @@ function PlanResult({
     }
   }
 
-  function shareWhatsApp() {
+  async function shareWhatsApp() {
     const stopsText = plan.stops
       .map((s, i) => `${i + 1}. ${s.location.name} (${formatHour(s.startHour)})`)
       .join("\n");
-    const message = `Check out my day in Erbil planned by ErbilGo!\n\n${plan.title}\n${plan.summary}\n\nItinerary:\n${stopsText}\n\nPlan yours at: ${window.location.origin}/plan`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    const message = `Check out my day in Erbil planned by ErbilGo!\n\n${plan.title}\n${plan.summary}\n\nItinerary:\n${stopsText}`;
+    const result = await shareText({
+      title: plan.title,
+      text: message,
+      url: `${window.location.origin}/plan`,
+    });
+    if (result === "copied") toast.success("Plan text copied to your clipboard.");
   }
 
   return (
