@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { LANGUAGES, useLanguage, type Lang } from "@/lib/language";
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp } from "@/lib/native-auth";
 
 /**
  * variant="avatar" (default): round profile picture button (desktop header).
@@ -22,6 +23,7 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "menu" }
   const { session, profile, signOut, isAdmin, isMerchant } = useAuth();
   const navigate = useNavigate();
   const { lang, setLang } = useLanguage();
+  const nativeApp = isNativeApp();
 
   // Must run before the early return below (Rules of Hooks).
   const invites = useQuery({
@@ -163,23 +165,25 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "menu" }
             )}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/merchant/dashboard" className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-gold" />
-            <span>{isMerchant ? "Merchant Dashboard" : "Share Your Business"}</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {isAdmin && (
+        {!nativeApp && (
           <>
+            <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/admin" className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-gold" />
-                <span>Admin Dashboard</span>
+              <Link to="/merchant/dashboard" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-gold" />
+                <span>{isMerchant ? "Merchant Dashboard" : "Share Your Business"}</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link to="/admin" className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-gold" />
+                  <span>Admin Dashboard</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {isAdmin && <DropdownMenuSeparator />}
           </>
         )}
         {variant === "menu" && (
