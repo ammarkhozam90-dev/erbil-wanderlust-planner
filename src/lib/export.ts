@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { shareText } from "@/lib/native-share";
 
 interface PlanItem {
   startTime: string;
@@ -43,12 +44,12 @@ export function exportPDF(plan: PlanItem[]) {
   doc.save(`erbilgo-plan-${Date.now()}.pdf`);
 }
 
-export function shareWhatsApp(plan: PlanItem[]) {
+export async function shareWhatsApp(plan: PlanItem[]) {
   const text =
-    "🌟 *My ErbilGo Day Plan*\n\n" +
+    "My ErbilGo Day Plan\n\n" +
     plan
-      .map((p, i) => `${i + 1}. *${p.startTime}* — ${p.name}\n   📍 ${p.area}\n   ${p.description}`)
+      .map((p, i) => `${i + 1}. ${p.startTime} — ${p.name}\n   ${p.area}\n   ${p.description}`)
       .join("\n\n") +
-    "\n\n_Plan created with ErbilGo_";
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    "\n\nPlan created with ErbilGo";
+  await shareText({ title: "My ErbilGo Day Plan", text });
 }
