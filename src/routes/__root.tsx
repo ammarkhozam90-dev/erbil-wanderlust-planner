@@ -22,6 +22,7 @@ import { Footer } from "@/components/Footer";
 import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { NativeAuthBridge } from "@/components/NativeAuthBridge";
+import { MobileNavigationBridge } from "@/components/MobileNavigationBridge";
 
 function NotFoundComponent() {
   return (
@@ -205,6 +206,7 @@ function RootComponent() {
           </MaintenanceGate>
           <ProfileCompletionGuard />
           <NativeAuthBridge />
+          <MobileNavigationBridge />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
