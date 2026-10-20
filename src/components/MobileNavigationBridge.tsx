@@ -24,7 +24,9 @@ export function MobileNavigationBridge() {
             addListener?: (
               event: "backButton",
               callback: (event: { canGoBack?: boolean }) => void,
-            ) => Promise<{ remove?: () => Promise<void> | void }>;
+            ) =>
+              | { remove?: () => Promise<void> | void }
+              | Promise<{ remove?: () => Promise<void> | void }>;
             exitApp?: () => Promise<void>;
           };
         };
@@ -62,15 +64,25 @@ export function MobileNavigationBridge() {
       void app.exitApp?.();
     };
 
-    void app
-      .addListener("backButton", handleBack)
-      .then((listener) => {
-        if (active) registration = listener;
-        else void listener.remove?.();
-      })
-      .catch((error) => {
-        console.warn("[mobile-navigation] Could not register Android back button", error);
-      });
+    try {
+      const listener = app.addListener("backButton", handleBack);
+      if (listener && typeof (listener as Promise<unknown>).then === "function") {
+        void (listener as Promise<{ remove?: () => Promise<void> | void }>)
+          .then((resolved) => {
+            if (active) registration = resolved;
+            else void resolved.remove?.();
+          })
+          .catch((error) => {
+            console.warn("[mobile-navigation] Could not register Android back button", error);
+          });
+      } else if (active) {
+        registration = listener;
+      } else {
+        void listener.remove?.();
+      }
+    } catch (error) {
+      console.warn("[mobile-navigation] Could not register Android back button", error);
+    }
 
     return () => {
       active = false;
