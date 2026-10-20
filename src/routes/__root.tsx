@@ -24,6 +24,8 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { NativeAuthBridge } from "@/components/NativeAuthBridge";
 import { MobileNavigationBridge } from "@/components/MobileNavigationBridge";
 import { MobileConnectionStatus } from "@/components/MobileConnectionStatus";
+import { NativeExternalLinks } from "@/components/NativeExternalLinks";
+import { MobileLifecycleBridge } from "@/components/MobileLifecycleBridge";
 
 function NotFoundComponent() {
   return (
@@ -209,6 +211,8 @@ function RootComponent() {
           <NativeAuthBridge />
           <MobileNavigationBridge />
           <MobileConnectionStatus />
+          <NativeExternalLinks />
+          <MobileLifecycleBridge />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
