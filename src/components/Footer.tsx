@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, Facebook, Instagram, Mail, MapPin, MessageCircle } from "lucide-react";
 import { useSiteSettings } from "@/lib/site-settings";
+import { isNativeApp } from "@/lib/native-auth";
 
 const publicLinks = [
   { to: "/", label: "Plan my day" },
@@ -13,6 +14,10 @@ export function Footer() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { settings } = useSiteSettings();
   const { brand, merchants } = settings;
+
+  // The native app already has its bottom navigation. Keep the long discovery
+  // footer on the website, but do not duplicate navigation inside the app.
+  if (isNativeApp()) return null;
 
   // Keep operational workspaces focused; the public footer belongs to the discovery experience.
   if (
