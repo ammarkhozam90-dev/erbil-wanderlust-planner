@@ -43,6 +43,12 @@ export function MobileBottomNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sheetOpen]);
 
+  useEffect(() => {
+    const closeFromNativeBack = () => setSheetOpen(false);
+    window.addEventListener("erbilgo:close-mobile-overlays", closeFromNativeBack);
+    return () => window.removeEventListener("erbilgo:close-mobile-overlays", closeFromNativeBack);
+  }, []);
+
   if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return null;
   }
@@ -77,6 +83,7 @@ export function MobileBottomNav() {
             onClick={() => setSheetOpen(false)}
           />
           <div
+            data-mobile-overlay="true"
             className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-gold/20 bg-background p-4 shadow-luxury"
             style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}
           >
