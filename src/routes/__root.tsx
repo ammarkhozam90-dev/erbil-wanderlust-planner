@@ -23,6 +23,7 @@ import { AnnouncementBar, MaintenanceGate } from "@/components/SiteBanner";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { NativeAuthBridge } from "@/components/NativeAuthBridge";
 import { MobileNavigationBridge } from "@/components/MobileNavigationBridge";
+import { MobileConnectionStatus } from "@/components/MobileConnectionStatus";
 
 function NotFoundComponent() {
   return (
@@ -156,7 +157,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "author", content: "ErbilGo" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ErbilGo" },
@@ -207,6 +208,7 @@ function RootComponent() {
           <ProfileCompletionGuard />
           <NativeAuthBridge />
           <MobileNavigationBridge />
+          <MobileConnectionStatus />
           <Toaster />
         </LanguageProvider>
       </AuthProvider>
