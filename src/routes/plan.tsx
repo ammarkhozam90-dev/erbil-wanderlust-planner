@@ -48,6 +48,7 @@ import { StopActions } from "@/components/planner/StopActions";
 import { PlaceImage } from "@/components/planner/PlaceImage";
 import { TravelLeg } from "@/components/planner/TravelLeg";
 import { TravelModePicker } from "@/components/planner/TravelModePicker";
+import { UseCurrentLocation } from "@/components/planner/UseCurrentLocation";
 import { loadAffinity, recordFeedback, recordSavedPlan } from "@/lib/planner-learning";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import jsPDF from "jspdf";
@@ -479,6 +480,10 @@ function PlanPage() {
                     />
                   </div>
                   <TravelModePicker value={form.travelMode} onChange={(v) => updateForm({ travelMode: v })} />
+                  <UseCurrentLocation
+                    value={form.startPoint}
+                    onChange={(location) => updateForm({ startPoint: location })}
+                  />
                   <PlannerExtraQuestions value={form} onChange={updateForm} />
                 </WizardStep>
               )}
