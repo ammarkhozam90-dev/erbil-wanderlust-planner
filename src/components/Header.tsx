@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, Heart } from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
 import { useAuth } from "@/lib/auth";
@@ -18,6 +18,12 @@ export function Header() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const { session } = useAuth();
+
+  useEffect(() => {
+    const closeFromNativeBack = () => setMobileCategoriesOpen(false);
+    window.addEventListener("erbilgo:close-mobile-overlays", closeFromNativeBack);
+    return () => window.removeEventListener("erbilgo:close-mobile-overlays", closeFromNativeBack);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl">
@@ -121,7 +127,10 @@ export function Header() {
             />
           </button>
           {mobileCategoriesOpen && (
-            <div className="absolute right-1 top-full z-[200] mt-2 w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl">
+            <div
+              data-mobile-overlay="true"
+              className="absolute right-1 top-full z-[200] mt-2 w-56 rounded-2xl border border-gold/20 bg-background/95 p-2 shadow-luxury backdrop-blur-xl"
+            >
               {CATEGORIES.map((category) => (
                 <Link
                   key={category.slug}
