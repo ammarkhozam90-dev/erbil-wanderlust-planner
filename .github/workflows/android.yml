@@ -9,17 +9,21 @@ jobs:
   apk:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
-      - uses: actions/setup-java@v5
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -35,34 +39,33 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: |
-          pnpm install --no-frozen-lockfile
-          pnpm add -w @capacitor/core@8.5.3 @capacitor/android@8.5.3 @capacitor/app@8.1.2 @capacitor/browser@8.0.5
-          pnpm add -w -D @capacitor/cli@8.5.3
+        run: pnpm install --frozen-lockfile
 
-      - name: Build web app (mobile)
+      - name: Build web app for mobile
         run: node scripts/build-mobile.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
 
-      - name: Create Android project
+      - name: Sync committed Android project
         run: |
-          npx cap add android
+          test -f android/app/src/main/AndroidManifest.xml
           npx cap sync android
 
       - name: Add sign-in deep link to Android
         run: node scripts/patch-android.mjs
 
       - name: Generate app icon and splash
-        run: npx --yes @capacitor/assets@3.0.5 generate --android
+        run: pnpm dlx @capacitor/assets@3.0.5 generate --android
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
         with:
           name: erbilgo-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
