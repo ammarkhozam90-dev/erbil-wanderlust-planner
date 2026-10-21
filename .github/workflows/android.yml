@@ -56,6 +56,10 @@ jobs:
       - name: Add sign-in deep link to Android
         run: node scripts/patch-android.mjs
 
+      - name: Make Gradle wrapper executable
+        working-directory: android
+        run: chmod +x gradlew
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
