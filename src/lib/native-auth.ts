@@ -93,7 +93,15 @@ export function setupNativeAuth(): () => void {
     completed = false;
     const result = await originalSignInWithOAuth({
       ...credentials,
-      options: { ...credentials?.options, redirectTo: NATIVE_REDIRECT_URL, skipBrowserRedirect: true },
+      options: {
+        ...credentials?.options,
+        redirectTo: NATIVE_REDIRECT_URL,
+        skipBrowserRedirect: true,
+        queryParams: {
+          ...credentials?.options?.queryParams,
+          prompt: "select_account",
+        },
+      },
     });
     if (result.error || !result.data?.url) return result;
     if (!Browser) {
