@@ -9,119 +9,77 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SharedPlansRouteImport } from './routes/shared-plans'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PlanRouteImport } from './routes/plan'
-import { Route as OurGuideRouteImport } from './routes/our-guide'
-import { Route as OffersRouteImport } from './routes/offers'
-import { Route as GuideRouteImport } from './routes/guide'
-import { Route as FavoritesRouteImport } from './routes/favorites'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ToursIndexRouteImport } from './routes/tours/index'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as GuideRouteImport } from './routes/guide'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as OffersRouteImport } from './routes/offers'
+import { Route as OurGuideRouteImport } from './routes/our-guide'
+import { Route as PlanRouteImport } from './routes/plan'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SharedPlansRouteImport } from './routes/shared-plans'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as ToursSlugRouteImport } from './routes/tours/$slug'
-import { Route as TourResetPasswordRouteImport } from './routes/tour/reset-password'
-import { Route as TourRegisterRouteImport } from './routes/tour/register'
-import { Route as TourLoginRouteImport } from './routes/tour/login'
-import { Route as TourForgotPasswordRouteImport } from './routes/tour/forgot-password'
-import { Route as SharedPlanIdRouteImport } from './routes/shared-plan/$id'
-import { Route as MerchantResetPasswordRouteImport } from './routes/merchant/reset-password'
-import { Route as MerchantForgotPasswordRouteImport } from './routes/merchant/forgot-password'
-import { Route as MerchantAuthRouteImport } from './routes/merchant/auth'
-import { Route as CategorySlugRouteImport } from './routes/category/$slug'
-import { Route as BusinessIdRouteImport } from './routes/business/$id'
-import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as AdminToursRouteImport } from './routes/admin/tours'
-import { Route as AdminSiteContentRouteImport } from './routes/admin/site-content'
-import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
-import { Route as AdminReviewsRouteImport } from './routes/admin/reviews'
-import { Route as AdminReportsRouteImport } from './routes/admin/reports'
-import { Route as AdminPhotosRouteImport } from './routes/admin/photos'
-import { Route as AdminOffersRouteImport } from './routes/admin/offers'
-import { Route as AdminMerchantsRouteImport } from './routes/admin/merchants'
-import { Route as AdminImportRouteImport } from './routes/admin/import'
-import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
-import { Route as AdminClaimsRouteImport } from './routes/admin/claims'
-import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
-import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
-import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
-import { Route as AdminApprovalHistoryRouteImport } from './routes/admin/approval-history'
-import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
-import { Route as TourAuthenticatedRouteRouteImport } from './routes/tour/_authenticated/route'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
+import { Route as AdminApprovalHistoryRouteImport } from './routes/admin/approval-history'
+import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
+import { Route as AdminBookingsRouteImport } from './routes/admin/bookings'
+import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
+import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as AdminClaimsRouteImport } from './routes/admin/claims'
+import { Route as AdminImportRouteImport } from './routes/admin/import'
+import { Route as AdminMerchantsRouteImport } from './routes/admin/merchants'
+import { Route as AdminOffersRouteImport } from './routes/admin/offers'
+import { Route as AdminPhotosRouteImport } from './routes/admin/photos'
+import { Route as AdminReportsRouteImport } from './routes/admin/reports'
+import { Route as AdminReviewsRouteImport } from './routes/admin/reviews'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminSiteContentRouteImport } from './routes/admin/site-content'
+import { Route as AdminSponsorshipRouteImport } from './routes/admin/sponsorship'
+import { Route as AdminToursRouteImport } from './routes/admin/tours'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as BusinessIdRouteImport } from './routes/business/$id'
+import { Route as CategorySlugRouteImport } from './routes/category/$slug'
 import { Route as MerchantAuthenticatedRouteRouteImport } from './routes/merchant/_authenticated/route'
-import { Route as TourAuthenticatedToursRouteImport } from './routes/tour/_authenticated/tours'
-import { Route as TourAuthenticatedSubmitRouteImport } from './routes/tour/_authenticated/submit'
-import { Route as TourAuthenticatedPricingRouteImport } from './routes/tour/_authenticated/pricing'
-import { Route as TourAuthenticatedPreviewRouteImport } from './routes/tour/_authenticated/preview'
-import { Route as TourAuthenticatedGalleryRouteImport } from './routes/tour/_authenticated/gallery'
-import { Route as TourAuthenticatedDashboardRouteImport } from './routes/tour/_authenticated/dashboard'
-import { Route as TourAuthenticatedAvailabilityRouteImport } from './routes/tour/_authenticated/availability'
-import { Route as MerchantAuthenticatedSubmitRouteImport } from './routes/merchant/_authenticated/submit'
-import { Route as MerchantAuthenticatedPreviewRouteImport } from './routes/merchant/_authenticated/preview'
-import { Route as MerchantAuthenticatedPhotosRouteImport } from './routes/merchant/_authenticated/photos'
-import { Route as MerchantAuthenticatedOffersRouteImport } from './routes/merchant/_authenticated/offers'
-import { Route as MerchantAuthenticatedMyBusinessRouteImport } from './routes/merchant/_authenticated/my-business'
-import { Route as MerchantAuthenticatedHoursRouteImport } from './routes/merchant/_authenticated/hours'
-import { Route as MerchantAuthenticatedFeaturesRouteImport } from './routes/merchant/_authenticated/features'
-import { Route as MerchantAuthenticatedDashboardRouteImport } from './routes/merchant/_authenticated/dashboard'
-import { Route as MerchantAuthenticatedClaimRouteImport } from './routes/merchant/_authenticated/claim'
-import { Route as MerchantAuthenticatedBranchesRouteImport } from './routes/merchant/_authenticated/branches'
-import { Route as MerchantAuthenticatedAiPlanningRouteImport } from './routes/merchant/_authenticated/ai-planning'
+import { Route as MerchantAuthRouteImport } from './routes/merchant/auth'
+import { Route as PromoteMerchantIdRouteImport } from './routes/promote.$merchantId'
+import { Route as SharedPlanIdRouteImport } from './routes/shared-plan/$id'
+import { Route as TourAuthenticatedRouteRouteImport } from './routes/tour/_authenticated/route'
+import { Route as TourForgotPasswordRouteImport } from './routes/tour/forgot-password'
+import { Route as TourLoginRouteImport } from './routes/tour/login'
+import { Route as TourRegisterRouteImport } from './routes/tour/register'
+import { Route as TourResetPasswordRouteImport } from './routes/tour/reset-password'
+import { Route as ToursIndexRouteImport } from './routes/tours/index'
+import { Route as ToursSlugRouteImport } from './routes/tours/$slug'
 import { Route as AdminBusinessEditIdRouteImport } from './routes/admin/business-edit/$id'
+import { Route as MerchantAuthenticatedAiPlanningRouteImport } from './routes/merchant/_authenticated/ai-planning'
+import { Route as MerchantAuthenticatedBranchesRouteImport } from './routes/merchant/_authenticated/branches'
+import { Route as MerchantAuthenticatedClaimRouteImport } from './routes/merchant/_authenticated/claim'
+import { Route as MerchantAuthenticatedDashboardRouteImport } from './routes/merchant/_authenticated/dashboard'
+import { Route as MerchantAuthenticatedFeaturesRouteImport } from './routes/merchant/_authenticated/features'
+import { Route as MerchantAuthenticatedHoursRouteImport } from './routes/merchant/_authenticated/hours'
+import { Route as MerchantAuthenticatedMyBusinessRouteImport } from './routes/merchant/_authenticated/my-business'
+import { Route as MerchantAuthenticatedOffersRouteImport } from './routes/merchant/_authenticated/offers'
+import { Route as MerchantAuthenticatedPhotosRouteImport } from './routes/merchant/_authenticated/photos'
+import { Route as MerchantAuthenticatedPreviewRouteImport } from './routes/merchant/_authenticated/preview'
+import { Route as MerchantAuthenticatedSubmitRouteImport } from './routes/merchant/_authenticated/submit'
+import { Route as TourAuthenticatedAvailabilityRouteImport } from './routes/tour/_authenticated/availability'
+import { Route as TourAuthenticatedBookingsRouteImport } from './routes/tour/_authenticated/bookings'
+import { Route as TourAuthenticatedDashboardRouteImport } from './routes/tour/_authenticated/dashboard'
+import { Route as TourAuthenticatedGalleryRouteImport } from './routes/tour/_authenticated/gallery'
+import { Route as TourAuthenticatedPreviewRouteImport } from './routes/tour/_authenticated/preview'
+import { Route as TourAuthenticatedPricingRouteImport } from './routes/tour/_authenticated/pricing'
+import { Route as TourAuthenticatedRoutePlannerRouteImport } from './routes/tour/_authenticated/route-planner'
+import { Route as TourAuthenticatedSubmitRouteImport } from './routes/tour/_authenticated/submit'
+import { Route as TourAuthenticatedToursRouteImport } from './routes/tour/_authenticated/tours'
 
-const SharedPlansRoute = SharedPlansRouteImport.update({
-  id: '/shared-plans',
-  path: '/shared-plans',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlanRoute = PlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OurGuideRoute = OurGuideRouteImport.update({
-  id: '/our-guide',
-  path: '/our-guide',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OffersRoute = OffersRouteImport.update({
-  id: '/offers',
-  path: '/offers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GuideRoute = GuideRouteImport.update({
-  id: '/guide',
-  path: '/guide',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FavoritesRoute = FavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -129,14 +87,59 @@ const AdminRouteRoute = AdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToursIndexRoute = ToursIndexRouteImport.update({
-  id: '/tours/',
-  path: '/tours/',
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OurGuideRoute = OurGuideRouteImport.update({
+  id: '/our-guide',
+  path: '/our-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanRoute = PlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SharedPlansRoute = SharedPlansRouteImport.update({
+  id: '/shared-plans',
+  path: '/shared-plans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -144,139 +147,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const ToursSlugRoute = ToursSlugRouteImport.update({
-  id: '/tours/$slug',
-  path: '/tours/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TourResetPasswordRoute = TourResetPasswordRouteImport.update({
-  id: '/tour/reset-password',
-  path: '/tour/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TourRegisterRoute = TourRegisterRouteImport.update({
-  id: '/tour/register',
-  path: '/tour/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TourLoginRoute = TourLoginRouteImport.update({
-  id: '/tour/login',
-  path: '/tour/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TourForgotPasswordRoute = TourForgotPasswordRouteImport.update({
-  id: '/tour/forgot-password',
-  path: '/tour/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SharedPlanIdRoute = SharedPlanIdRouteImport.update({
-  id: '/shared-plan/$id',
-  path: '/shared-plan/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MerchantResetPasswordRoute = MerchantResetPasswordRouteImport.update({
-  id: '/merchant/reset-password',
-  path: '/merchant/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MerchantForgotPasswordRoute = MerchantForgotPasswordRouteImport.update({
-  id: '/merchant/forgot-password',
-  path: '/merchant/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MerchantAuthRoute = MerchantAuthRouteImport.update({
-  id: '/merchant/auth',
-  path: '/merchant/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategorySlugRoute = CategorySlugRouteImport.update({
-  id: '/category/$slug',
-  path: '/category/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BusinessIdRoute = BusinessIdRouteImport.update({
-  id: '/business/$id',
-  path: '/business/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminToursRoute = AdminToursRouteImport.update({
-  id: '/tours',
-  path: '/tours',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminSiteContentRoute = AdminSiteContentRouteImport.update({
-  id: '/site-content',
-  path: '/site-content',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminReviewsRoute = AdminReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminReportsRoute = AdminReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminPhotosRoute = AdminPhotosRouteImport.update({
-  id: '/photos',
-  path: '/photos',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminOffersRoute = AdminOffersRouteImport.update({
-  id: '/offers',
-  path: '/offers',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
-  id: '/merchants',
-  path: '/merchants',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminImportRoute = AdminImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminDashboardRoute = AdminDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminClaimsRoute = AdminClaimsRouteImport.update({
-  id: '/claims',
-  path: '/claims',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminBusinessesRoute = AdminBusinessesRouteImport.update({
-  id: '/businesses',
-  path: '/businesses',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
-  id: '/approvals',
-  path: '/approvals',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminApprovalHistoryRoute = AdminApprovalHistoryRouteImport.update({
-  id: '/approval-history',
-  path: '/approval-history',
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
@@ -284,14 +157,99 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const AdminActivityRoute = AdminActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
+const AdminApprovalHistoryRoute = AdminApprovalHistoryRouteImport.update({
+  id: '/approval-history',
+  path: '/approval-history',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const TourAuthenticatedRouteRoute = TourAuthenticatedRouteRouteImport.update({
-  id: '/tour/_authenticated',
-  path: '/tour',
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminBusinessesRoute = AdminBusinessesRouteImport.update({
+  id: '/businesses',
+  path: '/businesses',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminClaimsRoute = AdminClaimsRouteImport.update({
+  id: '/claims',
+  path: '/claims',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminImportRoute = AdminImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
+  id: '/merchants',
+  path: '/merchants',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOffersRoute = AdminOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminPhotosRoute = AdminPhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSiteContentRoute = AdminSiteContentRouteImport.update({
+  id: '/site-content',
+  path: '/site-content',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSponsorshipRoute = AdminSponsorshipRouteImport.update({
+  id: '/sponsorship',
+  path: '/sponsorship',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminToursRoute = AdminToursRouteImport.update({
+  id: '/tours',
+  path: '/tours',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const BusinessIdRoute = BusinessIdRouteImport.update({
+  id: '/business/$id',
+  path: '/business/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategorySlugRoute = CategorySlugRouteImport.update({
+  id: '/category/$slug',
+  path: '/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MerchantAuthenticatedRouteRoute =
@@ -300,98 +258,65 @@ const MerchantAuthenticatedRouteRoute =
     path: '/merchant',
     getParentRoute: () => rootRouteImport,
   } as any)
-const TourAuthenticatedToursRoute = TourAuthenticatedToursRouteImport.update({
-  id: '/tours',
-  path: '/tours',
-  getParentRoute: () => TourAuthenticatedRouteRoute,
+const MerchantAuthRoute = MerchantAuthRouteImport.update({
+  id: '/merchant/auth',
+  path: '/merchant/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TourAuthenticatedSubmitRoute = TourAuthenticatedSubmitRouteImport.update({
-  id: '/submit',
-  path: '/submit',
-  getParentRoute: () => TourAuthenticatedRouteRoute,
+const PromoteMerchantIdRoute = PromoteMerchantIdRouteImport.update({
+  id: '/promote/$merchantId',
+  path: '/promote/$merchantId',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TourAuthenticatedPricingRoute =
-  TourAuthenticatedPricingRouteImport.update({
-    id: '/pricing',
-    path: '/pricing',
-    getParentRoute: () => TourAuthenticatedRouteRoute,
-  } as any)
-const TourAuthenticatedPreviewRoute =
-  TourAuthenticatedPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => TourAuthenticatedRouteRoute,
-  } as any)
-const TourAuthenticatedGalleryRoute =
-  TourAuthenticatedGalleryRouteImport.update({
-    id: '/gallery',
-    path: '/gallery',
-    getParentRoute: () => TourAuthenticatedRouteRoute,
-  } as any)
-const TourAuthenticatedDashboardRoute =
-  TourAuthenticatedDashboardRouteImport.update({
-    id: '/dashboard',
-    path: '/dashboard',
-    getParentRoute: () => TourAuthenticatedRouteRoute,
-  } as any)
-const TourAuthenticatedAvailabilityRoute =
-  TourAuthenticatedAvailabilityRouteImport.update({
-    id: '/availability',
-    path: '/availability',
-    getParentRoute: () => TourAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedSubmitRoute =
-  MerchantAuthenticatedSubmitRouteImport.update({
-    id: '/submit',
-    path: '/submit',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedPreviewRoute =
-  MerchantAuthenticatedPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedPhotosRoute =
-  MerchantAuthenticatedPhotosRouteImport.update({
-    id: '/photos',
-    path: '/photos',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedOffersRoute =
-  MerchantAuthenticatedOffersRouteImport.update({
-    id: '/offers',
-    path: '/offers',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedMyBusinessRoute =
-  MerchantAuthenticatedMyBusinessRouteImport.update({
-    id: '/my-business',
-    path: '/my-business',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedHoursRoute =
-  MerchantAuthenticatedHoursRouteImport.update({
-    id: '/hours',
-    path: '/hours',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedFeaturesRoute =
-  MerchantAuthenticatedFeaturesRouteImport.update({
-    id: '/features',
-    path: '/features',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedDashboardRoute =
-  MerchantAuthenticatedDashboardRouteImport.update({
-    id: '/dashboard',
-    path: '/dashboard',
-    getParentRoute: () => MerchantAuthenticatedRouteRoute,
-  } as any)
-const MerchantAuthenticatedClaimRoute =
-  MerchantAuthenticatedClaimRouteImport.update({
-    id: '/claim',
-    path: '/claim',
+const SharedPlanIdRoute = SharedPlanIdRouteImport.update({
+  id: '/shared-plan/$id',
+  path: '/shared-plan/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TourAuthenticatedRouteRoute = TourAuthenticatedRouteRouteImport.update({
+  id: '/tour/_authenticated',
+  path: '/tour',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TourForgotPasswordRoute = TourForgotPasswordRouteImport.update({
+  id: '/tour/forgot-password',
+  path: '/tour/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TourLoginRoute = TourLoginRouteImport.update({
+  id: '/tour/login',
+  path: '/tour/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TourRegisterRoute = TourRegisterRouteImport.update({
+  id: '/tour/register',
+  path: '/tour/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TourResetPasswordRoute = TourResetPasswordRouteImport.update({
+  id: '/tour/reset-password',
+  path: '/tour/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToursIndexRoute = ToursIndexRouteImport.update({
+  id: '/tours/',
+  path: '/tours/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToursSlugRoute = ToursSlugRouteImport.update({
+  id: '/tours/$slug',
+  path: '/tours/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminBusinessEditIdRoute = AdminBusinessEditIdRouteImport.update({
+  id: '/business-edit/$id',
+  path: '/business-edit/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const MerchantAuthenticatedAiPlanningRoute =
+  MerchantAuthenticatedAiPlanningRouteImport.update({
+    id: '/ai-planning',
+    path: '/ai-planning',
     getParentRoute: () => MerchantAuthenticatedRouteRoute,
   } as any)
 const MerchantAuthenticatedBranchesRoute =
@@ -400,16 +325,111 @@ const MerchantAuthenticatedBranchesRoute =
     path: '/branches',
     getParentRoute: () => MerchantAuthenticatedRouteRoute,
   } as any)
-const MerchantAuthenticatedAiPlanningRoute =
-  MerchantAuthenticatedAiPlanningRouteImport.update({
-    id: '/ai-planning',
-    path: '/ai-planning',
+const MerchantAuthenticatedClaimRoute =
+  MerchantAuthenticatedClaimRouteImport.update({
+    id: '/claim',
+    path: '/claim',
     getParentRoute: () => MerchantAuthenticatedRouteRoute,
   } as any)
-const AdminBusinessEditIdRoute = AdminBusinessEditIdRouteImport.update({
-  id: '/business-edit/$id',
-  path: '/business-edit/$id',
-  getParentRoute: () => AdminRouteRoute,
+const MerchantAuthenticatedDashboardRoute =
+  MerchantAuthenticatedDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedFeaturesRoute =
+  MerchantAuthenticatedFeaturesRouteImport.update({
+    id: '/features',
+    path: '/features',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedHoursRoute =
+  MerchantAuthenticatedHoursRouteImport.update({
+    id: '/hours',
+    path: '/hours',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedMyBusinessRoute =
+  MerchantAuthenticatedMyBusinessRouteImport.update({
+    id: '/my-business',
+    path: '/my-business',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedOffersRoute =
+  MerchantAuthenticatedOffersRouteImport.update({
+    id: '/offers',
+    path: '/offers',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedPhotosRoute =
+  MerchantAuthenticatedPhotosRouteImport.update({
+    id: '/photos',
+    path: '/photos',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedPreviewRoute =
+  MerchantAuthenticatedPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const MerchantAuthenticatedSubmitRoute =
+  MerchantAuthenticatedSubmitRouteImport.update({
+    id: '/submit',
+    path: '/submit',
+    getParentRoute: () => MerchantAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedAvailabilityRoute =
+  TourAuthenticatedAvailabilityRouteImport.update({
+    id: '/availability',
+    path: '/availability',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedBookingsRoute =
+  TourAuthenticatedBookingsRouteImport.update({
+    id: '/bookings',
+    path: '/bookings',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedDashboardRoute =
+  TourAuthenticatedDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedGalleryRoute =
+  TourAuthenticatedGalleryRouteImport.update({
+    id: '/gallery',
+    path: '/gallery',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedPreviewRoute =
+  TourAuthenticatedPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedPricingRoute =
+  TourAuthenticatedPricingRouteImport.update({
+    id: '/pricing',
+    path: '/pricing',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedRoutePlannerRoute =
+  TourAuthenticatedRoutePlannerRouteImport.update({
+    id: '/route-planner',
+    path: '/route-planner',
+    getParentRoute: () => TourAuthenticatedRouteRoute,
+  } as any)
+const TourAuthenticatedSubmitRoute = TourAuthenticatedSubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
+  getParentRoute: () => TourAuthenticatedRouteRoute,
+} as any)
+const TourAuthenticatedToursRoute = TourAuthenticatedToursRouteImport.update({
+  id: '/tours',
+  path: '/tours',
+  getParentRoute: () => TourAuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -418,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/favorites': typeof FavoritesRoute
   '/guide': typeof GuideRoute
+  '/history': typeof HistoryRoute
   '/offers': typeof OffersRoute
   '/our-guide': typeof OurGuideRoute
   '/plan': typeof PlanRoute
@@ -431,10 +452,10 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/approval-history': typeof AdminApprovalHistoryRoute
   '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/businesses': typeof AdminBusinessesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/claims': typeof AdminClaimsRoute
-  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -443,13 +464,13 @@ export interface FileRoutesByFullPath {
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
+  '/admin/sponsorship': typeof AdminSponsorshipRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/business/$id': typeof BusinessIdRoute
   '/category/$slug': typeof CategorySlugRoute
   '/merchant/auth': typeof MerchantAuthRoute
-  '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
-  '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/promote/$merchantId': typeof PromoteMerchantIdRoute
   '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
@@ -471,10 +492,12 @@ export interface FileRoutesByFullPath {
   '/merchant/preview': typeof MerchantAuthenticatedPreviewRoute
   '/merchant/submit': typeof MerchantAuthenticatedSubmitRoute
   '/tour/availability': typeof TourAuthenticatedAvailabilityRoute
+  '/tour/bookings': typeof TourAuthenticatedBookingsRoute
   '/tour/dashboard': typeof TourAuthenticatedDashboardRoute
   '/tour/gallery': typeof TourAuthenticatedGalleryRoute
   '/tour/preview': typeof TourAuthenticatedPreviewRoute
   '/tour/pricing': typeof TourAuthenticatedPricingRoute
+  '/tour/route-planner': typeof TourAuthenticatedRoutePlannerRoute
   '/tour/submit': typeof TourAuthenticatedSubmitRoute
   '/tour/tours': typeof TourAuthenticatedToursRoute
 }
@@ -483,6 +506,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/favorites': typeof FavoritesRoute
   '/guide': typeof GuideRoute
+  '/history': typeof HistoryRoute
   '/offers': typeof OffersRoute
   '/our-guide': typeof OurGuideRoute
   '/plan': typeof PlanRoute
@@ -496,10 +520,10 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/approval-history': typeof AdminApprovalHistoryRoute
   '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/businesses': typeof AdminBusinessesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/claims': typeof AdminClaimsRoute
-  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -508,13 +532,13 @@ export interface FileRoutesByTo {
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
+  '/admin/sponsorship': typeof AdminSponsorshipRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/business/$id': typeof BusinessIdRoute
   '/category/$slug': typeof CategorySlugRoute
   '/merchant/auth': typeof MerchantAuthRoute
-  '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
-  '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/promote/$merchantId': typeof PromoteMerchantIdRoute
   '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
@@ -536,10 +560,12 @@ export interface FileRoutesByTo {
   '/merchant/preview': typeof MerchantAuthenticatedPreviewRoute
   '/merchant/submit': typeof MerchantAuthenticatedSubmitRoute
   '/tour/availability': typeof TourAuthenticatedAvailabilityRoute
+  '/tour/bookings': typeof TourAuthenticatedBookingsRoute
   '/tour/dashboard': typeof TourAuthenticatedDashboardRoute
   '/tour/gallery': typeof TourAuthenticatedGalleryRoute
   '/tour/preview': typeof TourAuthenticatedPreviewRoute
   '/tour/pricing': typeof TourAuthenticatedPricingRoute
+  '/tour/route-planner': typeof TourAuthenticatedRoutePlannerRoute
   '/tour/submit': typeof TourAuthenticatedSubmitRoute
   '/tour/tours': typeof TourAuthenticatedToursRoute
 }
@@ -550,6 +576,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/favorites': typeof FavoritesRoute
   '/guide': typeof GuideRoute
+  '/history': typeof HistoryRoute
   '/offers': typeof OffersRoute
   '/our-guide': typeof OurGuideRoute
   '/plan': typeof PlanRoute
@@ -563,10 +590,10 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/approval-history': typeof AdminApprovalHistoryRoute
   '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/businesses': typeof AdminBusinessesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/claims': typeof AdminClaimsRoute
-  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -575,13 +602,13 @@ export interface FileRoutesById {
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
+  '/admin/sponsorship': typeof AdminSponsorshipRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/business/$id': typeof BusinessIdRoute
   '/category/$slug': typeof CategorySlugRoute
   '/merchant/auth': typeof MerchantAuthRoute
-  '/merchant/forgot-password': typeof MerchantForgotPasswordRoute
-  '/merchant/reset-password': typeof MerchantResetPasswordRoute
+  '/promote/$merchantId': typeof PromoteMerchantIdRoute
   '/shared-plan/$id': typeof SharedPlanIdRoute
   '/tour/forgot-password': typeof TourForgotPasswordRoute
   '/tour/login': typeof TourLoginRoute
@@ -603,10 +630,12 @@ export interface FileRoutesById {
   '/merchant/_authenticated/preview': typeof MerchantAuthenticatedPreviewRoute
   '/merchant/_authenticated/submit': typeof MerchantAuthenticatedSubmitRoute
   '/tour/_authenticated/availability': typeof TourAuthenticatedAvailabilityRoute
+  '/tour/_authenticated/bookings': typeof TourAuthenticatedBookingsRoute
   '/tour/_authenticated/dashboard': typeof TourAuthenticatedDashboardRoute
   '/tour/_authenticated/gallery': typeof TourAuthenticatedGalleryRoute
   '/tour/_authenticated/preview': typeof TourAuthenticatedPreviewRoute
   '/tour/_authenticated/pricing': typeof TourAuthenticatedPricingRoute
+  '/tour/_authenticated/route-planner': typeof TourAuthenticatedRoutePlannerRoute
   '/tour/_authenticated/submit': typeof TourAuthenticatedSubmitRoute
   '/tour/_authenticated/tours': typeof TourAuthenticatedToursRoute
 }
@@ -618,6 +647,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/favorites'
     | '/guide'
+    | '/history'
     | '/offers'
     | '/our-guide'
     | '/plan'
@@ -631,10 +661,10 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/approval-history'
     | '/admin/approvals'
+    | '/admin/bookings'
     | '/admin/businesses'
     | '/admin/categories'
     | '/admin/claims'
-    | '/admin/dashboard'
     | '/admin/import'
     | '/admin/merchants'
     | '/admin/offers'
@@ -643,13 +673,13 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/site-content'
+    | '/admin/sponsorship'
     | '/admin/tours'
     | '/admin/users'
     | '/business/$id'
     | '/category/$slug'
     | '/merchant/auth'
-    | '/merchant/forgot-password'
-    | '/merchant/reset-password'
+    | '/promote/$merchantId'
     | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
@@ -671,10 +701,12 @@ export interface FileRouteTypes {
     | '/merchant/preview'
     | '/merchant/submit'
     | '/tour/availability'
+    | '/tour/bookings'
     | '/tour/dashboard'
     | '/tour/gallery'
     | '/tour/preview'
     | '/tour/pricing'
+    | '/tour/route-planner'
     | '/tour/submit'
     | '/tour/tours'
   fileRoutesByTo: FileRoutesByTo
@@ -683,6 +715,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/favorites'
     | '/guide'
+    | '/history'
     | '/offers'
     | '/our-guide'
     | '/plan'
@@ -696,10 +729,10 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/approval-history'
     | '/admin/approvals'
+    | '/admin/bookings'
     | '/admin/businesses'
     | '/admin/categories'
     | '/admin/claims'
-    | '/admin/dashboard'
     | '/admin/import'
     | '/admin/merchants'
     | '/admin/offers'
@@ -708,13 +741,13 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/site-content'
+    | '/admin/sponsorship'
     | '/admin/tours'
     | '/admin/users'
     | '/business/$id'
     | '/category/$slug'
     | '/merchant/auth'
-    | '/merchant/forgot-password'
-    | '/merchant/reset-password'
+    | '/promote/$merchantId'
     | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
@@ -736,10 +769,12 @@ export interface FileRouteTypes {
     | '/merchant/preview'
     | '/merchant/submit'
     | '/tour/availability'
+    | '/tour/bookings'
     | '/tour/dashboard'
     | '/tour/gallery'
     | '/tour/preview'
     | '/tour/pricing'
+    | '/tour/route-planner'
     | '/tour/submit'
     | '/tour/tours'
   id:
@@ -749,6 +784,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/favorites'
     | '/guide'
+    | '/history'
     | '/offers'
     | '/our-guide'
     | '/plan'
@@ -762,10 +798,10 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/approval-history'
     | '/admin/approvals'
+    | '/admin/bookings'
     | '/admin/businesses'
     | '/admin/categories'
     | '/admin/claims'
-    | '/admin/dashboard'
     | '/admin/import'
     | '/admin/merchants'
     | '/admin/offers'
@@ -774,13 +810,13 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/site-content'
+    | '/admin/sponsorship'
     | '/admin/tours'
     | '/admin/users'
     | '/business/$id'
     | '/category/$slug'
     | '/merchant/auth'
-    | '/merchant/forgot-password'
-    | '/merchant/reset-password'
+    | '/promote/$merchantId'
     | '/shared-plan/$id'
     | '/tour/forgot-password'
     | '/tour/login'
@@ -802,10 +838,12 @@ export interface FileRouteTypes {
     | '/merchant/_authenticated/preview'
     | '/merchant/_authenticated/submit'
     | '/tour/_authenticated/availability'
+    | '/tour/_authenticated/bookings'
     | '/tour/_authenticated/dashboard'
     | '/tour/_authenticated/gallery'
     | '/tour/_authenticated/preview'
     | '/tour/_authenticated/pricing'
+    | '/tour/_authenticated/route-planner'
     | '/tour/_authenticated/submit'
     | '/tour/_authenticated/tours'
   fileRoutesById: FileRoutesById
@@ -816,6 +854,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   FavoritesRoute: typeof FavoritesRoute
   GuideRoute: typeof GuideRoute
+  HistoryRoute: typeof HistoryRoute
   OffersRoute: typeof OffersRoute
   OurGuideRoute: typeof OurGuideRoute
   PlanRoute: typeof PlanRoute
@@ -828,8 +867,7 @@ export interface RootRouteChildren {
   BusinessIdRoute: typeof BusinessIdRoute
   CategorySlugRoute: typeof CategorySlugRoute
   MerchantAuthRoute: typeof MerchantAuthRoute
-  MerchantForgotPasswordRoute: typeof MerchantForgotPasswordRoute
-  MerchantResetPasswordRoute: typeof MerchantResetPasswordRoute
+  PromoteMerchantIdRoute: typeof PromoteMerchantIdRoute
   SharedPlanIdRoute: typeof SharedPlanIdRoute
   TourForgotPasswordRoute: typeof TourForgotPasswordRoute
   TourLoginRoute: typeof TourLoginRoute
@@ -841,74 +879,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/shared-plans': {
-      id: '/shared-plans'
-      path: '/shared-plans'
-      fullPath: '/shared-plans'
-      preLoaderRoute: typeof SharedPlansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plan': {
-      id: '/plan'
-      path: '/plan'
-      fullPath: '/plan'
-      preLoaderRoute: typeof PlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/our-guide': {
-      id: '/our-guide'
-      path: '/our-guide'
-      fullPath: '/our-guide'
-      preLoaderRoute: typeof OurGuideRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offers': {
-      id: '/offers'
-      path: '/offers'
-      fullPath: '/offers'
-      preLoaderRoute: typeof OffersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guide': {
-      id: '/guide'
-      path: '/guide'
-      fullPath: '/guide'
-      preLoaderRoute: typeof GuideRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favorites': {
-      id: '/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof FavoritesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -918,18 +893,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tours/': {
-      id: '/tours/'
-      path: '/tours'
-      fullPath: '/tours/'
-      preLoaderRoute: typeof ToursIndexRouteImport
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/our-guide': {
+      id: '/our-guide'
+      path: '/our-guide'
+      fullPath: '/our-guide'
+      preLoaderRoute: typeof OurGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan': {
+      id: '/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared-plans': {
+      id: '/shared-plans'
+      path: '/shared-plans'
+      fullPath: '/shared-plans'
+      preLoaderRoute: typeof SharedPlansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -939,193 +977,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/tours/$slug': {
-      id: '/tours/$slug'
-      path: '/tours/$slug'
-      fullPath: '/tours/$slug'
-      preLoaderRoute: typeof ToursSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tour/reset-password': {
-      id: '/tour/reset-password'
-      path: '/tour/reset-password'
-      fullPath: '/tour/reset-password'
-      preLoaderRoute: typeof TourResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tour/register': {
-      id: '/tour/register'
-      path: '/tour/register'
-      fullPath: '/tour/register'
-      preLoaderRoute: typeof TourRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tour/login': {
-      id: '/tour/login'
-      path: '/tour/login'
-      fullPath: '/tour/login'
-      preLoaderRoute: typeof TourLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tour/forgot-password': {
-      id: '/tour/forgot-password'
-      path: '/tour/forgot-password'
-      fullPath: '/tour/forgot-password'
-      preLoaderRoute: typeof TourForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shared-plan/$id': {
-      id: '/shared-plan/$id'
-      path: '/shared-plan/$id'
-      fullPath: '/shared-plan/$id'
-      preLoaderRoute: typeof SharedPlanIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/merchant/reset-password': {
-      id: '/merchant/reset-password'
-      path: '/merchant/reset-password'
-      fullPath: '/merchant/reset-password'
-      preLoaderRoute: typeof MerchantResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/merchant/forgot-password': {
-      id: '/merchant/forgot-password'
-      path: '/merchant/forgot-password'
-      fullPath: '/merchant/forgot-password'
-      preLoaderRoute: typeof MerchantForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/merchant/auth': {
-      id: '/merchant/auth'
-      path: '/merchant/auth'
-      fullPath: '/merchant/auth'
-      preLoaderRoute: typeof MerchantAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/category/$slug': {
-      id: '/category/$slug'
-      path: '/category/$slug'
-      fullPath: '/category/$slug'
-      preLoaderRoute: typeof CategorySlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/business/$id': {
-      id: '/business/$id'
-      path: '/business/$id'
-      fullPath: '/business/$id'
-      preLoaderRoute: typeof BusinessIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/tours': {
-      id: '/admin/tours'
-      path: '/tours'
-      fullPath: '/admin/tours'
-      preLoaderRoute: typeof AdminToursRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/site-content': {
-      id: '/admin/site-content'
-      path: '/site-content'
-      fullPath: '/admin/site-content'
-      preLoaderRoute: typeof AdminSiteContentRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/reviews': {
-      id: '/admin/reviews'
-      path: '/reviews'
-      fullPath: '/admin/reviews'
-      preLoaderRoute: typeof AdminReviewsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/reports': {
-      id: '/admin/reports'
-      path: '/reports'
-      fullPath: '/admin/reports'
-      preLoaderRoute: typeof AdminReportsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/photos': {
-      id: '/admin/photos'
-      path: '/photos'
-      fullPath: '/admin/photos'
-      preLoaderRoute: typeof AdminPhotosRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/offers': {
-      id: '/admin/offers'
-      path: '/offers'
-      fullPath: '/admin/offers'
-      preLoaderRoute: typeof AdminOffersRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/merchants': {
-      id: '/admin/merchants'
-      path: '/merchants'
-      fullPath: '/admin/merchants'
-      preLoaderRoute: typeof AdminMerchantsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/import': {
-      id: '/admin/import'
-      path: '/import'
-      fullPath: '/admin/import'
-      preLoaderRoute: typeof AdminImportRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/dashboard': {
-      id: '/admin/dashboard'
-      path: '/dashboard'
-      fullPath: '/admin/dashboard'
-      preLoaderRoute: typeof AdminDashboardRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/claims': {
-      id: '/admin/claims'
-      path: '/claims'
-      fullPath: '/admin/claims'
-      preLoaderRoute: typeof AdminClaimsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/categories': {
-      id: '/admin/categories'
-      path: '/categories'
-      fullPath: '/admin/categories'
-      preLoaderRoute: typeof AdminCategoriesRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/businesses': {
-      id: '/admin/businesses'
-      path: '/businesses'
-      fullPath: '/admin/businesses'
-      preLoaderRoute: typeof AdminBusinessesRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/approvals': {
-      id: '/admin/approvals'
-      path: '/approvals'
-      fullPath: '/admin/approvals'
-      preLoaderRoute: typeof AdminApprovalsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/approval-history': {
-      id: '/admin/approval-history'
-      path: '/approval-history'
-      fullPath: '/admin/approval-history'
-      preLoaderRoute: typeof AdminApprovalHistoryRouteImport
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/analytics': {
@@ -1135,18 +991,137 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/admin/activity': {
-      id: '/admin/activity'
-      path: '/activity'
-      fullPath: '/admin/activity'
-      preLoaderRoute: typeof AdminActivityRouteImport
+    '/admin/approval-history': {
+      id: '/admin/approval-history'
+      path: '/approval-history'
+      fullPath: '/admin/approval-history'
+      preLoaderRoute: typeof AdminApprovalHistoryRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/tour/_authenticated': {
-      id: '/tour/_authenticated'
-      path: '/tour'
-      fullPath: '/tour'
-      preLoaderRoute: typeof TourAuthenticatedRouteRouteImport
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/businesses': {
+      id: '/admin/businesses'
+      path: '/businesses'
+      fullPath: '/admin/businesses'
+      preLoaderRoute: typeof AdminBusinessesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/claims': {
+      id: '/admin/claims'
+      path: '/claims'
+      fullPath: '/admin/claims'
+      preLoaderRoute: typeof AdminClaimsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/import': {
+      id: '/admin/import'
+      path: '/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AdminImportRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/merchants': {
+      id: '/admin/merchants'
+      path: '/merchants'
+      fullPath: '/admin/merchants'
+      preLoaderRoute: typeof AdminMerchantsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/offers': {
+      id: '/admin/offers'
+      path: '/offers'
+      fullPath: '/admin/offers'
+      preLoaderRoute: typeof AdminOffersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/photos': {
+      id: '/admin/photos'
+      path: '/photos'
+      fullPath: '/admin/photos'
+      preLoaderRoute: typeof AdminPhotosRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/site-content': {
+      id: '/admin/site-content'
+      path: '/site-content'
+      fullPath: '/admin/site-content'
+      preLoaderRoute: typeof AdminSiteContentRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/sponsorship': {
+      id: '/admin/sponsorship'
+      path: '/sponsorship'
+      fullPath: '/admin/sponsorship'
+      preLoaderRoute: typeof AdminSponsorshipRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/tours': {
+      id: '/admin/tours'
+      path: '/tours'
+      fullPath: '/admin/tours'
+      preLoaderRoute: typeof AdminToursRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/business/$id': {
+      id: '/business/$id'
+      path: '/business/$id'
+      fullPath: '/business/$id'
+      preLoaderRoute: typeof BusinessIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/category/$slug': {
+      id: '/category/$slug'
+      path: '/category/$slug'
+      fullPath: '/category/$slug'
+      preLoaderRoute: typeof CategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant/_authenticated': {
@@ -1156,116 +1131,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantAuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tour/_authenticated/tours': {
-      id: '/tour/_authenticated/tours'
+    '/merchant/auth': {
+      id: '/merchant/auth'
+      path: '/merchant/auth'
+      fullPath: '/merchant/auth'
+      preLoaderRoute: typeof MerchantAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promote/$merchantId': {
+      id: '/promote/$merchantId'
+      path: '/promote/$merchantId'
+      fullPath: '/promote/$merchantId'
+      preLoaderRoute: typeof PromoteMerchantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared-plan/$id': {
+      id: '/shared-plan/$id'
+      path: '/shared-plan/$id'
+      fullPath: '/shared-plan/$id'
+      preLoaderRoute: typeof SharedPlanIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tour/_authenticated': {
+      id: '/tour/_authenticated'
+      path: '/tour'
+      fullPath: '/tour'
+      preLoaderRoute: typeof TourAuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tour/forgot-password': {
+      id: '/tour/forgot-password'
+      path: '/tour/forgot-password'
+      fullPath: '/tour/forgot-password'
+      preLoaderRoute: typeof TourForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tour/login': {
+      id: '/tour/login'
+      path: '/tour/login'
+      fullPath: '/tour/login'
+      preLoaderRoute: typeof TourLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tour/register': {
+      id: '/tour/register'
+      path: '/tour/register'
+      fullPath: '/tour/register'
+      preLoaderRoute: typeof TourRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tour/reset-password': {
+      id: '/tour/reset-password'
+      path: '/tour/reset-password'
+      fullPath: '/tour/reset-password'
+      preLoaderRoute: typeof TourResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tours/': {
+      id: '/tours/'
       path: '/tours'
-      fullPath: '/tour/tours'
-      preLoaderRoute: typeof TourAuthenticatedToursRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
+      fullPath: '/tours/'
+      preLoaderRoute: typeof ToursIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/tour/_authenticated/submit': {
-      id: '/tour/_authenticated/submit'
-      path: '/submit'
-      fullPath: '/tour/submit'
-      preLoaderRoute: typeof TourAuthenticatedSubmitRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
+    '/tours/$slug': {
+      id: '/tours/$slug'
+      path: '/tours/$slug'
+      fullPath: '/tours/$slug'
+      preLoaderRoute: typeof ToursSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/tour/_authenticated/pricing': {
-      id: '/tour/_authenticated/pricing'
-      path: '/pricing'
-      fullPath: '/tour/pricing'
-      preLoaderRoute: typeof TourAuthenticatedPricingRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
+    '/admin/business-edit/$id': {
+      id: '/admin/business-edit/$id'
+      path: '/business-edit/$id'
+      fullPath: '/admin/business-edit/$id'
+      preLoaderRoute: typeof AdminBusinessEditIdRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/tour/_authenticated/preview': {
-      id: '/tour/_authenticated/preview'
-      path: '/preview'
-      fullPath: '/tour/preview'
-      preLoaderRoute: typeof TourAuthenticatedPreviewRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
-    }
-    '/tour/_authenticated/gallery': {
-      id: '/tour/_authenticated/gallery'
-      path: '/gallery'
-      fullPath: '/tour/gallery'
-      preLoaderRoute: typeof TourAuthenticatedGalleryRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
-    }
-    '/tour/_authenticated/dashboard': {
-      id: '/tour/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/tour/dashboard'
-      preLoaderRoute: typeof TourAuthenticatedDashboardRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
-    }
-    '/tour/_authenticated/availability': {
-      id: '/tour/_authenticated/availability'
-      path: '/availability'
-      fullPath: '/tour/availability'
-      preLoaderRoute: typeof TourAuthenticatedAvailabilityRouteImport
-      parentRoute: typeof TourAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/submit': {
-      id: '/merchant/_authenticated/submit'
-      path: '/submit'
-      fullPath: '/merchant/submit'
-      preLoaderRoute: typeof MerchantAuthenticatedSubmitRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/preview': {
-      id: '/merchant/_authenticated/preview'
-      path: '/preview'
-      fullPath: '/merchant/preview'
-      preLoaderRoute: typeof MerchantAuthenticatedPreviewRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/photos': {
-      id: '/merchant/_authenticated/photos'
-      path: '/photos'
-      fullPath: '/merchant/photos'
-      preLoaderRoute: typeof MerchantAuthenticatedPhotosRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/offers': {
-      id: '/merchant/_authenticated/offers'
-      path: '/offers'
-      fullPath: '/merchant/offers'
-      preLoaderRoute: typeof MerchantAuthenticatedOffersRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/my-business': {
-      id: '/merchant/_authenticated/my-business'
-      path: '/my-business'
-      fullPath: '/merchant/my-business'
-      preLoaderRoute: typeof MerchantAuthenticatedMyBusinessRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/hours': {
-      id: '/merchant/_authenticated/hours'
-      path: '/hours'
-      fullPath: '/merchant/hours'
-      preLoaderRoute: typeof MerchantAuthenticatedHoursRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/features': {
-      id: '/merchant/_authenticated/features'
-      path: '/features'
-      fullPath: '/merchant/features'
-      preLoaderRoute: typeof MerchantAuthenticatedFeaturesRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/dashboard': {
-      id: '/merchant/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/merchant/dashboard'
-      preLoaderRoute: typeof MerchantAuthenticatedDashboardRouteImport
-      parentRoute: typeof MerchantAuthenticatedRouteRoute
-    }
-    '/merchant/_authenticated/claim': {
-      id: '/merchant/_authenticated/claim'
-      path: '/claim'
-      fullPath: '/merchant/claim'
-      preLoaderRoute: typeof MerchantAuthenticatedClaimRouteImport
+    '/merchant/_authenticated/ai-planning': {
+      id: '/merchant/_authenticated/ai-planning'
+      path: '/ai-planning'
+      fullPath: '/merchant/ai-planning'
+      preLoaderRoute: typeof MerchantAuthenticatedAiPlanningRouteImport
       parentRoute: typeof MerchantAuthenticatedRouteRoute
     }
     '/merchant/_authenticated/branches': {
@@ -1275,19 +1222,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantAuthenticatedBranchesRouteImport
       parentRoute: typeof MerchantAuthenticatedRouteRoute
     }
-    '/merchant/_authenticated/ai-planning': {
-      id: '/merchant/_authenticated/ai-planning'
-      path: '/ai-planning'
-      fullPath: '/merchant/ai-planning'
-      preLoaderRoute: typeof MerchantAuthenticatedAiPlanningRouteImport
+    '/merchant/_authenticated/claim': {
+      id: '/merchant/_authenticated/claim'
+      path: '/claim'
+      fullPath: '/merchant/claim'
+      preLoaderRoute: typeof MerchantAuthenticatedClaimRouteImport
       parentRoute: typeof MerchantAuthenticatedRouteRoute
     }
-    '/admin/business-edit/$id': {
-      id: '/admin/business-edit/$id'
-      path: '/business-edit/$id'
-      fullPath: '/admin/business-edit/$id'
-      preLoaderRoute: typeof AdminBusinessEditIdRouteImport
-      parentRoute: typeof AdminRouteRoute
+    '/merchant/_authenticated/dashboard': {
+      id: '/merchant/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/merchant/dashboard'
+      preLoaderRoute: typeof MerchantAuthenticatedDashboardRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/features': {
+      id: '/merchant/_authenticated/features'
+      path: '/features'
+      fullPath: '/merchant/features'
+      preLoaderRoute: typeof MerchantAuthenticatedFeaturesRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/hours': {
+      id: '/merchant/_authenticated/hours'
+      path: '/hours'
+      fullPath: '/merchant/hours'
+      preLoaderRoute: typeof MerchantAuthenticatedHoursRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/my-business': {
+      id: '/merchant/_authenticated/my-business'
+      path: '/my-business'
+      fullPath: '/merchant/my-business'
+      preLoaderRoute: typeof MerchantAuthenticatedMyBusinessRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/offers': {
+      id: '/merchant/_authenticated/offers'
+      path: '/offers'
+      fullPath: '/merchant/offers'
+      preLoaderRoute: typeof MerchantAuthenticatedOffersRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/photos': {
+      id: '/merchant/_authenticated/photos'
+      path: '/photos'
+      fullPath: '/merchant/photos'
+      preLoaderRoute: typeof MerchantAuthenticatedPhotosRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/preview': {
+      id: '/merchant/_authenticated/preview'
+      path: '/preview'
+      fullPath: '/merchant/preview'
+      preLoaderRoute: typeof MerchantAuthenticatedPreviewRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/merchant/_authenticated/submit': {
+      id: '/merchant/_authenticated/submit'
+      path: '/submit'
+      fullPath: '/merchant/submit'
+      preLoaderRoute: typeof MerchantAuthenticatedSubmitRouteImport
+      parentRoute: typeof MerchantAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/availability': {
+      id: '/tour/_authenticated/availability'
+      path: '/availability'
+      fullPath: '/tour/availability'
+      preLoaderRoute: typeof TourAuthenticatedAvailabilityRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/bookings': {
+      id: '/tour/_authenticated/bookings'
+      path: '/bookings'
+      fullPath: '/tour/bookings'
+      preLoaderRoute: typeof TourAuthenticatedBookingsRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/dashboard': {
+      id: '/tour/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/tour/dashboard'
+      preLoaderRoute: typeof TourAuthenticatedDashboardRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/gallery': {
+      id: '/tour/_authenticated/gallery'
+      path: '/gallery'
+      fullPath: '/tour/gallery'
+      preLoaderRoute: typeof TourAuthenticatedGalleryRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/preview': {
+      id: '/tour/_authenticated/preview'
+      path: '/preview'
+      fullPath: '/tour/preview'
+      preLoaderRoute: typeof TourAuthenticatedPreviewRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/pricing': {
+      id: '/tour/_authenticated/pricing'
+      path: '/pricing'
+      fullPath: '/tour/pricing'
+      preLoaderRoute: typeof TourAuthenticatedPricingRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/route-planner': {
+      id: '/tour/_authenticated/route-planner'
+      path: '/route-planner'
+      fullPath: '/tour/route-planner'
+      preLoaderRoute: typeof TourAuthenticatedRoutePlannerRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/submit': {
+      id: '/tour/_authenticated/submit'
+      path: '/submit'
+      fullPath: '/tour/submit'
+      preLoaderRoute: typeof TourAuthenticatedSubmitRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
+    }
+    '/tour/_authenticated/tours': {
+      id: '/tour/_authenticated/tours'
+      path: '/tours'
+      fullPath: '/tour/tours'
+      preLoaderRoute: typeof TourAuthenticatedToursRouteImport
+      parentRoute: typeof TourAuthenticatedRouteRoute
     }
   }
 }
@@ -1297,10 +1356,10 @@ interface AdminRouteRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminApprovalHistoryRoute: typeof AdminApprovalHistoryRoute
   AdminApprovalsRoute: typeof AdminApprovalsRoute
+  AdminBookingsRoute: typeof AdminBookingsRoute
   AdminBusinessesRoute: typeof AdminBusinessesRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminClaimsRoute: typeof AdminClaimsRoute
-  AdminDashboardRoute: typeof AdminDashboardRoute
   AdminImportRoute: typeof AdminImportRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminOffersRoute: typeof AdminOffersRoute
@@ -1309,6 +1368,7 @@ interface AdminRouteRouteChildren {
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSiteContentRoute: typeof AdminSiteContentRoute
+  AdminSponsorshipRoute: typeof AdminSponsorshipRoute
   AdminToursRoute: typeof AdminToursRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1320,10 +1380,10 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminApprovalHistoryRoute: AdminApprovalHistoryRoute,
   AdminApprovalsRoute: AdminApprovalsRoute,
+  AdminBookingsRoute: AdminBookingsRoute,
   AdminBusinessesRoute: AdminBusinessesRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminClaimsRoute: AdminClaimsRoute,
-  AdminDashboardRoute: AdminDashboardRoute,
   AdminImportRoute: AdminImportRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminOffersRoute: AdminOffersRoute,
@@ -1332,6 +1392,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminReviewsRoute: AdminReviewsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSiteContentRoute: AdminSiteContentRoute,
+  AdminSponsorshipRoute: AdminSponsorshipRoute,
   AdminToursRoute: AdminToursRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -1378,10 +1439,12 @@ const MerchantAuthenticatedRouteRouteWithChildren =
 
 interface TourAuthenticatedRouteRouteChildren {
   TourAuthenticatedAvailabilityRoute: typeof TourAuthenticatedAvailabilityRoute
+  TourAuthenticatedBookingsRoute: typeof TourAuthenticatedBookingsRoute
   TourAuthenticatedDashboardRoute: typeof TourAuthenticatedDashboardRoute
   TourAuthenticatedGalleryRoute: typeof TourAuthenticatedGalleryRoute
   TourAuthenticatedPreviewRoute: typeof TourAuthenticatedPreviewRoute
   TourAuthenticatedPricingRoute: typeof TourAuthenticatedPricingRoute
+  TourAuthenticatedRoutePlannerRoute: typeof TourAuthenticatedRoutePlannerRoute
   TourAuthenticatedSubmitRoute: typeof TourAuthenticatedSubmitRoute
   TourAuthenticatedToursRoute: typeof TourAuthenticatedToursRoute
 }
@@ -1389,10 +1452,12 @@ interface TourAuthenticatedRouteRouteChildren {
 const TourAuthenticatedRouteRouteChildren: TourAuthenticatedRouteRouteChildren =
   {
     TourAuthenticatedAvailabilityRoute: TourAuthenticatedAvailabilityRoute,
+    TourAuthenticatedBookingsRoute: TourAuthenticatedBookingsRoute,
     TourAuthenticatedDashboardRoute: TourAuthenticatedDashboardRoute,
     TourAuthenticatedGalleryRoute: TourAuthenticatedGalleryRoute,
     TourAuthenticatedPreviewRoute: TourAuthenticatedPreviewRoute,
     TourAuthenticatedPricingRoute: TourAuthenticatedPricingRoute,
+    TourAuthenticatedRoutePlannerRoute: TourAuthenticatedRoutePlannerRoute,
     TourAuthenticatedSubmitRoute: TourAuthenticatedSubmitRoute,
     TourAuthenticatedToursRoute: TourAuthenticatedToursRoute,
   }
@@ -1408,6 +1473,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   FavoritesRoute: FavoritesRoute,
   GuideRoute: GuideRoute,
+  HistoryRoute: HistoryRoute,
   OffersRoute: OffersRoute,
   OurGuideRoute: OurGuideRoute,
   PlanRoute: PlanRoute,
@@ -1420,8 +1486,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessIdRoute: BusinessIdRoute,
   CategorySlugRoute: CategorySlugRoute,
   MerchantAuthRoute: MerchantAuthRoute,
-  MerchantForgotPasswordRoute: MerchantForgotPasswordRoute,
-  MerchantResetPasswordRoute: MerchantResetPasswordRoute,
+  PromoteMerchantIdRoute: PromoteMerchantIdRoute,
   SharedPlanIdRoute: SharedPlanIdRoute,
   TourForgotPasswordRoute: TourForgotPasswordRoute,
   TourLoginRoute: TourLoginRoute,
