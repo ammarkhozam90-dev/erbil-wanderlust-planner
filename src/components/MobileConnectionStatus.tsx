@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, WifiOff } from "lucide-react";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 
 /** Shows a compact recovery banner only when the native app is offline. */
 export function MobileConnectionStatus() {

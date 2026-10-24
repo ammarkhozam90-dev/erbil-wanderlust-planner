@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 
 /**
  * Native navigation bridge for the Capacitor build.

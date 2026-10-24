@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 import { supabase } from "@/integrations/supabase/client";
 
 const NATIVE_AUTH_CALLBACK = "com.erbilgo.app://auth/callback";

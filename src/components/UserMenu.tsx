@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { LANGUAGES, useLanguage, type Lang } from "@/lib/language";
 import { supabase } from "@/integrations/supabase/client";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 
 /**
  * variant="avatar" (default): round profile picture button (desktop header).

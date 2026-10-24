@@ -1,4 +1,4 @@
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 
 type CapacitorRuntime = {
   Plugins?: {

@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, Facebook, Instagram, Mail, MapPin, MessageCircle } from "lucide-react";
 import { useSiteSettings } from "@/lib/site-settings";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 
 const publicLinks = [
   { to: "/", label: "Plan my day" },

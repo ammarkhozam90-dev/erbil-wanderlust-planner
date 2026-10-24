@@ -8,19 +8,12 @@
 // On the normal website none of this runs (isNativeApp() is false).
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp } from "@/lib/platform";
 
 export const NATIVE_REDIRECT_URL = "com.erbilgo.app://auth/callback";
 
 function getCapacitor(): any {
   return typeof window === "undefined" ? undefined : (window as any).Capacitor;
-}
-
-export function isNativeApp(): boolean {
-  try {
-    return !!getCapacitor()?.isNativePlatform?.();
-  } catch {
-    return false;
-  }
 }
 
 async function finishSignIn(url: string): Promise<{ ok: boolean; message?: string }> {

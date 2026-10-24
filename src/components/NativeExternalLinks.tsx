@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isNativeApp } from "@/lib/native-auth";
+import { isNativeApp } from "@/lib/platform";
 import { openExternalUrl } from "@/lib/native-external-links";
 
 function isExternalAnchor(anchor: HTMLAnchorElement): boolean {
