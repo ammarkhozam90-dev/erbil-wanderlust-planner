@@ -38,7 +38,7 @@ function ClaimRequests() {
   }
 
   async function reject(claimId: string) {
-    const { error } = await supabase.rpc('reject_merchant_claim', { p_claim_id: claimId, p_reason: reason || null });
+    const { error } = await supabase.rpc('reject_merchant_claim', { p_claim_id: claimId, p_reason: reason || '' });
     if (error) return toast.error(error.message);
     toast.success('Claim rejected');
     setReason('');

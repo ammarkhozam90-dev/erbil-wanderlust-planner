@@ -42,7 +42,7 @@ export function OffersManager({ admin = false }: { admin?: boolean }) {
     queryFn: async () => {
       const { data, error } = await supabase.from('merchant_offers' as any).select('*').eq('merchant_id', selectedMerchantId).order('starts_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as OfferRecord[];
+      return (data ?? []) as unknown as OfferRecord[];
     },
   });
 

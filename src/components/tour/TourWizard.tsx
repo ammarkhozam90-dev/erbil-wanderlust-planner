@@ -76,7 +76,7 @@ export function TourWizard({ initialTour, uploaderUserId, onClose, mode }:
     };
     const { data, error } = t.id
       ? await supabase.from('tours').update(fields).eq('id', t.id).select('*').single()
-      : await supabase.from('tours').insert({ ...fields, organizer_id: t.organizer_id }).select('*').single();
+      : await supabase.from('tours').insert({ ...fields, organizer_id: t.organizer_id ?? uploaderUserId }).select('*').single();
     setSaving(false);
     if (error) return toast.error(error.message);
     setT(data as Tour);

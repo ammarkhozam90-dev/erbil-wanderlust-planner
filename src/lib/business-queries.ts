@@ -46,7 +46,9 @@ async function fetchCategoryBusinesses(
     q = q.or(`name.ilike.%${safe}%,description.ilike.%${safe}%`);
   }
   if (filters.tags.length) q = q.overlaps("features", filters.tags);
-  if (filters.price.length) q = q.in("price_level", filters.price);
+  if (filters.price.length) {
+    q = q.in("price_level", filters.price as Array<"$" | "$$" | "$$$" | "$$$$" | null>);
+  }
 
   switch (filters.sort) {
     case "newest":

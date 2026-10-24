@@ -246,7 +246,7 @@ function Dashboard() {
   }
 
   // --- Dashboard for Existing Merchants ---
-  const status = merchant.status ?? 'draft';
+  const status = (merchant.status ?? 'draft') as keyof typeof statusMeta;
   const meta = statusMeta[status];
   const Icon = meta.icon;
 

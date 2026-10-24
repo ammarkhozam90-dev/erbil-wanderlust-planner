@@ -350,7 +350,7 @@ export function CollaborationPanel({
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
-                    {collaborator.profile?.full_name || "ErbilGo traveller"}
+                    {(collaborator.profile as ProfileResult | null | undefined)?.full_name || "ErbilGo traveller"}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {collaborator.status === "accepted"

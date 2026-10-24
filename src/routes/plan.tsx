@@ -721,7 +721,7 @@ function PlanResult({
           user_id: session.user.id,
           title: plan.title,
           summary: plan.summary,
-          plan_data: plan,
+          plan_data: plan as unknown as import("@/integrations/supabase/types").Json,
           is_public: false,
         })
         .select("id")

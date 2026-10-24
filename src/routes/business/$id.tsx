@@ -593,7 +593,7 @@ function BusinessDetail() {
 
         {data.offers.length > 0 && <LiveOffers offers={data.offers as any[]} />}
 
-        <HotelRooms profile={data.hotelProfile} photos={data.roomPhotos as PublicRoomPhoto[]} />
+        <HotelRooms profile={data.hotelProfile} photos={data.roomPhotos as unknown as PublicRoomPhoto[]} />
 
         {b.description && <p className="mt-4 text-sm text-muted-foreground">{b.description}</p>}
 

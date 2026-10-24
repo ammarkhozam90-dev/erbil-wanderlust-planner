@@ -351,7 +351,7 @@ function ProfilePage() {
     if (!session?.user) return;
     setAvatarUploading(true);
     setCropperFile(null);
-    const previousAvatarUrl = profile.avatar_url;
+    const previousAvatarUrl = profile?.avatar_url;
     try {
       const path = `${session.user.id}/${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, blob, {
@@ -632,7 +632,7 @@ function ProfilePage() {
                     {["USD", "IQD", "EUR"].map((c) => (
                       <button
                         key={c}
-                        onClick={() => useStore.getState().setCurrency(c as any)}
+                        onClick={() => useStore.getState().setFilter("currency", c as "USD" | "IQD")}
                         className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
                           currency === c
                             ? "border-gold bg-gold/10 text-gold"
@@ -846,7 +846,6 @@ function ProfilePage() {
                   <Link
                     to="/"
                     search={{ hub: loc.id }}
-                    onClick={() => setFilter(loc.id)}
                     className="absolute inset-0 z-0"
                   />
                 </div>

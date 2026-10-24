@@ -38,7 +38,7 @@ export function Header() {
 
         <nav className="absolute left-1/2 hidden h-16 -translate-x-1/2 items-center gap-8 md:flex">
           {navItems.map((item) => {
-            const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+            const active = pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
@@ -108,7 +108,7 @@ export function Header() {
           <Link
             key={item.to}
             to={item.to}
-            className={`whitespace-nowrap text-xs font-medium transition-colors ${pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to)) ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            className={`whitespace-nowrap text-xs font-medium transition-colors ${pathname.startsWith(item.to) ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
           >
             {item.label}
           </Link>

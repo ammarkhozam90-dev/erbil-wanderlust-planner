@@ -76,9 +76,9 @@ export function MobileNavigationBridge() {
             console.warn("[mobile-navigation] Could not register Android back button", error);
           });
       } else if (active) {
-        registration = listener;
+        registration = listener as { remove?: () => Promise<void> | void };
       } else {
-        void listener.remove?.();
+        void (listener as { remove?: () => Promise<void> | void }).remove?.();
       }
     } catch (error) {
       console.warn("[mobile-navigation] Could not register Android back button", error);

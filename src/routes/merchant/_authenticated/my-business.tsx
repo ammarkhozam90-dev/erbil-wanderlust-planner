@@ -401,7 +401,7 @@ function MyBusiness() {
         .order("sort_order")
         .order("created_at");
       if (error) throw error;
-      return (data ?? []) as RoomPhoto[];
+      return (data ?? []) as unknown as RoomPhoto[];
     },
   });
 
@@ -627,7 +627,7 @@ function MyBusiness() {
     } else {
       await supabase
         .from("merchants")
-        .update({ [`${kind}_url`]: url })
+        .update({ [`${kind}_url`]: url } as never)
         .eq("id", m!.id);
       qc.invalidateQueries({ queryKey: ["my-merchants", user!.id] });
       const oldPath = extractMerchantMediaPath(previousUrl);

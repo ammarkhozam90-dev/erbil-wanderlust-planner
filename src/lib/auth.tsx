@@ -243,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
-            phone: extras.phone ?? null,
+            phone: extras.phone ?? undefined,
             nationality: extras.nationality ?? null,
             age_range: extras.ageRange ?? null,
             gender: extras.gender ?? null,
@@ -273,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       let lastError: string | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data, error } = await supabase.from("profiles").update(clean).eq("id", userId).select("id");
+        const { data, error } = await supabase.from("profiles").update(clean as never).eq("id", userId).select("id");
         if (!error && data && data.length > 0) {
           setProfile((prev) => (prev ? { ...prev, ...clean } : prev));
           return { error: null };

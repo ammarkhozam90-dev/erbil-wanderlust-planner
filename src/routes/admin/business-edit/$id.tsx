@@ -331,7 +331,7 @@ function EditBusiness() {
     } else {
       const { error: updateErr } = await supabase
         .from("merchants")
-        .update({ [`${kind}_url`]: data.publicUrl })
+        .update({ [`${kind}_url`]: data.publicUrl } as never)
         .eq("id", id);
       if (updateErr) return toast.error(updateErr.message);
       const imageField = `${kind}_url` as "logo_url" | "cover_url";

@@ -330,14 +330,16 @@ function BulkImport() {
     parentPath = "",
   ): Promise<File[]> {
     const files: File[] = [];
-    for await (const entry of directory.values()) {
+    for await (const entry of (directory as FileSystemDirectoryHandle & {
+      values: () => AsyncIterable<FileSystemFileHandle | FileSystemDirectoryHandle>;
+    }).values()) {
       const relativePath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
       if (entry.kind === "file") {
-        const file = await entry.getFile();
+        const file = await (entry as FileSystemFileHandle).getFile();
         Object.defineProperty(file, "webkitRelativePath", { value: relativePath });
         files.push(file);
       } else {
-        files.push(...(await readDirectory(entry, relativePath)));
+        files.push(...(await readDirectory(entry as FileSystemDirectoryHandle, relativePath)));
       }
     }
     return files;
@@ -420,7 +422,7 @@ function BulkImport() {
             if (media.kind === "logo" || media.kind === "cover") {
               const { error: updateError } = await supabase
                 .from("merchants")
-                .update({ [`${media.kind}_url`]: publicUrl.publicUrl })
+                .update({ [`${media.kind}_url`]: publicUrl.publicUrl } as never)
                 .eq("id", business.id);
               if (updateError) throw updateError;
               const previousUrl = media.kind === "logo" ? business.logo_url : business.cover_url;
@@ -489,7 +491,10 @@ function BulkImport() {
           .in("merchant_id", hotelIds);
         if (profileError) throw profileError;
         for (const profile of profiles ?? []) {
-          hotelProfilesByMerchant.set(profile.merchant_id, profile as Record<string, unknown>);
+          hotelProfilesByMerchant.set(
+            (profile as unknown as { merchant_id: string }).merchant_id,
+            profile as unknown as Record<string, unknown>,
+          );
         }
       }
 

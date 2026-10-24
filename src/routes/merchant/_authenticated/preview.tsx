@@ -39,19 +39,19 @@ function Preview() {
             {m.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" />{m.phone}</div>}
             {m.website && <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" />{m.website}</div>}
           </div>
-          {m.features?.length > 0 && (
+          {(m.features ?? []).length > 0 && (
             <div>
               <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Features</div>
               <div className="flex flex-wrap gap-1.5">
-                {m.features.map((f) => <Badge key={f} variant="outline">{f}</Badge>)}
+                {(m.features ?? []).map((f) => <Badge key={f} variant="outline">{f}</Badge>)}
               </div>
             </div>
           )}
-          {m.mood_tags?.length > 0 && (
+          {(m.mood_tags ?? []).length > 0 && (
             <div>
               <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Mood</div>
               <div className="flex flex-wrap gap-1.5">
-                {m.mood_tags.map((t) => <Badge key={t} className="capitalize">{t}</Badge>)}
+                {(m.mood_tags ?? []).map((t) => <Badge key={t} className="capitalize">{t}</Badge>)}
               </div>
             </div>
           )}

@@ -81,7 +81,7 @@ export const Route = createFileRoute("/category/$slug")({
     <div className="min-h-screen bg-background">
       <Header />
       <div className="mx-auto w-full max-w-[1600px] container p-6">
-        <EmptyState message={error.message} />
+        <EmptyState message={error instanceof Error ? error.message : String(error)} />
       </div>
     </div>
   ),
@@ -138,7 +138,7 @@ function CategoryPage() {
         q: patch.q ?? prev.q,
         tags: patch.tags ?? prev.tags,
         price: patch.price ?? prev.price,
-        open: patch.openNow ?? prev.openNow,
+        open: patch.openNow ?? prev.open,
         sort: patch.sort ?? prev.sort,
         page: patch.page ?? prev.page,
       }),

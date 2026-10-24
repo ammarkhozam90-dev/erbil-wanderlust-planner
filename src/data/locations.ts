@@ -19,7 +19,7 @@ export interface Location {
   priceUSD: number;
   description: string;
   durationMin: number;
-  mood: ("Relaxed" | "Adventurous" | "Romantic" | "Family" | "Productive")[];
+  mood: ("Relaxed" | "Cultural" | "Adventurous" | "Romantic" | "Family" | "Productive" | "Social")[];
   with: ("Solo" | "Couple" | "Family" | "Friends")[];
   bestHours: [number, number];
   wifi?: boolean;

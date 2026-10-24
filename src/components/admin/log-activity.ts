@@ -5,6 +5,8 @@ export type AdminAction =
   | 'business.edited'
   | 'business.approved'
   | 'business.rejected'
+  | 'business.sponsored'
+  | 'business.unsponsored'
   | 'business.deleted'
   | 'photo.deleted'
   | 'photo.role_changed'
